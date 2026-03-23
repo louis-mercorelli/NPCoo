@@ -35,7 +35,7 @@ public class ClientHackEvents {
 
         // fire once per click, not continuously while held down
         if (shiftRightClickDown && !wasShiftRightClickDown) {
-            if (isLookingAtSteveAi(mc)) {
+            //if (isLookingAtSteveAi(mc)) {
                 LOGGER.info("### ClientHackEvents opening SteveAiScreen from SHIFT-right-click ###");
 
                 SteveAiMenu menu = new SteveAiMenu(0, mc.player.getInventory());
@@ -46,7 +46,7 @@ public class ClientHackEvents {
                 );
 
                 mc.setScreen(screen);
-            }
+            //}
         }
 
         wasShiftRightClickDown = shiftRightClickDown;

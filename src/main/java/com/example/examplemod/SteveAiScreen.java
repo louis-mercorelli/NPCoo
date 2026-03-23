@@ -80,30 +80,30 @@ public class SteveAiScreen extends MerchantScreen {
         chatInput.setMaxLength(200);
         chatInput.setVisible(activeTab == Tab.CHAT);
         chatInput.setFocused(activeTab == Tab.CHAT);
-        chatInput.setTextColor(0xFF000000);
-        chatInput.setTextColorUneditable(0xFF000000);
+        chatInput.setTextColor(0xFFFFFFFF);
+        chatInput.setTextColorUneditable(0xFFFFFFFF);
         chatInput.setBordered(true);
         this.addRenderableWidget(chatInput);
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        guiGraphics.fill(this.leftPos + 20, this.topPos + 118, this.leftPos + this.imageWidth - 20, this.topPos + 140, 0xFF000000);
-        if (activeTab == Tab.TRADE) {
-            super.render(guiGraphics, mouseX, mouseY, partialTick);
-        } else {
-            this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-            drawMainPanel(guiGraphics);
-            drawCustomLabels(guiGraphics);
-            drawPlaceholderContent(guiGraphics);
-            if (activeTab == Tab.CHAT && chatInput != null && chatInput.isVisible()) {
-                chatInput.render(guiGraphics, mouseX, mouseY, partialTick);
-            }
-        }
+    if (activeTab == Tab.TRADE) {
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+    } else {
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        drawMainPanel(guiGraphics);
+        drawCustomLabels(guiGraphics);
+        drawPlaceholderContent(guiGraphics);
 
-        drawTabs(guiGraphics);
-        renderTooltip(guiGraphics, mouseX, mouseY);
+        if (activeTab == Tab.CHAT && chatInput != null && chatInput.isVisible()) {
+            chatInput.render(guiGraphics, mouseX, mouseY, partialTick);
+        }
     }
+
+    drawTabs(guiGraphics);
+    renderTooltip(guiGraphics, mouseX, mouseY);
+}
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -212,7 +212,7 @@ public class SteveAiScreen extends MerchantScreen {
             this.leftPos + 24,
             this.topPos + 84,
             this.imageWidth - 48,
-            0x000000
+            0xFF000000
         );
     }
 
@@ -276,28 +276,58 @@ public class SteveAiScreen extends MerchantScreen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (activeTab == Tab.CHAT && chatInput != null && chatInput.isVisible()) {
-            if (chatInput.keyPressed(event)) {
-                return true;
-            }
-
+            LOGGER.info("SteveAiScreen keypressed STARTED ");
+            
             int keyCode = event.key();
-            if (keyCode == 257 || keyCode == 335) {
-                String message = chatInput.getValue().trim();
 
+            // ESC should still close the screen
+            if (keyCode == 256) {
+                return super.keyPressed(event);
+            }
+            // Handle Enter FIRST
+            if (keyCode == 257 || keyCode == 335) {
+                LOGGER.info("SteveAiScreen keypressed started to wait for input");
+                String message = chatInput.getValue().trim();
+                LOGGER.info("SteveAiScreen keypressed input is done and enter pressed " + message);
                 if (!message.isEmpty()) {
                     lastPrompt = message;
                     lastResponse = "Thinking...";
                     chatInput.setValue("");
-
+                    
                     String prompt = "You are SteveAI, a Minecraft villager. Keep replies short. The player asks: " + message;
+                    LOGGER.info("SteveAiScreen keypressed sending message to OPENAI " + prompt);
                     lastResponse = OpenAiService.ask(prompt);
+                    LOGGER.info("SteveAiScreen keypressed received response from OPENAI " + lastResponse);
                 }
 
                 return true;
             }
-        }
 
+            // Let the text box handle normal editing keys after that
+            if (chatInput.keyPressed(event)) {
+                LOGGER.info("SteveAiScreen keypressed leaving 1 ???  ");
+                return true;
+            }
+
+            // IMPORTANT: swallow all other keys so Minecraft keybinds
+            // like inventory ('e') do not close the screen
+            return true;
+        }
+        LOGGER.info("SteveAiScreen keypressed leaving 2 ???  ");
         return super.keyPressed(event);
+
+    }
+
+    @Override
+    public void onClose() {
+        LOGGER.info("### SteveAiScreen onClose ###");
+        super.onClose();
+    }
+
+    @Override
+    public void removed() {
+        LOGGER.info("### SteveAiScreen removed ###");
+        super.removed();
     }
 
     @Override
