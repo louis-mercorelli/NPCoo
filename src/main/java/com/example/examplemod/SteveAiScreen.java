@@ -71,7 +71,8 @@ public class SteveAiScreen extends MerchantScreen {
         chatInput = new EditBox(
             this.font,
             this.leftPos + 24,
-            this.topPos + this.imageHeight - 34,
+            //this.topPos + this.imageHeight - 34,
+            this.topPos + 120,
             this.imageWidth - 48,
             18,
             Component.literal("Ask SteveAI")
@@ -79,11 +80,15 @@ public class SteveAiScreen extends MerchantScreen {
         chatInput.setMaxLength(200);
         chatInput.setVisible(activeTab == Tab.CHAT);
         chatInput.setFocused(activeTab == Tab.CHAT);
+        chatInput.setTextColor(0xFF000000);
+        chatInput.setTextColorUneditable(0xFF000000);
+        chatInput.setBordered(true);
         this.addRenderableWidget(chatInput);
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        guiGraphics.fill(this.leftPos + 20, this.topPos + 118, this.leftPos + this.imageWidth - 20, this.topPos + 140, 0xFF000000);
         if (activeTab == Tab.TRADE) {
             super.render(guiGraphics, mouseX, mouseY, partialTick);
         } else {
@@ -91,6 +96,9 @@ public class SteveAiScreen extends MerchantScreen {
             drawMainPanel(guiGraphics);
             drawCustomLabels(guiGraphics);
             drawPlaceholderContent(guiGraphics);
+            if (activeTab == Tab.CHAT && chatInput != null && chatInput.isVisible()) {
+                chatInput.render(guiGraphics, mouseX, mouseY, partialTick);
+            }
         }
 
         drawTabs(guiGraphics);
@@ -124,7 +132,7 @@ public class SteveAiScreen extends MerchantScreen {
     }
 
     private void drawCustomLabels(GuiGraphics guiGraphics) {
-        guiGraphics.drawString(this.font, this.title, this.leftPos + 106, this.topPos + 6, 0x000000, false);
+        guiGraphics.drawString(this.font, this.title, this.leftPos + 106, this.topPos + 6, 0xFF000000, false);
     }
 
     private void drawTabs(GuiGraphics guiGraphics) {
@@ -141,7 +149,7 @@ public class SteveAiScreen extends MerchantScreen {
         int light = 0xFFFFFFFF;
         int fill = selected ? 0xFFC6C6C6 : 0xFFB5B5B5;
         int shadow = 0xFF8B8B8B;
-        int textColor = 0x000000;
+        int textColor = 0xFF000000;
 
         int x2 = x + width;
         int y2 = y + TAB_HEIGHT;
@@ -189,15 +197,15 @@ public class SteveAiScreen extends MerchantScreen {
         int line2Width = this.font.width(line2);
 
         guiGraphics.drawString(this.font, line1, centerX - line1Width / 2, centerY, 0x000000, false);
-        guiGraphics.drawString(this.font, line2, centerX - line2Width / 2, centerY + 14, 0x000000, false);
+        guiGraphics.drawString(this.font, line2, centerX - line2Width / 2, centerY + 14, 0xFF000000, false);
     }
 
     private void drawChatTab(GuiGraphics guiGraphics) {
         guiGraphics.drawString(this.font, "SteveAI Chat", this.leftPos + 24, this.topPos + 24, 0x000000, false);
-        guiGraphics.drawString(this.font, "You:", this.leftPos + 24, this.topPos + 46, 0x000000, false);
-        guiGraphics.drawString(this.font, lastPrompt, this.leftPos + 60, this.topPos + 46, 0x000000, false);
+        guiGraphics.drawString(this.font, "You:", this.leftPos + 24, this.topPos + 46, 0xFF000000, false);
+        guiGraphics.drawString(this.font, lastPrompt, this.leftPos + 60, this.topPos + 46, 0xFF000000, false);
 
-        guiGraphics.drawString(this.font, "SteveAI:", this.leftPos + 24, this.topPos + 68, 0x000000, false);
+        guiGraphics.drawString(this.font, "SteveAI:", this.leftPos + 24, this.topPos + 68, 0xFF000000, false);
         drawWrappedText(
             guiGraphics,
             lastResponse,
