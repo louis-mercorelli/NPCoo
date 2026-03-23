@@ -239,12 +239,10 @@ public class SteveAiScreen extends MerchantScreen {
         double mouseX = event.x();
         double mouseY = event.y();
 
-        if (activeTab == Tab.CHAT && chatInput != null) {
-            if (chatInput.mouseClicked(event, consumed)) {
-                return true;
-            }
+        if (activeTab != Tab.TRADE) {
+            return true;
         }
-
+        
         if (isTabClicked(mouseX, mouseY, tradeTabX, tabY, TRADE_TAB_WIDTH)) {
             activeTab = Tab.TRADE;
             updateTabVisibility();
@@ -266,9 +264,11 @@ public class SteveAiScreen extends MerchantScreen {
             return true;
         }
 
-        if (activeTab != Tab.TRADE) {
+        if (activeTab == Tab.CHAT && chatInput != null && chatInput.mouseClicked(event, consumed)) {
             return true;
         }
+
+
 
         return super.mouseClicked(event, consumed);
     }
@@ -284,6 +284,12 @@ public class SteveAiScreen extends MerchantScreen {
             if (keyCode == 256) {
                 return super.keyPressed(event);
             }
+
+            // swallow inventory key E everywhere in this UI
+            if (keyCode == 69) { // E
+                return true;
+            }
+
             // Handle Enter FIRST
             if (keyCode == 257 || keyCode == 335) {
                 LOGGER.info("SteveAiScreen keypressed started to wait for input");
