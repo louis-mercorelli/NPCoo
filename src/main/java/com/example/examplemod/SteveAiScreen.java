@@ -298,10 +298,22 @@ public class SteveAiScreen extends MerchantScreen {
                     lastResponse = "Thinking...";
                     chatInput.setValue("");
                     
-                    String prompt = "You are SteveAI, a Minecraft villager. Keep replies short. The player asks: " + message;
-                    LOGGER.info("SteveAiScreen keypressed sending message to OPENAI " + prompt);
-                    lastResponse = OpenAiService.ask(prompt);
-                    LOGGER.info("SteveAiScreen keypressed received response from OPENAI " + lastResponse);
+                    java.util.UUID playerUuid = net.minecraft.client.Minecraft.getInstance().player.getUUID();
+
+                    String fileContext = SteveAiContextFiles.buildChatContext(playerUuid, 200);
+
+                    String prompt2 =
+                        "You are SteveAI, a Minecraft villager. " +
+                        "You are shy at first and mistrustful in this new world" +
+                        "you are truthful BUT vague and may fib to protect yourself. Especially at the start of a relationship" +
+                        "after days of knowing someone you become more open and share more detailed, personal and useful info" +
+                         "\n" +
+                        "Keep replies short if possible even kurt if it is warranted. " +
+                        "Use the context files below if relevant.\n\n" +
+                        fileContext + "\n\n" +
+                        "Player asks: " + message;
+                    LOGGER.info("SteveAiScreen keypressed sending message to OPENAI " + prompt2);
+                    lastResponse = OpenAiService.ask(prompt2);
                 }
 
                 return true;

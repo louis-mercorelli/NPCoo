@@ -58,6 +58,11 @@ public class CommandEvents {
     private static boolean steveAiFollowMode = false;
     private static UUID steveAiFollowPlayerUuid = null;
     private static long lastFollowTick = 0L;
+    private static boolean steveAiChunkForceEnabled = true;
+    private static Integer forcedSteveAiChunkX = null;
+    private static Integer forcedSteveAiChunkZ = null;
+    private static net.minecraft.core.BlockPos lastSteveAiKnownPos = null;
+    private static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> lastSteveAiKnownDimension = null;
 
     @SubscribeEvent
         public static void onCommandsRegister(RegisterCommandsEvent event) {
@@ -75,6 +80,104 @@ public class CommandEvents {
                             LOGGER.info("ExampleMod command executed with no message");
                             return 1;
                         })
+                        .then(Commands.literal("forceChunkOn")
+                            .executes(context -> {
+                                CommandSourceStack source = context.getSource();
+
+                                if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                    source.sendFailure(Component.literal("Player only command."));
+                                    return 0;
+                                }
+
+                                Villager steveAi = findSteveAi((ServerLevel) player.level());
+                                if (steveAi == null) {
+                                    source.sendFailure(Component.literal("Could not find steveAI in loaded chunks."));
+                                    return 0;
+                                }
+
+                                steveAiChunkForceEnabled = true;
+                                updateForcedChunkForSteveAi((ServerLevel) player.level(), steveAi);
+
+                                source.sendSuccess(() -> Component.literal("§6[testmod] SteveAI chunk forcing enabled."), false);
+                                return 1;
+                            })
+                        )
+                        .then(Commands.literal("forceChunkOff")
+                            .executes(context -> {
+                                CommandSourceStack source = context.getSource();
+
+                                if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                    source.sendFailure(Component.literal("Player only command."));
+                                    return 0;
+                                }
+
+                                steveAiChunkForceEnabled = false;
+                                clearForcedSteveAiChunk((ServerLevel) player.level());
+
+                                source.sendSuccess(() -> Component.literal("§6[testmod] SteveAI chunk forcing disabled."), false);
+                                return 1;
+                            })
+                        )
+                        .then(Commands.literal("whereRu")
+                            .executes(context -> {
+                                CommandSourceStack source = context.getSource();
+
+                                if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                    source.sendFailure(Component.literal("Player only command."));
+                                    return 0;
+                                }
+
+                                ServerLevel serverLevel = (ServerLevel) player.level();
+                                Villager steveAi = findSteveAi(serverLevel);
+
+                                if (steveAi != null) {
+                                    String msg = String.format(
+                                        "§6[testmod] steveAI is loaded now at dimension=%s x=%.2f y=%.2f z=%.2f",
+                                        steveAi.level().dimension(),
+                                        steveAi.getX(),
+                                        steveAi.getY(),
+                                        steveAi.getZ()
+                                    );
+
+                                    source.sendSuccess(() -> Component.literal(msg), false);
+
+                                    LOGGER.info(
+                                        "whereRu loaded -> dimension={} x={} y={} z={}",
+                                        steveAi.level().dimension(),
+                                        steveAi.getX(),
+                                        steveAi.getY(),
+                                        steveAi.getZ()
+                                    );
+
+                                    return 1;
+                                }
+
+                                if (lastSteveAiKnownPos != null && lastSteveAiKnownDimension != null) {
+                                    String msg = String.format(
+                                        "§6[testmod] steveAI is not loaded. Last known position: dimension=%s x=%d y=%d z=%d",
+                                        lastSteveAiKnownDimension,
+                                        lastSteveAiKnownPos.getX(),
+                                        lastSteveAiKnownPos.getY(),
+                                        lastSteveAiKnownPos.getZ()
+                                    );
+
+                                    source.sendSuccess(() -> Component.literal(msg), false);
+
+                                    LOGGER.info(
+                                        "whereRu unloaded -> last known dimension={} x={} y={} z={}",
+                                        lastSteveAiKnownDimension,
+                                        lastSteveAiKnownPos.getX(),
+                                        lastSteveAiKnownPos.getY(),
+                                        lastSteveAiKnownPos.getZ()
+                                    );
+
+                                    return 1;
+                                }
+
+                                source.sendFailure(Component.literal("Could not find steveAI, and no last known position is recorded."));
+                                return 0;
+                            })
+                        )
                         .then(Commands.literal("tele")
                             .executes(context -> {
                                 CommandSourceStack source = context.getSource();
@@ -299,6 +402,7 @@ public class CommandEvents {
         if (server.overworld() == null) {
             return;
         }
+
         // steveAI should follow player
         if (steveAiFollowMode && steveAiFollowPlayerUuid != null) {
             long now = server.overworld().getGameTime();
@@ -339,8 +443,13 @@ public class CommandEvents {
                 new AABB(-30000000, -64, -30000000, 30000000, 320, 30000000),
                 entity -> isSteveAi(entity)
             );
-
             for (Entity entity : matches) {
+                lastSteveAiKnownPos = entity.blockPosition();
+                lastSteveAiKnownDimension = entity.level().dimension(); 
+
+                if (steveAiChunkForceEnabled) {
+                    updateForcedChunkForSteveAi(serverLevel, entity);
+                }
                 String line = String.format(
                     "steveAI location -> player=%s uuid=%s dimension=%s x=%.2f y=%.2f z=%.2f%n",
                     lastPlayerName,
@@ -358,7 +467,7 @@ public class CommandEvents {
                     entity.getY(),
                     entity.getZ()
                 );
-
+                
                 appendSteveAiLine(serverLevel, lastPlayerUuid, line);
                 appendWorldInfo(serverLevel, entity);
 
@@ -393,7 +502,7 @@ public class CommandEvents {
                         )
                     );
 
-                    appendNearbyBlocks(serverLevel, entity, 40, 40);
+                    appendNearbyBlocks(serverLevel, entity, 50, 100);
                 }
 
                 boolean didBlockEntityScan = false;
@@ -417,12 +526,21 @@ public class CommandEvents {
                 }
 
                 if (didBlockEntityScan) {
-                    appendSteveAiLine(serverLevel, lastPlayerUuid, "\n=== POI Summary ===\n");
+                    java.util.List<String> summaryLines = new java.util.ArrayList<>();
+                    summaryLines.add("");
+                    summaryLines.add("=== POI Summary ===");
+                    summaryLines.add(String.format(
+                        "scanCenter=(%d,%d,%d)",
+                        lastBlockEntityScanCenter.getX(),
+                        lastBlockEntityScanCenter.getY(),
+                        lastBlockEntityScanCenter.getZ()
+                    ));
 
                     for (String poiLine : PoiManager.buildSummaryLines()) {
-                        appendSteveAiLine(serverLevel, lastPlayerUuid, poiLine + "\n");
+                        summaryLines.add(poiLine);
                     }
 
+                    writeSteveAiSummary(serverLevel, lastPlayerUuid, summaryLines);
                     PoiManager.clear();
                 }
             }
@@ -498,6 +616,24 @@ public class CommandEvents {
         return entity.hasCustomName()
             && entity.getCustomName() != null
             && STEVE_AI_NAME.equals(entity.getCustomName().getString());
+    }
+
+    private static void writeSteveAiSummary(ServerLevel serverLevel, UUID playerUuid, java.util.List<String> lines) {
+        try {
+            Path playerDataDir = serverLevel.getServer().getWorldPath(LevelResource.PLAYER_DATA_DIR);
+            Files.createDirectories(playerDataDir);
+
+            Path summaryFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_summary.txt");
+
+            Files.write(
+                summaryFile,
+                lines,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND
+            );
+        } catch (IOException e) {
+            LOGGER.error("Failed to write steveAI summary file", e);
+        }
     }
 
     private static void appendSteveAiLine(ServerLevel serverLevel, UUID playerUuid, String line) {
@@ -848,6 +984,40 @@ public class CommandEvents {
         }
 
         return null;
+    }
+
+    private static void updateForcedChunkForSteveAi(ServerLevel serverLevel, Entity steveAiEntity) {
+        int chunkX = steveAiEntity.chunkPosition().x;
+        int chunkZ = steveAiEntity.chunkPosition().z;
+
+        // already forcing the right chunk
+        if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null
+                && forcedSteveAiChunkX == chunkX && forcedSteveAiChunkZ == chunkZ) {
+            return;
+        }
+
+        // unforce previous chunk
+        if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null) {
+            boolean removed = serverLevel.setChunkForced(forcedSteveAiChunkX, forcedSteveAiChunkZ, false);
+            LOGGER.info("Unforced old steveAI chunk {},{} result={}", forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);
+        }
+
+        // force current chunk
+        boolean added = serverLevel.setChunkForced(chunkX, chunkZ, true);
+        forcedSteveAiChunkX = chunkX;
+        forcedSteveAiChunkZ = chunkZ;
+
+        LOGGER.info("Forced steveAI chunk {},{} result={}", chunkX, chunkZ, added);
+    }
+
+    private static void clearForcedSteveAiChunk(ServerLevel serverLevel) {
+        if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null) {
+            boolean removed = serverLevel.setChunkForced(forcedSteveAiChunkX, forcedSteveAiChunkZ, false);
+            LOGGER.info("Cleared forced steveAI chunk {},{} result={}", forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);
+        }
+
+        forcedSteveAiChunkX = null;
+        forcedSteveAiChunkZ = null;
     }
 
     private static class SeenSummary {
