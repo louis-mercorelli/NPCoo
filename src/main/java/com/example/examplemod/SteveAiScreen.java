@@ -239,10 +239,6 @@ public class SteveAiScreen extends MerchantScreen {
         double mouseX = event.x();
         double mouseY = event.y();
 
-        if (activeTab != Tab.TRADE) {
-            return true;
-        }
-        
         if (isTabClicked(mouseX, mouseY, tradeTabX, tabY, TRADE_TAB_WIDTH)) {
             activeTab = Tab.TRADE;
             updateTabVisibility();
@@ -268,7 +264,9 @@ public class SteveAiScreen extends MerchantScreen {
             return true;
         }
 
-
+        if (activeTab != Tab.TRADE) {
+            return true;
+        }
 
         return super.mouseClicked(event, consumed);
     }
