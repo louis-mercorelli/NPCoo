@@ -17,7 +17,7 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 // Include generated resources
 sourceSets.main.resources { srcDir 'src/generated/resources' }
-
+def isMac = System.getProperty("os.name").toLowerCase().contains("mac")
 minecraft {
     mappings channel: 'official', version: '1.21.11'
 
@@ -30,7 +30,9 @@ minecraft {
         }
 
         register('client') {
-            jvmArgs '-XstartOnFirstThread'
+            if (isMac) {
+                jvmArgs '-XstartOnFirstThread'
+            }
         }
 
         register('server') {
