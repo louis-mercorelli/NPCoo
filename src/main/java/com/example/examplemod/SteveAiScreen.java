@@ -265,6 +265,11 @@ public class SteveAiScreen extends MerchantScreen {
             updateTabVisibility();
             return true;
         }
+        if (isTabClicked(mouseX, mouseY, histTabX, tabY, HIST_TAB_WIDTH)) {
+            LOGGER.info("HIST tab clicked");
+            activeTab = Tab.HIST;
+            return true;
+        }
         if (isTabClicked(mouseX, mouseY, inventoryTabX, tabY, INVENTORY_TAB_WIDTH)) {
             activeTab = Tab.INVENTORY;
             updateTabVisibility();
