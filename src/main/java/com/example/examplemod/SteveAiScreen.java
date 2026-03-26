@@ -233,7 +233,10 @@ public class SteveAiScreen extends MerchantScreen {
             chatInput.setFocused(showChatInput);
         }
     }
-
+    public void receiveServerReply(String prompt, String reply) {
+        this.lastPrompt = prompt;
+        this.lastResponse = reply;
+    }
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean consumed) {
         double mouseX = event.x();
@@ -292,28 +295,41 @@ public class SteveAiScreen extends MerchantScreen {
             if (keyCode == 257 || keyCode == 335) {
                 LOGGER.info("SteveAiScreen keypressed started to wait for input");
                 String message = chatInput.getValue().trim();
-                LOGGER.info("SteveAiScreen keypressed input is done and enter pressed " + message);
+                LOGGER.info("SteveAiScreen keypressed input is done and enter pressed {}", message);
+
                 if (!message.isEmpty()) {
                     lastPrompt = message;
                     lastResponse = "Thinking...";
                     chatInput.setValue("");
-                    
+
                     java.util.UUID playerUuid = net.minecraft.client.Minecraft.getInstance().player.getUUID();
 
                     String fileContext = SteveAiContextFiles.buildChatContext(playerUuid, 200);
-
+                    LOGGER.info("SteveAiScreen calling openai to get reply"); 
                     String prompt2 =
                         "You are SteveAI, a Minecraft villager. " +
-                        "You are shy at first and mistrustful in this new world" +
-                        "you are truthful BUT vague and may fib to protect yourself. Especially at the start of a relationship" +
-                        "after days of knowing someone you become more open and share more detailed, personal and useful info" +
-                         "\n" +
-                        "Keep replies short if possible even kurt if it is warranted. " +
+                        "You are shy at first and mistrustful in this new world. " +
+                        "You are truthful but vague and may fib to protect yourself, especially at the start of a relationship. " +
+                        "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
+                        "Keep replies short if possible, even curt if it is warranted. " +
                         "Use the context files below if relevant.\n\n" +
                         fileContext + "\n\n" +
                         "Player asks: " + message;
-                    LOGGER.info("SteveAiScreen keypressed sending message to OPENAI " + prompt2);
-                    lastResponse = OpenAiService.ask(prompt2);
+
+                    String reply = OpenAiService.ask(prompt2);
+                    lastResponse = reply;
+                    SteveAiContextFiles.appendChatLine(
+                        playerUuid,
+                        "[" + CommandEvents.chatTs() + "] YOU: " + CommandEvents.oneLine(message)
+                    );
+
+                    SteveAiContextFiles.appendChatLine(
+                        playerUuid,
+                        "[" + CommandEvents.chatTs() + "] STEVEAI: " + CommandEvents.oneLine(reply)
+                    );
+
+                    SteveAiContextFiles.appendChatLine(playerUuid, "");
+                    LOGGER.info("SteveAiScreen finished writing to chat file "); 
                 }
 
                 return true;

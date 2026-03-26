@@ -1,16 +1,20 @@
 package com.example.examplemod;
 
+import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.storage.LevelResource;
+import org.slf4j.Logger;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
 public class SteveAiContextFiles {
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     public static String buildChatContext(UUID playerUuid, int tailLines) {
         Minecraft mc = Minecraft.getInstance();
@@ -40,6 +44,34 @@ public class SteveAiContextFiles {
 
         } catch (Exception e) {
             return "Failed to load SteveAI context files: " + e.getMessage();
+        }
+    }
+
+    public static void appendChatLine(UUID playerUuid, String line) {
+        try {
+            Path playerDataDir = java.nio.file.Paths.get("saves", "steveAI 2 desert", "playerdata");
+            LOGGER.info("SteveAiContextFiles ready to append to chat file");
+            Files.createDirectories(playerDataDir);
+            LOGGER.info("SteveAiContextFiles playerDataDir: " + playerDataDir.toAbsolutePath().toString());
+            Path chatFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat.txt");
+            LOGGER.info("SteveAiContextFiles chatFile: " + chatFile.toAbsolutePath().toString());
+
+
+            String out = (line == null ? "" : line);
+            if (!out.endsWith("\n")) {
+                out += "\n";
+            }
+
+            Files.writeString(
+                chatFile,
+                out,
+                java.nio.charset.StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND
+            );
+            LOGGER.info("SteveAiContextFiles wrote to chat file");
+        } catch (IOException e) {
+            LOGGER.error("Failed to write steveAI chat file", e);
         }
     }
 

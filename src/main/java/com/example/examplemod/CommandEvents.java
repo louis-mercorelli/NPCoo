@@ -379,8 +379,15 @@ public class CommandEvents {
                                     false
                                 );
 
-                                String reply = OpenAiService.ask("you are a Minecraft Villager. Your reply should be short so it doens't fill the screen. The Player asks: " + message);
-                                        
+                                if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                    source.sendFailure(Component.literal("Player only command."));
+                                    return 0;
+                                }
+
+                                ServerLevel serverLevel = (ServerLevel) player.level();
+                                UUID playerUuid = player.getUUID();
+
+                                String reply = askSteveAi(serverLevel, playerUuid, message);          
                                 source.sendSuccess(
                                     () -> Component.literal("§6[testmod] OpenAI reply: " + reply),
                                     false
@@ -628,6 +635,7 @@ public class CommandEvents {
             Files.write(
                 summaryFile,
                 lines,
+                java.nio.charset.StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND
             );
@@ -648,6 +656,7 @@ public class CommandEvents {
             Files.writeString(
                 steveAiFile,
                 line,
+                java.nio.charset.StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND
             );
@@ -678,6 +687,67 @@ public class CommandEvents {
         }
 
         return null;
+    }
+
+    public static void appendSteveAiChatLine(ServerLevel serverLevel, UUID playerUuid, String line) {
+        try {
+            Path playerDataDir = serverLevel.getServer().getWorldPath(LevelResource.PLAYER_DATA_DIR);
+            Files.createDirectories(playerDataDir);
+
+            Path chatFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat.txt");
+
+            String out = (line == null ? "" : line);
+            if (!out.endsWith("\n")) {
+                out += "\n";
+            }
+
+            Files.writeString(
+                chatFile,
+                out,
+                java.nio.charset.StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND
+            );
+        } catch (IOException e) {
+            LOGGER.error("Failed to write steveAI chat file", e);
+        }
+    }
+
+    public static String chatTs() {
+        return java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    public static String oneLine(String s) {
+        if (s == null) return "";
+        return s.replace("\r", " ").replace("\n", " ").trim();
+    }
+
+    public static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
+        LOGGER.info("askSteveAi START playerUuid={} message={}", playerUuid, message);
+
+        String fileContext = SteveAiContextFiles.buildChatContext(playerUuid, 200);
+
+        String prompt =
+            "You are SteveAI, a Minecraft villager. " +
+            "You are shy at first and mistrustful in this new world. " +
+            "You are truthful but vague and may fib to protect yourself, especially early in a relationship. " +
+            "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
+            "Keep replies short if possible, even curt if warranted. " +
+            "Use the context files below if relevant.\n\n" +
+            fileContext + "\n\n" +
+            "Player asks: " + message;
+
+        String reply = OpenAiService.ask(prompt);
+
+        appendSteveAiChatLine(serverLevel, playerUuid,
+            "[" + chatTs() + "] YOU: " + oneLine(message));
+        appendSteveAiChatLine(serverLevel, playerUuid,
+            "[" + chatTs() + "] STEVEAI: " + oneLine(reply));
+        appendSteveAiChatLine(serverLevel, playerUuid, "");
+
+        LOGGER.info("askSteveAi FINISH playerUuid={} reply={}", playerUuid, reply);
+        return reply;
     }
 
     private static void appendWorldInfo(ServerLevel serverLevel, Entity steveAiEntity) {
