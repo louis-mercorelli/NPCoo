@@ -42,7 +42,7 @@ public class ClientHackEvents {
                 SteveAiScreen screen = new SteveAiScreen(
                     menu,
                     mc.player.getInventory(),
-                    Component.literal("SteveAI")
+                    Component.literal("")
                 );
 
                 mc.setScreen(screen);

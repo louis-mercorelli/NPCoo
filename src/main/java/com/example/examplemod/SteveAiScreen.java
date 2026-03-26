@@ -17,10 +17,11 @@ public class SteveAiScreen extends MerchantScreen {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private enum Tab {
-        TRADE("Trade"),
         CHAT("Chat"),
+        TRADE("Trade"),
         MAP("Map"),
-        INVENTORY("Inventory");
+        INVENTORY("Inv"),
+        HIST("Hist");
 
         private final String label;
 
@@ -33,24 +34,26 @@ public class SteveAiScreen extends MerchantScreen {
         }
     }
 
-    private Tab activeTab = Tab.TRADE;
+    private Tab activeTab = Tab.CHAT;
 
     private int tabY;
     private int tradeTabX;
     private int chatTabX;
     private int mapTabX;
+    private int histTabX;
     private int inventoryTabX;
 
-    private static final int TAB_HEIGHT = 20;
-    private static final int TRADE_TAB_WIDTH = 52;
     private static final int CHAT_TAB_WIDTH = 52;
-    private static final int MAP_TAB_WIDTH = 48;
-    private static final int INVENTORY_TAB_WIDTH = 72;
+    private static final int TRADE_TAB_WIDTH = 60;
+    private static final int MAP_TAB_WIDTH = 44;
+    private static final int HIST_TAB_WIDTH = 48;
+    private static final int INVENTORY_TAB_WIDTH = 42;
     private static final int TAB_GAP = 4;
+    private static final int TAB_HEIGHT = 18;
 
     private EditBox chatInput;
     private String lastPrompt = "";
-    private String lastResponse = "Future chat functionality";
+    private String lastResponse = "";
 
     public SteveAiScreen(SteveAiMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -63,16 +66,16 @@ public class SteveAiScreen extends MerchantScreen {
 
         tabY = this.topPos - 18;
 
-        tradeTabX = this.leftPos + 18;
-        chatTabX = tradeTabX + TRADE_TAB_WIDTH + TAB_GAP;
-        mapTabX = chatTabX + CHAT_TAB_WIDTH + TAB_GAP;
-        inventoryTabX = mapTabX + MAP_TAB_WIDTH + TAB_GAP;
+        chatTabX = this.leftPos + 8;
+        tradeTabX = chatTabX + CHAT_TAB_WIDTH + TAB_GAP;
+        mapTabX = tradeTabX + TRADE_TAB_WIDTH + TAB_GAP;
+        histTabX = mapTabX + MAP_TAB_WIDTH + TAB_GAP;
+        inventoryTabX = histTabX + HIST_TAB_WIDTH + TAB_GAP;
 
         chatInput = new EditBox(
             this.font,
             this.leftPos + 24,
-            //this.topPos + this.imageHeight - 34,
-            this.topPos + 120,
+            this.topPos + 18,
             this.imageWidth - 48,
             18,
             Component.literal("Ask SteveAI")
@@ -103,7 +106,7 @@ public class SteveAiScreen extends MerchantScreen {
 
     drawTabs(guiGraphics);
     renderTooltip(guiGraphics, mouseX, mouseY);
-}
+    }
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -136,9 +139,10 @@ public class SteveAiScreen extends MerchantScreen {
     }
 
     private void drawTabs(GuiGraphics guiGraphics) {
-        drawTab(guiGraphics, tradeTabX, tabY, TRADE_TAB_WIDTH, Tab.TRADE);
         drawTab(guiGraphics, chatTabX, tabY, CHAT_TAB_WIDTH, Tab.CHAT);
+        drawTab(guiGraphics, tradeTabX, tabY, TRADE_TAB_WIDTH, Tab.TRADE);
         drawTab(guiGraphics, mapTabX, tabY, MAP_TAB_WIDTH, Tab.MAP);
+        drawTab(guiGraphics, histTabX, tabY, HIST_TAB_WIDTH, Tab.HIST);
         drawTab(guiGraphics, inventoryTabX, tabY, INVENTORY_TAB_WIDTH, Tab.INVENTORY);
     }
 
@@ -201,19 +205,26 @@ public class SteveAiScreen extends MerchantScreen {
     }
 
     private void drawChatTab(GuiGraphics guiGraphics) {
-        guiGraphics.drawString(this.font, "SteveAI Chat", this.leftPos + 24, this.topPos + 24, 0x000000, false);
-        guiGraphics.drawString(this.font, "You:", this.leftPos + 24, this.topPos + 46, 0xFF000000, false);
-        guiGraphics.drawString(this.font, lastPrompt, this.leftPos + 60, this.topPos + 46, 0xFF000000, false);
+        int x = this.leftPos + 24;
+        int y = this.topPos + 42;
+        int maxWidth = this.imageWidth - 48;
+        int lineHeight = 10;
+        int labelWidth = 52;
 
-        guiGraphics.drawString(this.font, "SteveAI:", this.leftPos + 24, this.topPos + 68, 0xFF000000, false);
-        drawWrappedText(
-            guiGraphics,
-            lastResponse,
-            this.leftPos + 24,
-            this.topPos + 84,
-            this.imageWidth - 48,
-            0xFF000000
-        );
+        guiGraphics.drawString(this.font, "You:", x, y, 0xFF000000, false);
+
+        var promptLines = this.font.split(Component.literal(lastPrompt), maxWidth - labelWidth);
+        int py = y;
+        for (var line : promptLines) {
+            guiGraphics.drawString(this.font, line, x + labelWidth, py, 0xFF000000, false);
+            py += lineHeight;
+        }
+
+        y = py + 8;
+        guiGraphics.drawString(this.font, "SteveAI:", x, y, 0xFF000000, false);
+
+        y += 16;
+        drawWrappedText(guiGraphics, lastResponse, x, y, maxWidth, 0xFF000000);
     }
 
     private void drawWrappedText(GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color) {
