@@ -302,33 +302,37 @@ public class SteveAiScreen extends MerchantScreen {
                     lastResponse = "Thinking...";
                     chatInput.setValue("");
 
-                    java.util.UUID playerUuid = net.minecraft.client.Minecraft.getInstance().player.getUUID();
+                    //java.util.UUID playerUuid = net.minecraft.client.Minecraft.getInstance().player.getUUID();
 
-                    String fileContext = SteveAiContextFiles.buildChatContext(playerUuid, 200);
+                    //String fileContext = SteveAiContextFiles.buildChatContext(playerUuid, 200);
                     LOGGER.info("SteveAiScreen calling openai to get reply"); 
-                    String prompt2 =
-                        "You are SteveAI, a Minecraft villager. " +
-                        "You are shy at first and mistrustful in this new world. " +
-                        "You are truthful but vague and may fib to protect yourself, especially at the start of a relationship. " +
-                        "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
-                        "Keep replies short if possible, even curt if it is warranted. " +
-                        "Use the context files below if relevant.\n\n" +
-                        fileContext + "\n\n" +
-                        "Player asks: " + message;
+                    //String prompt2 =
+                    //    "You are SteveAI, a Minecraft villager. " +
+                    //    "You are shy at first and mistrustful in this new world. " +
+                    //    "You are truthful but vague and may fib to protect yourself, especially at the start of a relationship. " +
+                    //    "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
+                    //    "Keep replies short if possible, even curt if it is warranted. " +
+                    //    "Use the context files below if relevant.\n\n" +
+                    //    fileContext + "\n\n" +
+                    //    "Player asks: " + message;
 
-                    String reply = OpenAiService.ask(prompt2);
-                    lastResponse = reply;
-                    SteveAiContextFiles.appendChatLine(
-                        playerUuid,
-                        "[" + CommandEvents.chatTs() + "] YOU: " + CommandEvents.oneLine(message)
-                    );
+                    //String reply = OpenAiService.ask(prompt2);
+                    //lastResponse = reply;
+                    //SteveAiContextFiles.appendChatLine(
+                    //   playerUuid,
+                    //    "[" + CommandEvents.chatTs() + "] YOU: " + CommandEvents.oneLine(message)
+                    //);
 
-                    SteveAiContextFiles.appendChatLine(
-                        playerUuid,
-                        "[" + CommandEvents.chatTs() + "] STEVEAI: " + CommandEvents.oneLine(reply)
-                    );
+                    //SteveAiContextFiles.appendChatLine(
+                    //    playerUuid,
+                    //    "[" + CommandEvents.chatTs() + "] STEVEAI: " + CommandEvents.oneLine(reply)
+                    //);
 
-                    SteveAiContextFiles.appendChatLine(playerUuid, "");
+                    //SteveAiContextFiles.appendChatLine(playerUuid, "");
+
+                    if (minecraft.player != null && minecraft.player.connection != null) {
+                        minecraft.player.connection.sendCommand("testmod " + message);
+                    }
                     LOGGER.info("SteveAiScreen finished writing to chat file "); 
                 }
 
