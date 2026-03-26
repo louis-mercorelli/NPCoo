@@ -233,10 +233,7 @@ public class SteveAiScreen extends MerchantScreen {
             chatInput.setFocused(showChatInput);
         }
     }
-    public void receiveServerReply(String prompt, String reply) {
-        this.lastPrompt = prompt;
-        this.lastResponse = reply;
-    }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean consumed) {
         double mouseX = event.x();
@@ -301,38 +298,19 @@ public class SteveAiScreen extends MerchantScreen {
                     lastPrompt = message;
                     lastResponse = "Thinking...";
                     chatInput.setValue("");
-
-                    //java.util.UUID playerUuid = net.minecraft.client.Minecraft.getInstance().player.getUUID();
-
-                    //String fileContext = SteveAiContextFiles.buildChatContext(playerUuid, 200);
                     LOGGER.info("SteveAiScreen calling openai to get reply"); 
-                    //String prompt2 =
-                    //    "You are SteveAI, a Minecraft villager. " +
-                    //    "You are shy at first and mistrustful in this new world. " +
-                    //    "You are truthful but vague and may fib to protect yourself, especially at the start of a relationship. " +
-                    //    "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
-                    //    "Keep replies short if possible, even curt if it is warranted. " +
-                    //    "Use the context files below if relevant.\n\n" +
-                    //    fileContext + "\n\n" +
-                    //    "Player asks: " + message;
 
-                    //String reply = OpenAiService.ask(prompt2);
-                    //lastResponse = reply;
-                    //SteveAiContextFiles.appendChatLine(
-                    //   playerUuid,
-                    //    "[" + CommandEvents.chatTs() + "] YOU: " + CommandEvents.oneLine(message)
-                    //);
-
-                    //SteveAiContextFiles.appendChatLine(
-                    //    playerUuid,
-                    //    "[" + CommandEvents.chatTs() + "] STEVEAI: " + CommandEvents.oneLine(reply)
-                    //);
-
-                    //SteveAiContextFiles.appendChatLine(playerUuid, "");
-
-                    if (minecraft.player != null && minecraft.player.connection != null) {
-                        minecraft.player.connection.sendCommand("testmod " + message);
+                    if (minecraft != null && minecraft.player != null && minecraft.player.connection != null) {
+                        ModNetworking.CHANNEL.send(
+                            new SteveAiChatRequestPacket(message),
+                            net.minecraftforge.network.PacketDistributor.SERVER.noArg()
+                        );
+                    } else {
+                        lastResponse = "Not connected.";
                     }
+                    //if (minecraft.player != null && minecraft.player.connection != null) {
+                    //    minecraft.player.connection.sendCommand("testmod " + message);
+                    //}
                     LOGGER.info("SteveAiScreen finished writing to chat file "); 
                 }
 
@@ -358,6 +336,11 @@ public class SteveAiScreen extends MerchantScreen {
     public void onClose() {
         LOGGER.info("### SteveAiScreen onClose ###");
         super.onClose();
+    }
+
+    public void receiveServerReply(String prompt, String reply) {
+        this.lastPrompt = prompt;
+        this.lastResponse = reply;
     }
 
     @Override
