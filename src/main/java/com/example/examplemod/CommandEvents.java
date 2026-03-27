@@ -4,7 +4,11 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
+import java.util.HashSet;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.trading.ItemCost;
@@ -34,10 +38,12 @@ import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
@@ -71,6 +77,14 @@ public class CommandEvents {
     private static Integer forcedSteveAiChunkZ = null;
     private static net.minecraft.core.BlockPos lastSteveAiKnownPos = null;
     private static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> lastSteveAiKnownDimension = null;
+    private static boolean exploreActive = false;
+    private static String explorePoi = "";
+    private static String explorePoiType = "";
+    private static BlockPos exploreCenter = null;
+    private static int exploreRadius = 24;
+    private static BlockPos currentExploreTarget = null;
+    private static long nextExploreRepathGameTime = 0L;
+    private static final Set<BlockPos> exploredTargets = new HashSet<>();
 
     @SubscribeEvent
         public static void onCommandsRegister(RegisterCommandsEvent event) {
@@ -88,6 +102,17 @@ public class CommandEvents {
                             LOGGER.info("ExampleMod command executed with no message");
                             return 1;
                         })
+                        .then(Commands.literal("explore")
+                            .then(Commands.argument("poi", StringArgumentType.word())
+                                .executes(CommandEvents::handleExplorePoi)
+                            )
+                        )
+                        .then(Commands.literal("exploreStop")
+                            .executes(CommandEvents::handleExploreStop)
+                        )
+                        .then(Commands.literal("exploreStatus")
+                            .executes(CommandEvents::handleExploreStatus)
+                        )
                         .then(Commands.literal("forceChunkOn")
                             .executes(context -> {
                                 CommandSourceStack source = context.getSource();
@@ -619,35 +644,7 @@ public class CommandEvents {
             }
         }
     }
-
-    private static void addCoalToSteveAiInventory(Villager villager, int count) {
-        try {
-            SimpleContainer inv = villager.getInventory();
-            ItemStack toAdd = new ItemStack(Items.COAL, count);
-
-            for (int i = 0; i < inv.getContainerSize(); i++) {
-                ItemStack slot = inv.getItem(i);
-
-                if (slot.isEmpty()) {
-                    inv.setItem(i, toAdd.copy());
-                    LOGGER.info("Added {} coal to SteveAI inventory in empty slot {}", count, i);
-                    return;
-                }
-
-                if (ItemStack.isSameItem(slot, toAdd) && slot.getCount() < slot.getMaxStackSize()) {
-                    int space = slot.getMaxStackSize() - slot.getCount();
-                    int move = Math.min(space, toAdd.getCount());
-                    slot.grow(move);
-                    LOGGER.info("Stacked {} coal into SteveAI inventory slot {}", move, i);
-                    return;
-                }
-            }
-
-            LOGGER.info("SteveAI inventory full; could not add coal");
-        } catch (Exception e) {
-            LOGGER.error("Failed adding coal to SteveAI inventory", e);
-        }
-    }
+    
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         LOGGER.info("CommandEvents.onPlayerLoggedIn START ");
@@ -703,6 +700,192 @@ public class CommandEvents {
         } finally {
             LOGGER.info("CommandEvents.onPlayerLoggedIn FINISH");
         }
+    }
+
+    private static String mapExplorePoiToPoiType(String poi) {
+        return switch (poi) {
+            case "village" -> "village_candidate";
+            case "dungeon" -> "dungeon";
+            case "trial", "trial_chamber" -> "trial_chamber";
+            case "archaeology", "archaeology_site" -> "archaeology_site";
+            default -> null;
+        };
+    }
+
+    private static int handleExplorePoi(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        Villager steveAi = findSteveAi(serverLevel);
+        if (steveAi == null) {
+            source.sendFailure(Component.literal("SteveAI not found."));
+            return 0;
+        }
+
+        String poi = StringArgumentType.getString(context, "poi").toLowerCase(Locale.ROOT).trim();
+        String poiType = mapExplorePoiToPoiType(poi);
+
+        if (poiType == null) {
+            source.sendFailure(Component.literal("Unsupported explore POI: " + poi));
+            return 0;
+        }
+
+        BlockPos nearest;
+
+        if (poi.equals("village")) {
+            nearest = PoiManager.findNearestVillageForExplore(steveAi.blockPosition());
+        } else {
+            nearest = PoiManager.findNearestPoiCenter(poiType, steveAi.blockPosition());
+        }
+        
+        if (nearest == null) {
+            source.sendFailure(Component.literal("No known " + poi + " POI found."));
+            return 0;
+        }
+
+        exploreActive = true;
+        explorePoi = poi;
+        explorePoiType = poiType;
+        exploreCenter = nearest.immutable();
+        exploreRadius = 24;
+        currentExploreTarget = null;
+        exploredTargets.clear();
+        nextExploreRepathGameTime = 0L;
+
+        source.sendSuccess(() -> Component.literal(
+            "SteveAI exploring nearest " + poi +
+            " at " + nearest.getX() + " " + nearest.getY() + " " + nearest.getZ()
+        ), false);
+
+        LOGGER.info("Explore started: poi={} poiType={} center={}", explorePoi, explorePoiType, exploreCenter);
+        return 1;
+    }
+    
+    private static int handleExploreStop(CommandContext<CommandSourceStack> context) {
+        exploreActive = false;
+        explorePoi = "";
+        explorePoiType = "";
+        exploreCenter = null;
+        currentExploreTarget = null;
+        exploredTargets.clear();
+
+        context.getSource().sendSuccess(() -> Component.literal("SteveAI exploration stopped."), false);
+        return 1;
+    }
+
+    private static int handleExploreStatus(CommandContext<CommandSourceStack> context) {
+        if (!exploreActive || exploreCenter == null) {
+            context.getSource().sendSuccess(() -> Component.literal("No active exploration task."), false);
+            return 1;
+        }
+
+        context.getSource().sendSuccess(() -> Component.literal(
+            "Exploring poi=" + explorePoi +
+            " poiType=" + explorePoiType +
+            " center=" + exploreCenter.getX() + "," + exploreCenter.getY() + "," + exploreCenter.getZ() +
+            " radius=" + exploreRadius +
+            " target=" + (currentExploreTarget == null ? "none" : currentExploreTarget.toShortString())
+        ), false);
+
+        return 1;
+    }
+
+    private static void tickExplore(ServerLevel serverLevel, Villager steveAi) {
+        if (!exploreActive || exploreCenter == null) return;
+
+        long gameTime = serverLevel.getGameTime();
+
+        double distToCenterSq = steveAi.blockPosition().distSqr(exploreCenter);
+
+        // First, travel to the POI center area
+        if (distToCenterSq > 100.0) { // farther than 10 blocks
+            if (gameTime >= nextExploreRepathGameTime) {
+                boolean ok = steveAi.getNavigation().moveTo(
+                    exploreCenter.getX() + 0.5,
+                    exploreCenter.getY(),
+                    exploreCenter.getZ() + 0.5,
+                    0.9
+                );
+                LOGGER.info("Explore travel-to-poi center={} result={}", exploreCenter, ok);
+                nextExploreRepathGameTime = gameTime + 40;
+            }
+            return;
+        }
+
+        // Then wander around the POI center
+        if (currentExploreTarget == null || reachedExploreTarget(steveAi, currentExploreTarget)) {
+            if (currentExploreTarget != null) {
+                exploredTargets.add(currentExploreTarget.immutable());
+            }
+
+            currentExploreTarget = pickNextExploreTarget(serverLevel);
+            nextExploreRepathGameTime = 0L;
+
+            if (currentExploreTarget == null) {
+                LOGGER.info("No valid exploration target around POI center {}", exploreCenter);
+                return;
+            }
+
+            LOGGER.info("Explore local target={}", currentExploreTarget);
+        }
+
+        if (gameTime >= nextExploreRepathGameTime) {
+            boolean ok = steveAi.getNavigation().moveTo(
+                currentExploreTarget.getX() + 0.5,
+                currentExploreTarget.getY(),
+                currentExploreTarget.getZ() + 0.5,
+                0.9
+            );
+            LOGGER.info("Explore patrol target={} result={}", currentExploreTarget, ok);
+            nextExploreRepathGameTime = gameTime + 40;
+        }
+    }
+
+    private static BlockPos pickNextExploreTarget(ServerLevel serverLevel) {
+        RandomSource random = serverLevel.random;
+
+        for (int attempt = 0; attempt < 20; attempt++) {
+            int dx = random.nextInt(exploreRadius * 2 + 1) - exploreRadius;
+            int dz = random.nextInt(exploreRadius * 2 + 1) - exploreRadius;
+
+            int x = exploreCenter.getX() + dx;
+            int z = exploreCenter.getZ() + dz;
+            BlockPos top = serverLevel.getHeightmapPos(
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                new BlockPos(x, 0, z)
+            );
+
+            BlockPos candidate = top.immutable();
+
+            if (exploredTargets.contains(candidate)) continue;
+            if (!isGoodExploreTarget(serverLevel, candidate)) continue;
+
+            return candidate;
+        }
+
+        return null;
+    }
+
+    private static boolean reachedExploreTarget(Villager steveAi, BlockPos target) {
+        return steveAi.blockPosition().distSqr(target) <= 9.0;
+    }
+
+    private static boolean isGoodExploreTarget(ServerLevel serverLevel, BlockPos pos) {
+        if (!serverLevel.isInWorldBounds(pos)) return false;
+
+        BlockState at = serverLevel.getBlockState(pos);
+        BlockState above = serverLevel.getBlockState(pos.above());
+        BlockState below = serverLevel.getBlockState(pos.below());
+
+        if (!below.blocksMotion()) return false;
+        if (!at.isAir()) return false;
+        if (!above.isAir()) return false;
+
+        return true;
     }
 
     private static boolean isSteveAi(Entity entity) {

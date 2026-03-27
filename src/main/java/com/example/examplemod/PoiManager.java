@@ -1,11 +1,8 @@
 package com.example.examplemod;
-
 import net.minecraft.core.BlockPos;
-
 import java.util.*;
 
 public class PoiManager {
-
     public static class Poi {
         public String type;
         public BlockPos center;
@@ -35,7 +32,9 @@ public class PoiManager {
                 (this.center.getZ() + pos.getZ()) / 2
             );
 
-            this.count++;
+            if (newPosition) {
+                this.count++;
+            }
             return true;
         }
     }
@@ -122,4 +121,46 @@ public class PoiManager {
     public static void clear() {
         pois.clear();
     }
+
+    public static BlockPos findNearestPoiCenter(String type, BlockPos fromPos) {
+        Poi nearest = null;
+        double bestDist = Double.MAX_VALUE;
+
+        for (Poi poi : pois) {   // replace POIS with your actual collection
+            if (!poi.type.equals(type)) continue;
+
+            double dist = poi.center.distSqr(fromPos);
+            if (dist < bestDist) {
+                bestDist = dist;
+                nearest = poi;
+            }
+        }
+
+        return nearest == null ? null : nearest.center.immutable();
+    }
+
+    public static BlockPos findNearestVillageForExplore(BlockPos fromPos) {
+        Poi nearest = null;
+        double bestDistXZ = Double.MAX_VALUE;
+
+        for (Poi poi : pois) {
+            if (!poi.type.equals("village_candidate")) continue;
+            if (poi.count <= 5) continue;
+
+            String confidence = getConfidence(poi);
+            if ("low".equals(confidence)) continue;
+
+            double dx = poi.center.getX() - fromPos.getX();
+            double dz = poi.center.getZ() - fromPos.getZ();
+            double distXZ = dx * dx + dz * dz;
+
+            if (distXZ < bestDistXZ) {
+                bestDistXZ = distXZ;
+                nearest = poi;
+            }
+        }
+
+        return nearest == null ? null : nearest.center.immutable();
+    }
+
 }
