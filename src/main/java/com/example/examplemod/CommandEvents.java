@@ -5,7 +5,9 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,6 +38,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.UUID;
+import java.util.function.Predicate;
+import net.minecraft.world.level.block.BedBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -102,6 +109,9 @@ public class CommandEvents {
                             LOGGER.info("ExampleMod command executed with no message");
                             return 1;
                         })
+                        .then(Commands.literal("lookSee")
+                            .executes(CommandEvents::handleLookSee)
+                        )
                         .then(Commands.literal("explore")
                             .then(Commands.argument("poi", StringArgumentType.word())
                                 .executes(CommandEvents::handleExplorePoi)
@@ -702,6 +712,45 @@ public class CommandEvents {
         }
     }
 
+    private static void sendLookSeeSection(
+        CommandSourceStack source,
+        String sectionTitle,
+        java.util.Map<String, SeenSummary> grouped,
+        String kind
+    ) {
+        if (grouped == null || grouped.isEmpty()) {
+            source.sendSuccess(() -> Component.literal(sectionTitle + ": none"), false);
+            return;
+        }
+
+        source.sendSuccess(() -> Component.literal(sectionTitle + ":"), false);
+
+        int shown = 0;
+        for (var entry : grouped.entrySet()) {
+            if (shown >= 12) {
+                int remaining = grouped.size() - shown;
+                source.sendSuccess(() -> Component.literal("... +" + remaining + " more"), false);
+                break;
+            }
+
+            String name = entry.getKey();
+            SeenSummary s = entry.getValue();
+
+            String line = String.format(
+                " - %s=%s firstLoc=(%d,%d,%d) cnt=%d",
+                kind,
+                name,
+                s.x,
+                s.y,
+                s.z,
+                s.count
+            );
+
+            source.sendSuccess(() -> Component.literal(line), false);
+            shown++;
+        }
+    }
+
     private static String mapExplorePoiToPoiType(String poi) {
         return switch (poi) {
             case "village" -> "village_candidate";
@@ -710,6 +759,57 @@ public class CommandEvents {
             case "archaeology", "archaeology_site" -> "archaeology_site";
             default -> null;
         };
+    }
+    private static boolean isInterestingLookSeeBlock(BlockState state) {
+        Block block = state.getBlock();
+
+        return block == Blocks.CHEST
+            || block == Blocks.TRAPPED_CHEST
+            || block == Blocks.BELL
+            || block == Blocks.HAY_BLOCK
+            || block == Blocks.BLAST_FURNACE
+            || block == Blocks.FURNACE
+            || block == Blocks.CRAFTING_TABLE
+            || block == Blocks.FARMLAND
+            || block == Blocks.WATER
+            || block == Blocks.BARREL
+            || block == Blocks.SMOKER
+            || block == Blocks.COMPOSTER
+            || state.getBlock() instanceof BedBlock
+            || state.getBlock() instanceof DoorBlock;
+    }
+
+    private static int handleLookSee(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        Villager steveAi = findSteveAi(serverLevel);
+        if (steveAi == null) {
+            source.sendFailure(Component.literal("SteveAI not found."));
+            return 0;
+        }
+
+        double entityRadius = 20.0;
+        int blockRadius = 20;
+
+        java.util.Map<String, SeenSummary> entityMap =
+            collectNearbyEntities(serverLevel, steveAi, entityRadius);
+
+        Map<String, SeenSummary> grouped =
+            collectNearbyBlocks(serverLevel, steveAi, 20, 20, CommandEvents::isInterestingLookSeeBlock);
+
+        source.sendSuccess(() -> Component.literal(
+            "SteveAI lookSee radius=20 at " + steveAi.blockPosition().toShortString()
+        ), false);
+
+        sendLookSeeSection(source, "Entities", entityMap, "entity");
+        sendLookSeeSection(source, "Blocks", grouped, "block");
+
+        return 1;
     }
 
     private static int handleExplorePoi(CommandContext<CommandSourceStack> context) {
@@ -741,7 +841,7 @@ public class CommandEvents {
         } else {
             nearest = PoiManager.findNearestPoiCenter(poiType, steveAi.blockPosition());
         }
-        
+
         if (nearest == null) {
             source.sendFailure(Component.literal("No known " + poi + " POI found."));
             return 0;
@@ -1295,21 +1395,57 @@ public class CommandEvents {
         appendSteveAiLine(serverLevel, lastPlayerUuid, line);
     }
 
-    private static void appendNearbyBlocks(ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius) {
-        if (lastPlayerUuid == null) {
-            return;
+    private static Map<String, SeenSummary> collectNearbyEntities(ServerLevel serverLevel, Entity steveAiEntity, double radius) {
+        var nearbyEntities = serverLevel.getEntities(
+            (Entity) null,
+            steveAiEntity.getBoundingBox().inflate(radius),
+            other -> other != null && other.isAlive() && other != steveAiEntity
+        );
+
+        Map<String, SeenSummary> grouped = new LinkedHashMap<>();
+
+        for (Entity nearby : nearbyEntities) {
+            String typeName = nearby.getType().toString();
+
+            SeenSummary summary = grouped.get(typeName);
+            if (summary == null) {
+                grouped.put(
+                    typeName,
+                    new SeenSummary(
+                        nearby.blockPosition().getX(),
+                        nearby.blockPosition().getY(),
+                        nearby.blockPosition().getZ()
+                    )
+                );
+            } else {
+                summary.increment();
+            }
         }
 
-        var center = steveAiEntity.blockPosition();
-        java.util.Map<String, SeenSummary> grouped = new java.util.LinkedHashMap<>();
+        return grouped;
+    }
+
+    private static Map<String, SeenSummary> collectNearbyBlocks(
+        ServerLevel serverLevel,
+        Entity steveAiEntity,
+        int horizontalRadius,
+        int verticalRadius,
+        Predicate<BlockState> filter
+    ) {
+        BlockPos center = steveAiEntity.blockPosition();
+        Map<String, SeenSummary> grouped = new LinkedHashMap<>();
 
         for (int y = -verticalRadius; y <= verticalRadius; y++) {
             for (int x = -horizontalRadius; x <= horizontalRadius; x++) {
                 for (int z = -horizontalRadius; z <= horizontalRadius; z++) {
-                    var pos = center.offset(x, y, z);
-                    var state = serverLevel.getBlockState(pos);
+                    BlockPos pos = center.offset(x, y, z);
+                    BlockState state = serverLevel.getBlockState(pos);
 
                     if (state.isAir()) {
+                        continue;
+                    }
+
+                    if (filter != null && !filter.test(state)) {
                         continue;
                     }
 
@@ -1317,16 +1453,24 @@ public class CommandEvents {
 
                     SeenSummary summary = grouped.get(blockName);
                     if (summary == null) {
-                        grouped.put(
-                            blockName,
-                            new SeenSummary(pos.getX(), pos.getY(), pos.getZ())
-                        );
+                        grouped.put(blockName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ()));
                     } else {
                         summary.increment();
                     }
                 }
             }
         }
+
+        return grouped;
+    }
+
+    private static void appendNearbyBlocks(ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius) {
+        if (lastPlayerUuid == null) {
+            return;
+        }
+
+        java.util.Map<String, SeenSummary> grouped =
+            collectNearbyBlocks(serverLevel, steveAiEntity, horizontalRadius, verticalRadius, CommandEvents::isInterestingLookSeeBlock);
 
         if (grouped.isEmpty()) {
             appendSteveAiLine(serverLevel, lastPlayerUuid, "nearby blocks -> none found\n");
@@ -1355,39 +1499,16 @@ public class CommandEvents {
             return;
         }
 
-        var nearbyEntities = serverLevel.getEntities(
-            (Entity) null,
-            steveAiEntity.getBoundingBox().inflate(radius),
-            other -> other != null && other.isAlive() && other != steveAiEntity
-        );
+        java.util.Map<String, SeenSummary> grouped =
+            collectNearbyEntities(serverLevel, steveAiEntity, radius);
 
-        if (nearbyEntities.isEmpty()) {
+        if (grouped.isEmpty()) {
             String line = String.format(
                 "E -> none within %.1f blocks of steveAI%n",
                 radius
             );
             appendSteveAiLine(serverLevel, lastPlayerUuid, line);
             return;
-        }
-
-        java.util.Map<String, SeenSummary> grouped = new java.util.LinkedHashMap<>();
-
-        for (Entity nearby : nearbyEntities) {
-            String typeName = nearby.getType().toString();
-
-            SeenSummary summary = grouped.get(typeName);
-            if (summary == null) {
-                grouped.put(
-                    typeName,
-                    new SeenSummary(
-                        nearby.blockPosition().getX(),
-                        nearby.blockPosition().getY(),
-                        nearby.blockPosition().getZ()
-                    )
-                );
-            } else {
-                summary.increment();
-            }
         }
 
         for (var entry : grouped.entrySet()) {
