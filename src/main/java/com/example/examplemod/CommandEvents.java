@@ -44,11 +44,11 @@ import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.core.registries.Registries;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import net.minecraft.core.registries.BuiltInRegistries;
+//import com.mojang.brigadier.arguments.StringArgumentType;
+//import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
+//import net.minecraft.world.item.ItemStack;
 
 @Mod.EventBusSubscriber(modid = ExampleMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class CommandEvents {
@@ -578,8 +578,8 @@ public class CommandEvents {
                     }
                 }
 
-                boolean didBlockEntityScan = false;
-
+                //boolean didBlockEntityScan = false;
+                boolean poiChanged = false;
                 if (hasMovedFarEnough(lastBlockEntityScanCenter, entity, BLOCK_ENTITY_SCAN_MOVE_THRESHOLD)) {
                     lastBlockEntityScanCenter = entity.blockPosition();
 
@@ -594,11 +594,11 @@ public class CommandEvents {
                         )
                     );
 
-                    appendNearbyBlockEntities(serverLevel, entity, 300);
-                    didBlockEntityScan = true;
+                    poiChanged = appendNearbyBlockEntities(serverLevel, entity, 300);
+                    //didBlockEntityScan = true;
                 }
 
-                if (didBlockEntityScan) {
+                if (poiChanged) {
                     java.util.List<String> summaryLines = new java.util.ArrayList<>();
                     summaryLines.add("");
                     summaryLines.add("=== POI Summary ===");
@@ -614,7 +614,7 @@ public class CommandEvents {
                     }
 
                     writeSteveAiSummary(serverLevel, lastPlayerUuid, summaryLines);
-                    PoiManager.clear();
+                    //PoiManager.clear();
                 }
             }
         }
@@ -959,7 +959,8 @@ public class CommandEvents {
                 lines,
                 java.nio.charset.StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
-                StandardOpenOption.APPEND
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
             );
         } catch (IOException e) {
             LOGGER.error("Failed to write steveAI summary file", e);
@@ -1223,9 +1224,9 @@ public class CommandEvents {
         }
     }
 
-    private static void appendNearbyBlockEntities(ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks) {
+    private static boolean appendNearbyBlockEntities(ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks) {
         if (lastPlayerUuid == null) {
-            return;
+            return false;
         }
 
         var center = steveAiEntity.blockPosition();
@@ -1237,10 +1238,11 @@ public class CommandEvents {
 
         int radiusSq = radiusBlocks * radiusBlocks;
         boolean foundAny = false;
-
+        boolean foundNewPoi = false;
+        
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-
+                
                 // Only use chunks that are already loaded; do NOT force load.
                 LevelChunk chunk = serverLevel.getChunkSource().getChunkNow(chunkX, chunkZ);
                 if (chunk == null) {
@@ -1264,7 +1266,9 @@ public class CommandEvents {
 
                     //String typeName = blockEntity.getType().toString();
                     String typeName = String.valueOf(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()));
-                    PoiManager.processBlockEntity(typeName, pos);
+                    if (PoiManager.processBlockEntity(typeName, pos)) {
+                        foundNewPoi = true;
+                    }
                     String line = String.format(
                         "BE -> type=%s x=%d y=%d z=%d%n",
                         typeName,
@@ -1296,6 +1300,7 @@ public class CommandEvents {
                 String.format("BE -> none within %d blocks of steveAI%n", radiusBlocks)
             );
         }
+        return foundNewPoi;
     }
 
     private static boolean hasMovedFarEnough(net.minecraft.core.BlockPos lastCenter, Entity entity, double threshold) {

@@ -11,23 +11,32 @@ public class PoiManager {
         public BlockPos center;
         public Set<String> evidence = new HashSet<>();
         public int count = 0;
+        public Set<BlockPos> seenPositions = new HashSet<>();
 
         public Poi(String type, BlockPos pos, String evidenceType) {
             this.type = type;
             this.center = pos;
             this.evidence.add(evidenceType);
             this.count = 1;
+            this.seenPositions.add(pos.immutable());
         }
 
-        public void add(BlockPos pos, String evidenceType) {
-            // simple center averaging (cheap + good enough)
+        public boolean add(BlockPos pos, String evidenceType) {
+            boolean newEvidence = this.evidence.add(evidenceType);
+            boolean newPosition = this.seenPositions.add(pos.immutable());
+
+            if (!newEvidence && !newPosition) {
+                return false;
+            }
+
             this.center = new BlockPos(
                 (this.center.getX() + pos.getX()) / 2,
                 (this.center.getY() + pos.getY()) / 2,
                 (this.center.getZ() + pos.getZ()) / 2
             );
-            this.evidence.add(evidenceType);
+
             this.count++;
+            return true;
         }
     }
 
@@ -36,11 +45,11 @@ public class PoiManager {
     private static final int MERGE_DISTANCE = 20;
 
     // --- PUBLIC ENTRY POINT ---
-    public static void processBlockEntity(String typeName, BlockPos pos) {
+    public static boolean processBlockEntity(String typeName, BlockPos pos) {
         String poiType = mapToPoi(typeName);
-        if (poiType == null) return;
+        if (poiType == null) return false;
 
-        addOrMerge(poiType, pos, typeName);
+        return addOrMerge(poiType, pos, typeName);
     }
 
     // --- POI MAPPING ---
@@ -59,17 +68,17 @@ public class PoiManager {
     }
 
     // --- MERGE LOGIC ---
-    private static void addOrMerge(String type, BlockPos pos, String evidence) {
+    private static boolean addOrMerge(String type, BlockPos pos, String evidence) {
         for (Poi poi : pois) {
             if (!poi.type.equals(type)) continue;
 
             if (poi.center.distSqr(pos) < MERGE_DISTANCE * MERGE_DISTANCE) {
-                poi.add(pos, evidence);
-                return;
+                return poi.add(pos, evidence);
             }
         }
 
         pois.add(new Poi(type, pos, evidence));
+        return true;
     }
 
     // --- OUTPUT ---
