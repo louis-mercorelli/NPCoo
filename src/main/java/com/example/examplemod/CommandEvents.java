@@ -836,7 +836,7 @@ public class CommandEvents {
 
         BlockPos nearest;
 
-        if (poi.equals("village")) {
+        if ((poi.equals("village_candidate")) ||  (poi.equals("village"))){
             nearest = PoiManager.findNearestVillageForExplore(steveAi.blockPosition());
         } else {
             nearest = PoiManager.findNearestPoiCenter(poiType, steveAi.blockPosition());
@@ -864,19 +864,30 @@ public class CommandEvents {
         LOGGER.info("Explore started: poi={} poiType={} center={}", explorePoi, explorePoiType, exploreCenter);
         return 1;
     }
-    
-    private static int handleExploreStop(CommandContext<CommandSourceStack> context) {
+    private static int countNearbyVillagers(ServerLevel serverLevel, Villager steveAi, double radius) {
+        var nearby = serverLevel.getEntities(
+            (Entity) null,
+            steveAi.getBoundingBox().inflate(radius),
+            e -> e instanceof Villager && e != steveAi && e.isAlive()
+        );
+
+        return nearby.size();
+    }
+
+    private static void stopExploreTask() {
         exploreActive = false;
         explorePoi = "";
         explorePoiType = "";
         exploreCenter = null;
         currentExploreTarget = null;
         exploredTargets.clear();
-
+        nextExploreRepathGameTime = 0L;
+    }
+    private static int handleExploreStop(CommandContext<CommandSourceStack> context) {
+        stopExploreTask();
         context.getSource().sendSuccess(() -> Component.literal("SteveAI exploration stopped."), false);
         return 1;
     }
-
     private static int handleExploreStatus(CommandContext<CommandSourceStack> context) {
         if (!exploreActive || exploreCenter == null) {
             context.getSource().sendSuccess(() -> Component.literal("No active exploration task."), false);
@@ -900,7 +911,17 @@ public class CommandEvents {
         long gameTime = serverLevel.getGameTime();
 
         double distToCenterSq = steveAi.blockPosition().distSqr(exploreCenter);
+        if ("village_candidate".equals(explorePoi) || "village".equals(explorePoi)) {
+            int villagerCount = countNearbyVillagers(serverLevel, steveAi, 20.0);
 
+            LOGGER.info("Explore village check: nearby villager count={}", villagerCount);
+
+            if (villagerCount > 1) {
+                LOGGER.info("Explore complete: found village population near SteveAI.");
+                stopExploreTask();
+                return;
+            }
+        }
         // First, travel to the POI center area
         if (distToCenterSq > 100.0) { // farther than 10 blocks
             if (gameTime >= nextExploreRepathGameTime) {

@@ -145,7 +145,7 @@ public class PoiManager {
 
         for (Poi poi : pois) {
             if (!poi.type.equals("village_candidate")) continue;
-            if (poi.count <= 5) continue;
+            if (poi.count < 3) continue;
 
             String confidence = getConfidence(poi);
             if ("low".equals(confidence)) continue;
