@@ -2,14 +2,17 @@ package com.example.examplemod;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class SteveAiCollectors {
@@ -68,9 +71,9 @@ public class SteveAiCollectors {
                         sb.append("; ");
                     }
                     sb.append("(")
-                      .append(p.getX()).append(",")
-                      .append(p.getY()).append(",")
-                      .append(p.getZ()).append(")");
+                        .append(p.getX()).append(",")
+                        .append(p.getY()).append(",")
+                        .append(p.getZ()).append(")");
                 }
                 sb.append(")");
             }
@@ -84,9 +87,6 @@ public class SteveAiCollectors {
             || blockName.equals("minecraft:bell")
             || blockName.equals("minecraft:lectern")
             || blockName.equals("minecraft:diamond_ore");
-            //|| blockName.equals("minecraft:deepslate_diamond_ore")
-            //|| blockName.contains("_carpet")
-            //|| blockName.startsWith("minecraft:waxed_");
     }
 
     public static Map<String, SeenSummary> collectNearbyEntities(
@@ -108,7 +108,7 @@ public class SteveAiCollectors {
                 continue;
             }
 
-            String typeName = nearby.getType().toString();
+            String typeName = BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
             BlockPos pos = nearby.blockPosition();
 
             SeenSummary summary = grouped.get(typeName);
@@ -128,6 +128,28 @@ public class SteveAiCollectors {
         double radius
     ) {
         return collectNearbyEntities(serverLevel, steveAiEntity, radius, null);
+    }
+
+    public static Map<String, SeenSummary> collectNearbyEntitiesFiltered(
+        ServerLevel serverLevel,
+        Entity steveAiEntity,
+        double radius,
+        Set<String> targetEntityIds
+    ) {
+        if (targetEntityIds == null || targetEntityIds.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+
+        return collectNearbyEntities(
+            serverLevel,
+            steveAiEntity,
+            radius,
+            nearby -> {
+                EntityType<?> type = nearby.getType();
+                Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+                return key != null && targetEntityIds.contains(key.toString());
+            }
+        );
     }
 
     public static Map<String, SeenSummary> collectNearbyBlocks(
@@ -184,10 +206,42 @@ public class SteveAiCollectors {
         return collectNearbyBlocks(serverLevel, steveAiEntity, horizontalRadius, verticalRadius, null);
     }
 
+    public static Map<String, SeenSummary> collectNearbyBlocksFiltered(
+        ServerLevel serverLevel,
+        Entity steveAiEntity,
+        int horizontalRadius,
+        int verticalRadius,
+        Set<String> targetBlockIds
+    ) {
+        if (targetBlockIds == null || targetBlockIds.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+
+        return collectNearbyBlocks(
+            serverLevel,
+            steveAiEntity,
+            horizontalRadius,
+            verticalRadius,
+            state -> {
+                Identifier key = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+                return key != null && targetBlockIds.contains(key.toString());
+            }
+        );
+    }
+
     public static Map<String, SeenSummary> collectNearbyBlockEntities(
         ServerLevel serverLevel,
         Entity steveAiEntity,
         int radiusBlocks
+    ) {
+        return collectNearbyBlockEntities(serverLevel, steveAiEntity, radiusBlocks, null);
+    }
+
+    public static Map<String, SeenSummary> collectNearbyBlockEntities(
+        ServerLevel serverLevel,
+        Entity steveAiEntity,
+        int radiusBlocks,
+        Predicate<BlockEntity> filter
     ) {
         BlockPos center = steveAiEntity.blockPosition();
         Map<String, SeenSummary> grouped = new LinkedHashMap<>();
@@ -201,7 +255,16 @@ public class SteveAiCollectors {
                 continue;
             }
 
-            String typeName = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType()).toString();
+            if (filter != null && !filter.test(be)) {
+                continue;
+            }
+
+            Identifier key = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (key == null) {
+                continue;
+            }
+
+            String typeName = key.toString();
 
             SeenSummary summary = grouped.get(typeName);
             if (summary == null) {
@@ -212,5 +275,26 @@ public class SteveAiCollectors {
         }
 
         return grouped;
+    }
+
+    public static Map<String, SeenSummary> collectNearbyBlockEntitiesFiltered(
+        ServerLevel serverLevel,
+        Entity steveAiEntity,
+        int radiusBlocks,
+        Set<String> targetBlockEntityIds
+    ) {
+        if (targetBlockEntityIds == null || targetBlockEntityIds.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+
+        return collectNearbyBlockEntities(
+            serverLevel,
+            steveAiEntity,
+            radiusBlocks,
+            be -> {
+                Identifier key = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+                return key != null && targetBlockEntityIds.contains(key.toString());
+            }
+        );
     }
 }

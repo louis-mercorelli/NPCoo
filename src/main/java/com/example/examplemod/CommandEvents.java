@@ -124,16 +124,21 @@ public class CommandEvents {
                         .then(Commands.literal("exploreStatus")
                             .executes(CommandEvents::handleExploreStatus)
                         )
-                        .then(Commands.literal("scanSAI")
-                            .then(Commands.argument("type", StringArgumentType.word())
-                                .executes(ctx -> handleScanSai(ctx, 2))
-                                .then(Commands.argument("radius", IntegerArgumentType.integer(1))
-                                    .executes(ctx -> handleScanSai(
-                                        ctx,
-                                        IntegerArgumentType.getInteger(ctx, "radius")
-                                    ))
-                                )
-                            )
+                        .then(Commands.argument("scanArgs", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                CommandSourceStack source = ctx.getSource();
+                                String tail = StringArgumentType.getString(ctx, "scanArgs");
+
+                                ParsedScanSaiArgs parsed;
+                                try {
+                                    parsed = parseScanSaiArgs(tail, 2);
+                                } catch (Exception e) {
+                                    source.sendFailure(Component.literal("scanSAI parse error: " + e.getMessage()));
+                                    return 0;
+                                }
+
+                                return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
+                            })
                         )
                         .then(Commands.literal("scanStatus")
                             .executes(context -> {
@@ -1372,7 +1377,11 @@ public class CommandEvents {
         return null;
     }
 
-    private static int handleScanSai(CommandContext<CommandSourceStack> context, int chunkRadius) {
+    private static int handleScanSai(
+        CommandContext<CommandSourceStack> context,
+        String rawScanInput,
+        int chunkRadius
+    ) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
@@ -1386,32 +1395,24 @@ public class CommandEvents {
             return 0;
         }
 
-        String type = StringArgumentType.getString(context, "type");
-
         try {
-            SteveAiScanManager.scanSAI(serverLevel, steveAi, type, chunkRadius);
+            SteveAiScanManager.scanSAI(serverLevel, steveAi, rawScanInput, chunkRadius);
         } catch (IllegalArgumentException e) {
             source.sendFailure(Component.literal(e.getMessage()));
             return 0;
         }
 
-        int count;
-        String normalized = type.toLowerCase();
+        int count =
+            SteveAiScanManager.getScannedBlocks().size()
+            + SteveAiScanManager.getScannedEntities().size()
+            + SteveAiScanManager.getScannedBlockEntities().size();
 
-        switch (normalized) {
-            case "blocks" -> count = SteveAiScanManager.getScannedBlocks().size();
-            case "entities" -> count = SteveAiScanManager.getScannedEntities().size();
-            case "blockentities" -> count = SteveAiScanManager.getScannedBlockEntities().size();
-            case "all" -> count =
-                SteveAiScanManager.getScannedBlocks().size()
-                + SteveAiScanManager.getScannedEntities().size()
-                + SteveAiScanManager.getScannedBlockEntities().size();
-            default -> count = 0;
-        }
-
+        //String normalizedInput = rawScanInput.trim().toLowerCase(java.util.Locale.ROOT);
+        String normalizedInput = SteveAiScanManager.getLastScanType();
         int finalCount = count;
+
         source.sendSuccess(() -> Component.literal(
-            "SteveAI scan complete: type=" + normalized +
+            "SteveAI scan complete: input=" + normalizedInput +
             " chunkRadius=" + chunkRadius +
             " groupedCount=" + finalCount
         ), false);
@@ -1674,7 +1675,62 @@ public class CommandEvents {
         return distanceSq >= threshold * threshold;
 
     }
+    private static class ParsedScanSaiArgs {
+        final String rawScanInput;
+        final int chunkRadius;
 
+        ParsedScanSaiArgs(String rawScanInput, int chunkRadius) {
+            this.rawScanInput = rawScanInput;
+            this.chunkRadius = chunkRadius;
+        }
+    }
+    private static ParsedScanSaiArgs parseScanSaiArgs(String tail, int defaultChunkRadius) {
+        if (tail == null || tail.isBlank()) {
+            return new ParsedScanSaiArgs("all", defaultChunkRadius);
+        }
+
+        String s = tail.trim();
+
+        // Bracketed form: [villager bell] 3
+        if (s.startsWith("[")) {
+            int close = s.lastIndexOf(']');
+            if (close < 0) {
+                throw new IllegalArgumentException("Missing closing ] in scanSAI target list.");
+            }
+
+            String rawScanInput = s.substring(0, close + 1).trim();
+            String rest = s.substring(close + 1).trim();
+
+            int chunkRadius = defaultChunkRadius;
+            if (!rest.isEmpty()) {
+                try {
+                    chunkRadius = Integer.parseInt(rest);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Invalid scanSAI radius: " + rest);
+                }
+            }
+
+            return new ParsedScanSaiArgs(rawScanInput, chunkRadius);
+        }
+
+        // Legacy/simple form: all 3
+        int lastSpace = s.lastIndexOf(' ');
+        if (lastSpace > 0) {
+            String maybeRadius = s.substring(lastSpace + 1).trim();
+            try {
+                int radius = Integer.parseInt(maybeRadius);
+                String rawScanInput = s.substring(0, lastSpace).trim();
+                if (rawScanInput.isEmpty()) {
+                    throw new IllegalArgumentException("Missing scanSAI type or targets.");
+                }
+                return new ParsedScanSaiArgs(rawScanInput, radius);
+            } catch (NumberFormatException ignored) {
+                // whole thing is the raw input
+            }
+        }
+
+        return new ParsedScanSaiArgs(s, defaultChunkRadius);
+    }
     private static Villager findSteveAi(ServerLevel serverLevel) {
         var matches = serverLevel.getEntities(
             EntityType.VILLAGER,
