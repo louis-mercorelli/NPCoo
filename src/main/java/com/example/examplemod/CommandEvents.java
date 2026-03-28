@@ -1,5 +1,6 @@
 package com.example.examplemod;
 
+import com.example.examplemod.SteveAiCollectors.SeenSummary;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -122,6 +123,17 @@ public class CommandEvents {
                         )
                         .then(Commands.literal("exploreStatus")
                             .executes(CommandEvents::handleExploreStatus)
+                        )
+                        .then(Commands.literal("scanSAI")
+                            .then(Commands.argument("type", StringArgumentType.word())
+                                .executes(ctx -> handleScanSai(ctx, 2))
+                                .then(Commands.argument("radius", IntegerArgumentType.integer(1))
+                                    .executes(ctx -> handleScanSai(
+                                        ctx,
+                                        IntegerArgumentType.getInteger(ctx, "radius")
+                                    ))
+                                )
+                            )
                         )
                         .then(Commands.literal("forceChunkOn")
                             .executes(context -> {
@@ -715,7 +727,7 @@ public class CommandEvents {
     private static void sendLookSeeSection(
         CommandSourceStack source,
         String sectionTitle,
-        java.util.Map<String, SeenSummary> grouped,
+        java.util.Map<String, SteveAiCollectors.SeenSummary> grouped,
         String kind
     ) {
         if (grouped == null || grouped.isEmpty()) {
@@ -734,7 +746,7 @@ public class CommandEvents {
             }
 
             String name = entry.getKey();
-            SeenSummary s = entry.getValue();
+            SteveAiCollectors.SeenSummary s = entry.getValue();
 
             String line = String.format(
                 " - %s=%s firstLoc=(%d,%d,%d) cnt=%d",
@@ -796,11 +808,11 @@ public class CommandEvents {
         double entityRadius = 20.0;
         int blockRadius = 20;
 
-        java.util.Map<String, SeenSummary> entityMap =
-            collectNearbyEntities(serverLevel, steveAi, entityRadius);
+        java.util.Map<String, SteveAiCollectors.SeenSummary> entityMap =
+            SteveAiCollectors.collectNearbyEntities(serverLevel, steveAi, entityRadius);
 
-        Map<String, SeenSummary> grouped =
-            collectNearbyBlocks(serverLevel, steveAi, 20, 20, CommandEvents::isInterestingLookSeeBlock);
+        Map<String, SteveAiCollectors.SeenSummary> grouped =
+            SteveAiCollectors.collectNearbyBlocks(serverLevel, steveAi, 20, 20, CommandEvents::isInterestingLookSeeBlock);
 
         source.sendSuccess(() -> Component.literal(
             "SteveAI lookSee radius=20 at " + steveAi.blockPosition().toShortString()
@@ -1316,6 +1328,53 @@ public class CommandEvents {
         return null;
     }
 
+    private static int handleScanSai(CommandContext<CommandSourceStack> context, int chunkRadius) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        Villager steveAi = findSteveAi(serverLevel);
+        if (steveAi == null) {
+            source.sendFailure(Component.literal("SteveAI not found."));
+            return 0;
+        }
+
+        String type = StringArgumentType.getString(context, "type");
+
+        try {
+            SteveAiScanManager.scanSAI(serverLevel, steveAi, type, chunkRadius);
+        } catch (IllegalArgumentException e) {
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        int count;
+        String normalized = type.toLowerCase();
+
+        switch (normalized) {
+            case "blocks" -> count = SteveAiScanManager.getScannedBlocks().size();
+            case "entities" -> count = SteveAiScanManager.getScannedEntities().size();
+            case "blockentities" -> count = SteveAiScanManager.getScannedBlockEntities().size();
+            case "all" -> count =
+                SteveAiScanManager.getScannedBlocks().size()
+                + SteveAiScanManager.getScannedEntities().size()
+                + SteveAiScanManager.getScannedBlockEntities().size();
+            default -> count = 0;
+        }
+
+        int finalCount = count;
+        source.sendSuccess(() -> Component.literal(
+            "SteveAI scan complete: type=" + normalized +
+            " chunkRadius=" + chunkRadius +
+            " groupedCount=" + finalCount
+        ), false);
+
+        return 1;
+    }
+
     public static void appendSteveAiChatLine(ServerLevel serverLevel, UUID playerUuid, String line) {
         try {
             Path playerDataDir = serverLevel.getServer().getWorldPath(LevelResource.PLAYER_DATA_DIR);
@@ -1416,82 +1475,13 @@ public class CommandEvents {
         appendSteveAiLine(serverLevel, lastPlayerUuid, line);
     }
 
-    private static Map<String, SeenSummary> collectNearbyEntities(ServerLevel serverLevel, Entity steveAiEntity, double radius) {
-        var nearbyEntities = serverLevel.getEntities(
-            (Entity) null,
-            steveAiEntity.getBoundingBox().inflate(radius),
-            other -> other != null && other.isAlive() && other != steveAiEntity
-        );
-
-        Map<String, SeenSummary> grouped = new LinkedHashMap<>();
-
-        for (Entity nearby : nearbyEntities) {
-            String typeName = nearby.getType().toString();
-
-            SeenSummary summary = grouped.get(typeName);
-            if (summary == null) {
-                grouped.put(
-                    typeName,
-                    new SeenSummary(
-                        nearby.blockPosition().getX(),
-                        nearby.blockPosition().getY(),
-                        nearby.blockPosition().getZ()
-                    )
-                );
-            } else {
-                summary.increment();
-            }
-        }
-
-        return grouped;
-    }
-
-    private static Map<String, SeenSummary> collectNearbyBlocks(
-        ServerLevel serverLevel,
-        Entity steveAiEntity,
-        int horizontalRadius,
-        int verticalRadius,
-        Predicate<BlockState> filter
-    ) {
-        BlockPos center = steveAiEntity.blockPosition();
-        Map<String, SeenSummary> grouped = new LinkedHashMap<>();
-
-        for (int y = -verticalRadius; y <= verticalRadius; y++) {
-            for (int x = -horizontalRadius; x <= horizontalRadius; x++) {
-                for (int z = -horizontalRadius; z <= horizontalRadius; z++) {
-                    BlockPos pos = center.offset(x, y, z);
-                    BlockState state = serverLevel.getBlockState(pos);
-
-                    if (state.isAir()) {
-                        continue;
-                    }
-
-                    if (filter != null && !filter.test(state)) {
-                        continue;
-                    }
-
-                    String blockName = state.getBlock().toString();
-
-                    SeenSummary summary = grouped.get(blockName);
-                    if (summary == null) {
-                        grouped.put(blockName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ()));
-                    } else {
-                        summary.increment();
-                    }
-                }
-            }
-        }
-
-        return grouped;
-    }
-
     private static void appendNearbyBlocks(ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius) {
         if (lastPlayerUuid == null) {
             return;
         }
 
-        java.util.Map<String, SeenSummary> grouped =
-            collectNearbyBlocks(serverLevel, steveAiEntity, horizontalRadius, verticalRadius, CommandEvents::isInterestingLookSeeBlock);
+        java.util.Map<String, SteveAiCollectors.SeenSummary> grouped =
+            SteveAiCollectors.collectNearbyBlocks(serverLevel, steveAiEntity, horizontalRadius, verticalRadius, CommandEvents::isInterestingLookSeeBlock);
 
         if (grouped.isEmpty()) {
             appendSteveAiLine(serverLevel, lastPlayerUuid, "nearby blocks -> none found\n");
@@ -1500,7 +1490,7 @@ public class CommandEvents {
 
         for (var entry : grouped.entrySet()) {
             String blockName = entry.getKey();
-            SeenSummary summary = entry.getValue();
+            SteveAiCollectors.SeenSummary summary = entry.getValue();
 
             String line = String.format(
                 "B -> block=%s firstLoc=(%d,%d,%d) cnt=%d%n",
@@ -1520,8 +1510,8 @@ public class CommandEvents {
             return;
         }
 
-        java.util.Map<String, SeenSummary> grouped =
-            collectNearbyEntities(serverLevel, steveAiEntity, radius);
+        java.util.Map<String, SteveAiCollectors.SeenSummary> grouped =
+            SteveAiCollectors.collectNearbyEntities(serverLevel, steveAiEntity, radius);
 
         if (grouped.isEmpty()) {
             String line = String.format(
@@ -1534,7 +1524,7 @@ public class CommandEvents {
 
         for (var entry : grouped.entrySet()) {
             String typeName = entry.getKey();
-            SeenSummary summary = entry.getValue();
+            SteveAiCollectors.SeenSummary summary = entry.getValue();
 
             String line = String.format(
                 "E -> type=%s firstLoc=(%d,%d,%d) cnt=%d%n",
@@ -1742,21 +1732,4 @@ public class CommandEvents {
         forcedSteveAiChunkZ = null;
     }
 
-    private static class SeenSummary {
-        int x;
-        int y;
-        int z;
-        int count;
-
-        SeenSummary(int x, int y, int z) {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-            this.count = 1;
-        }
-
-        void increment() {
-            this.count++;
-        }
-    }
 }
