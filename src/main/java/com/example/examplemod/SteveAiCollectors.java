@@ -5,8 +5,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,15 +14,16 @@ import java.util.function.Predicate;
 
 public class SteveAiCollectors {
 
- public static class SeenSummary {
-    public final int x;
-    public final int y;
-    public final int z;
-    public int count;
-    public final java.util.List<BlockPos> allLocations = new java.util.ArrayList<>();
-    private final boolean storeAllLocations;
+    public static class SeenSummary {
+        public final int x;
+        public final int y;
+        public final int z;
+        public int count;
 
-    public SeenSummary(int x, int y, int z) {
+        public final java.util.List<BlockPos> allLocations = new java.util.ArrayList<>();
+        private final boolean storeAllLocations;
+
+        public SeenSummary(int x, int y, int z) {
             this(x, y, z, false);
         }
 
@@ -49,6 +50,10 @@ public class SteveAiCollectors {
             }
         }
 
+        public boolean storesAllLocations() {
+            return storeAllLocations;
+        }
+
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
@@ -63,15 +68,25 @@ public class SteveAiCollectors {
                         sb.append("; ");
                     }
                     sb.append("(")
-                    .append(p.getX()).append(",")
-                    .append(p.getY()).append(",")
-                    .append(p.getZ()).append(")");
+                      .append(p.getX()).append(",")
+                      .append(p.getY()).append(",")
+                      .append(p.getZ()).append(")");
                 }
                 sb.append(")");
             }
 
             return sb.toString();
         }
+    }
+
+    private static boolean shouldStoreAllLocationsForBlock(String blockName) {
+        return blockName.equals("minecraft:cartography_table")
+            || blockName.equals("minecraft:bell")
+            || blockName.equals("minecraft:lectern")
+            || blockName.equals("minecraft:diamond_ore");
+            //|| blockName.equals("minecraft:deepslate_diamond_ore")
+            //|| blockName.contains("_carpet")
+            //|| blockName.startsWith("minecraft:waxed_");
     }
 
     public static Map<String, SeenSummary> collectNearbyEntities(
@@ -140,13 +155,18 @@ public class SteveAiCollectors {
                     }
 
                     Block block = state.getBlock();
-                    String blockName = block.toString();
+                    String blockName = BuiltInRegistries.BLOCK.getKey(block).toString();
 
                     SeenSummary summary = grouped.get(blockName);
                     if (summary == null) {
-                        grouped.put(blockName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ()));
+                        boolean storeAllLocations = shouldStoreAllLocationsForBlock(blockName);
+                        grouped.put(blockName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ(), storeAllLocations));
                     } else {
-                        summary.increment();
+                        if (summary.storesAllLocations()) {
+                            summary.addLocation(pos);
+                        } else {
+                            summary.increment();
+                        }
                     }
                 }
             }

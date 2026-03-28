@@ -83,6 +83,132 @@ public class SteveAiScanManager {
                 "Unknown scan type: " + scanType + " (use blocks, entities, blockentities, all)"
             );
         }
+
+        rebuildPoisFromCurrentScan();
+    }
+
+    private static String mapToClusteredText(Map<String, SteveAiCollectors.SeenSummary> map, String title) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(title).append("\n");
+        sb.append("count=").append(map.size()).append("\n\n");
+
+        for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : map.entrySet()) {
+            String blockName = entry.getKey();
+            SteveAiCollectors.SeenSummary summary = entry.getValue();
+
+            if (summary == null) {
+                continue;
+            }
+
+            if (!summary.storesAllLocations() || summary.allLocations.isEmpty()) {
+                sb.append(blockName)
+                .append(" -> ")
+                .append(summary)
+                .append("\n");
+                continue;
+            }
+
+            java.util.List<java.util.Set<BlockPos>> clusters = splitIntoTouchingClusters(summary.allLocations);
+
+            sb.append(blockName)
+            .append(" -> clusterCount=")
+            .append(clusters.size())
+            .append(", clusters=(");
+
+            for (int i = 0; i < clusters.size(); i++) {
+                java.util.Set<BlockPos> cluster = clusters.get(i);
+                BlockPos first = cluster.iterator().next();
+
+                if (i > 0) {
+                    sb.append("; ");
+                }
+
+                sb.append("firstLoc=(")
+                .append(first.getX()).append(",")
+                .append(first.getY()).append(",")
+                .append(first.getZ()).append("), count=")
+                .append(cluster.size());
+            }
+
+            sb.append(")\n");
+        }
+
+        return sb.toString();
+    }
+
+    private static java.util.List<java.util.Set<BlockPos>> splitIntoTouchingClusters(java.util.List<BlockPos> positions) {
+        java.util.List<java.util.Set<BlockPos>> clusters = new java.util.ArrayList<>();
+        java.util.Set<BlockPos> unvisited = new java.util.HashSet<>();
+
+        for (BlockPos pos : positions) {
+            unvisited.add(pos.immutable());
+        }
+
+        while (!unvisited.isEmpty()) {
+            BlockPos start = unvisited.iterator().next();
+
+            java.util.Set<BlockPos> cluster = new java.util.LinkedHashSet<>();
+            java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>();
+
+            queue.add(start);
+            unvisited.remove(start);
+
+            while (!queue.isEmpty()) {
+                BlockPos current = queue.removeFirst();
+                cluster.add(current);
+
+                for (BlockPos neighbor : getTouchingNeighbors(current)) {
+                    if (unvisited.remove(neighbor)) {
+                        queue.addLast(neighbor);
+                    }
+                }
+            }
+
+            clusters.add(cluster);
+        }
+
+        return clusters;
+    }
+
+    private static java.util.List<BlockPos> getTouchingNeighbors(BlockPos pos) {
+        return java.util.List.of(
+            pos.north(),
+            pos.south(),
+            pos.east(),
+            pos.west(),
+            pos.above(),
+            pos.below()
+        );
+    }    
+    private static void rebuildPoisFromCurrentScan() {
+        PoiManager.clear();
+
+        for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedBlockEntities.entrySet()) {
+            String typeName = entry.getKey();
+            SteveAiCollectors.SeenSummary summary = entry.getValue();
+
+            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                for (BlockPos pos : summary.allLocations) {
+                    PoiManager.processBlockEntity(typeName, pos);
+                }
+            } else {
+                PoiManager.processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
+            }
+        }
+
+        for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedEntities.entrySet()) {
+            String typeName = entry.getKey();
+            SteveAiCollectors.SeenSummary summary = entry.getValue();
+
+            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                for (BlockPos pos : summary.allLocations) {
+                    PoiManager.processEntity(typeName, pos);
+                }
+            } else {
+                PoiManager.processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
+            }
+        }
     }
 
     public static Map<String, SteveAiCollectors.SeenSummary> getScannedBlocks() {
@@ -144,12 +270,14 @@ public class SteveAiScanManager {
 
         Path statusFile = baseFolder.resolve(buildFileName("scanStatus", safeSuffix));
         Path blocksFile = baseFolder.resolve(buildFileName("scannedBlocks", safeSuffix));
+        Path blocksClusteredFile = baseFolder.resolve(buildFileName("scannedBlocksClustered", safeSuffix));
         Path entitiesFile = baseFolder.resolve(buildFileName("scannedEntities", safeSuffix));
         Path blockEntitiesFile = baseFolder.resolve(buildFileName("scannedBlockEntities", safeSuffix));
         Path poiSummaryFile = baseFolder.resolve(buildFileName("poiSummary", safeSuffix));
 
         Files.writeString(statusFile, getStatusText() + System.lineSeparator(), StandardCharsets.UTF_8);
         Files.writeString(blocksFile, mapToText(scannedBlocks, "SCANNED BLOCKS"), StandardCharsets.UTF_8);
+        Files.writeString(blocksClusteredFile, mapToClusteredText(scannedBlocks, "SCANNED BLOCKS CLUSTERED"), StandardCharsets.UTF_8);
         Files.writeString(entitiesFile, mapToText(scannedEntities, "SCANNED ENTITIES"), StandardCharsets.UTF_8);
         Files.writeString(blockEntitiesFile, mapToText(scannedBlockEntities, "SCANNED BLOCK ENTITIES"), StandardCharsets.UTF_8);
 
@@ -167,7 +295,7 @@ public class SteveAiScanManager {
 
         return baseFolder;
     }
-    
+
     private static String mapToText(Map<String, SteveAiCollectors.SeenSummary> map, String title) {
         StringBuilder sb = new StringBuilder();
 
