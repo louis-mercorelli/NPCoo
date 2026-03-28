@@ -124,21 +124,24 @@ public class CommandEvents {
                         .then(Commands.literal("exploreStatus")
                             .executes(CommandEvents::handleExploreStatus)
                         )
-                        .then(Commands.argument("scanArgs", StringArgumentType.greedyString())
-                            .executes(ctx -> {
-                                CommandSourceStack source = ctx.getSource();
-                                String tail = StringArgumentType.getString(ctx, "scanArgs");
+                        .then(Commands.literal("scanSAI")
+                            .executes(ctx -> handleScanSai(ctx, "all", 2))
+                                .then(Commands.argument("scanArgs", StringArgumentType.greedyString())
+                                    .executes(ctx -> {
+                                        CommandSourceStack source = ctx.getSource();
+                                        String tail = StringArgumentType.getString(ctx, "scanArgs");
 
-                                ParsedScanSaiArgs parsed;
-                                try {
-                                    parsed = parseScanSaiArgs(tail, 2);
-                                } catch (Exception e) {
-                                    source.sendFailure(Component.literal("scanSAI parse error: " + e.getMessage()));
-                                    return 0;
-                                }
+                                        ParsedScanSaiArgs parsed;
+                                        try {
+                                            parsed = parseScanSaiArgs(tail, 2);
+                                        } catch (Exception e) {
+                                            source.sendFailure(Component.literal("scanSAI parse error: " + e.getMessage()));
+                                            return 0;
+                                        }
 
-                                return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
-                            })
+                                        return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
+                                    })
+                                )
                         )
                         .then(Commands.literal("scanStatus")
                             .executes(context -> {

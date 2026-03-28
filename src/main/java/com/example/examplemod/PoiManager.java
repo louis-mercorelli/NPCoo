@@ -1,8 +1,14 @@
 package com.example.examplemod;
+
 import net.minecraft.core.BlockPos;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class PoiManager {
+
     public static class Poi {
         public String type;
         public BlockPos center;
@@ -12,7 +18,7 @@ public class PoiManager {
 
         public Poi(String type, BlockPos pos, String evidenceType) {
             this.type = type;
-            this.center = pos;
+            this.center = pos.immutable();
             this.evidence.add(evidenceType);
             this.count = 1;
             this.seenPositions.add(pos.immutable());
@@ -26,153 +32,263 @@ public class PoiManager {
                 return false;
             }
 
-            this.center = new BlockPos(
-                (this.center.getX() + pos.getX()) / 2,
-                (this.center.getY() + pos.getY()) / 2,
-                (this.center.getZ() + pos.getZ()) / 2
-            );
-
             if (newPosition) {
                 this.count++;
+                recomputeCenter();
             }
+
             return true;
+        }
+
+        private void recomputeCenter() {
+            long sumX = 0;
+            long sumY = 0;
+            long sumZ = 0;
+
+            for (BlockPos p : seenPositions) {
+                sumX += p.getX();
+                sumY += p.getY();
+                sumZ += p.getZ();
+            }
+
+            int n = Math.max(1, seenPositions.size());
+            this.center = new BlockPos(
+                (int) Math.round((double) sumX / n),
+                (int) Math.round((double) sumY / n),
+                (int) Math.round((double) sumZ / n)
+            );
         }
     }
 
     private static final List<Poi> pois = new ArrayList<>();
 
-    private static final int MERGE_DISTANCE = 20;
-
-    // --- PUBLIC ENTRY POINT ---
     public static boolean processBlockEntity(String typeName, BlockPos pos) {
-        String poiType = mapToPoi(typeName);
+        String normalized = normalizeEvidence(typeName);
+        String poiType = mapToPoi(normalized);
         if (poiType == null) return false;
 
-        return addOrMerge(poiType, pos, typeName);
+        return addOrMerge(poiType, pos, normalized);
     }
 
     public static boolean processEntity(String typeName, BlockPos pos) {
-        String poiType = mapToPoi(typeName);
+        String normalized = normalizeEvidence(typeName);
+        String poiType = mapToPoi(normalized);
         if (poiType == null) return false;
 
-        return addOrMerge(poiType, pos, typeName);
+        return addOrMerge(poiType, pos, normalized);
     }
 
-    // --- POI MAPPING ---
+    private static String normalizeEvidence(String type) {
+        if (type == null) return "";
+
+        return switch (type) {
+            case "entity.minecraft.villager" -> "minecraft:villager";
+            case "entity.minecraft.iron_golem" -> "minecraft:iron_golem";
+            case "entity.minecraft.cat" -> "minecraft:cat";
+            case "entity.minecraft.blaze" -> "minecraft:blaze";
+            case "entity.minecraft.wither_skeleton" -> "minecraft:wither_skeleton";
+            case "entity.minecraft.piglin" -> "minecraft:piglin";
+            case "entity.minecraft.piglin_brute" -> "minecraft:piglin_brute";
+            case "entity.minecraft.silverfish" -> "minecraft:silverfish";
+            case "entity.minecraft.shulker" -> "minecraft:shulker";
+            case "entity.minecraft.witch" -> "minecraft:witch";
+            case "entity.minecraft.warden" -> "minecraft:warden";
+            case "entity.minecraft.drowned" -> "minecraft:drowned";
+            default -> type;
+        };
+    }
+
     private static String mapToPoi(String type) {
         return switch (type) {
 
-            // --- Level 0: village ---
+            // Village evidence
             case "minecraft:bed",
-                "minecraft:bell",
-                "minecraft:lectern",
-                "minecraft:brewing_stand",
-                "minecraft:blast_furnace",
-                "minecraft:smoker",
-                "minecraft:cartography_table",
-                "minecraft:composter",
-                "entity.minecraft.villager",
-                "entity.minecraft.iron_golem" -> "village";
+                 "minecraft:bell",
+                 "minecraft:lectern",
+                 "minecraft:brewing_stand",
+                 "minecraft:blast_furnace",
+                 "minecraft:smoker",
+                 "minecraft:cartography_table",
+                 "minecraft:composter",
+                 "minecraft:villager",
+                 "minecraft:iron_golem",
+                 "minecraft:cat" -> "village_candidate";
 
-            // --- Level 1: dungeon / temple / shipwreck / fortress / bastion ---
+            // Dungeon
             case "minecraft:mob_spawner",
-                "minecraft:spawner",
-                "minecraft:chest" -> "dungeon";
+                 "minecraft:spawner",
+                 "minecraft:chest" -> "dungeon";
 
+            // Trial chamber
             case "minecraft:trial_spawner",
-                "minecraft:vault" -> "temple";
+                 "minecraft:vault",
+                 "minecraft:decorated_pot",
+                 "minecraft:waxed_copper_grate",
+                 "minecraft:chiseled_tuff",
+                 "minecraft:chiseled_tuff_bricks",
+                 "minecraft:polished_tuff",
+                 "minecraft:tuff_bricks",
+                 "minecraft:dispenser",
+                 "minecraft:barrel",
+                 "minecraft:hopper" -> "trial_chamber";
 
-            // later split into desert_temple / jungle_temple if desired
-            case "minecraft:tnt",
-                "minecraft:stone_pressure_plate",
-                "minecraft:orange_terracotta",
-                "minecraft:blue_terracotta" -> "temple";
+            // Fortress
+            case "minecraft:blaze",
+                 "minecraft:wither_skeleton" -> "fortress";
 
-            case "minecraft:barrel",
-                "entity.minecraft.drowned" -> "shipwreck";
+            // Bastion
+            case "minecraft:piglin",
+                 "minecraft:piglin_brute" -> "bastion";
 
-            case "entity.minecraft.blaze",
-                "entity.minecraft.wither_skeleton" -> "fortress";
-
-            case "entity.minecraft.piglin",
-                "entity.minecraft.piglin_brute" -> "bastion";
-
-            // --- Level 2: progression / navigation ---
+            // Stronghold
             case "minecraft:end_portal_frame",
-                "entity.minecraft.silverfish" -> "stronghold";
+                 "minecraft:silverfish" -> "stronghold";
 
+            // Ruined portal
             case "minecraft:obsidian",
-                "minecraft:crying_obsidian" -> "ruined_portal";
+                 "minecraft:crying_obsidian" -> "ruined_portal";
 
-            case "entity.minecraft.shulker",
-                "minecraft:dragon_head" -> "end_city";
+            // End city
+            case "minecraft:shulker",
+                 "minecraft:dragon_head" -> "end_city";
 
-            case "entity.minecraft.witch",
-                "entity.minecraft.cat" -> "witch_hut";
+            // Witch hut
+            case "minecraft:witch" -> "witch_hut";
 
+            // Ancient city
             case "minecraft:sculk_shrieker",
-                "minecraft:sculk_sensor",
-                "minecraft:reinforced_deepslate",
-                "entity.minecraft.warden" -> "ancient_city";
+                 "minecraft:sculk_sensor",
+                 "minecraft:reinforced_deepslate",
+                 "minecraft:warden" -> "ancient_city";
 
-            // --- Level 3: resource ---
+            // Geode
             case "minecraft:budding_amethyst",
-                "minecraft:amethyst_block",
-                "minecraft:calcite",
-                "minecraft:smooth_basalt" -> "geode";
+                 "minecraft:amethyst_block",
+                 "minecraft:calcite",
+                 "minecraft:smooth_basalt" -> "geode";
 
+            // Fossil
             case "minecraft:bone_block" -> "fossil";
 
+            // Lava pool
             case "minecraft:lava" -> "lava_pool";
 
-            // later you may want ore-specific subtypes instead
+            // Ore vein
             case "minecraft:diamond_ore",
-                "minecraft:deepslate_diamond_ore",
-                "minecraft:iron_ore",
-                "minecraft:deepslate_iron_ore",
-                "minecraft:copper_ore",
-                "minecraft:deepslate_copper_ore",
-                "minecraft:gold_ore",
-                "minecraft:deepslate_gold_ore",
-                "minecraft:redstone_ore",
-                "minecraft:deepslate_redstone_ore",
-                "minecraft:lapis_ore",
-                "minecraft:deepslate_lapis_ore",
-                "minecraft:coal_ore",
-                "minecraft:deepslate_coal_ore" -> "ore_vein";
+                 "minecraft:deepslate_diamond_ore",
+                 "minecraft:iron_ore",
+                 "minecraft:deepslate_iron_ore",
+                 "minecraft:copper_ore",
+                 "minecraft:deepslate_copper_ore",
+                 "minecraft:gold_ore",
+                 "minecraft:deepslate_gold_ore",
+                 "minecraft:redstone_ore",
+                 "minecraft:deepslate_redstone_ore",
+                 "minecraft:lapis_ore",
+                 "minecraft:deepslate_lapis_ore",
+                 "minecraft:coal_ore",
+                 "minecraft:deepslate_coal_ore" -> "ore_vein";
 
             default -> null;
         };
     }
 
-    // --- MERGE LOGIC ---
+    private static int getMergeDistance(String poiType, String evidence) {
+        return switch (poiType) {
+            case "village_candidate", "village" -> switch (evidence) {
+                case "minecraft:bell" -> 96;
+                case "minecraft:villager", "minecraft:iron_golem", "minecraft:bed" -> 72;
+                default -> 56;
+            };
+            case "trial_chamber" -> 40;
+            case "dungeon" -> 16;
+            case "geode" -> 24;
+            case "shipwreck" -> 24;
+            case "fortress", "bastion", "stronghold", "ancient_city" -> 48;
+            case "ruined_portal" -> 24;
+            case "ore_vein" -> 20;
+            case "lava_pool" -> 20;
+            case "fossil" -> 20;
+            default -> 20;
+        };
+    }
+
     private static boolean addOrMerge(String type, BlockPos pos, String evidence) {
+        Poi best = null;
+        double bestDist = Double.MAX_VALUE;
+
         for (Poi poi : pois) {
             if (!poi.type.equals(type)) continue;
 
-            if (poi.center.distSqr(pos) < MERGE_DISTANCE * MERGE_DISTANCE) {
-                return poi.add(pos, evidence);
+            int mergeDistance = getMergeDistance(type, evidence);
+            double dist = poi.center.distSqr(pos);
+            if (dist <= (double) mergeDistance * mergeDistance && dist < bestDist) {
+                bestDist = dist;
+                best = poi;
             }
+        }
+
+        if (best != null) {
+            return best.add(pos, evidence);
         }
 
         pois.add(new Poi(type, pos, evidence));
         return true;
     }
 
-    // --- OUTPUT ---
+    private static String classifyPoiType(Poi poi) {
+        if (!poi.type.equals("village_candidate")) {
+            return poi.type;
+        }
+
+        boolean hasBed = poi.evidence.contains("minecraft:bed");
+        boolean hasBell = poi.evidence.contains("minecraft:bell");
+        boolean hasVillager = poi.evidence.contains("minecraft:villager");
+        boolean hasIronGolem = poi.evidence.contains("minecraft:iron_golem");
+        boolean hasCat = poi.evidence.contains("minecraft:cat");
+
+        boolean hasWorkstation =
+            poi.evidence.contains("minecraft:lectern") ||
+            poi.evidence.contains("minecraft:brewing_stand") ||
+            poi.evidence.contains("minecraft:blast_furnace") ||
+            poi.evidence.contains("minecraft:smoker") ||
+            poi.evidence.contains("minecraft:cartography_table") ||
+            poi.evidence.contains("minecraft:composter");
+
+        int score = 0;
+        if (hasBed) score += 3;
+        if (hasVillager) score += 3;
+        if (hasBell) score += 4;
+        if (hasIronGolem) score += 2;
+        if (hasWorkstation) score += 2;
+        if (hasCat) score += 1;
+
+        int posCount = poi.seenPositions.size();
+        if (posCount >= 12) score += 3;
+        else if (posCount >= 6) score += 2;
+        else if (posCount >= 3) score += 1;
+
+        int evidenceCount = poi.evidence.size();
+        if (evidenceCount >= 5) score += 2;
+        else if (evidenceCount >= 3) score += 1;
+
+        return score >= 7 ? "village" : "village_candidate";
+    }
+
     public static List<String> buildSummaryLines() {
         List<String> lines = new ArrayList<>();
 
         for (Poi poi : pois) {
-            String confidence = getConfidence(poi);
+            String finalType = classifyPoiType(poi);
+            String confidence = getConfidence(poi, finalType);
 
             lines.add(String.format(
                 "%s loc=(%d,%d,%d) evidence=%s count=%d confidence=%s",
-                poi.type,
+                finalType,
                 poi.center.getX(),
                 poi.center.getY(),
                 poi.center.getZ(),
-                String.join(",", poi.evidence),
+                String.join(",", new java.util.TreeSet<>(poi.evidence)),
                 poi.count,
                 confidence
             ));
@@ -181,7 +297,7 @@ public class PoiManager {
         return lines;
     }
 
-    private static String getConfidence(Poi poi) {
+    private static String getConfidence(Poi poi, String finalType) {
         int evidenceCount = poi.evidence.size();
         int posCount = poi.seenPositions.size();
 
@@ -193,9 +309,9 @@ public class PoiManager {
         boolean hasSmoker = poi.evidence.contains("minecraft:smoker");
         boolean hasCartographyTable = poi.evidence.contains("minecraft:cartography_table");
         boolean hasComposter = poi.evidence.contains("minecraft:composter");
-        boolean hasBarrel = poi.evidence.contains("minecraft:barrel");
-        boolean hasVillager = poi.evidence.contains("entity.minecraft.villager");
-        boolean hasIronGolem = poi.evidence.contains("entity.minecraft.iron_golem");
+        boolean hasVillager = poi.evidence.contains("minecraft:villager");
+        boolean hasIronGolem = poi.evidence.contains("minecraft:iron_golem");
+        boolean hasCat = poi.evidence.contains("minecraft:cat");
 
         boolean hasSpawner = poi.evidence.contains("minecraft:mob_spawner")
             || poi.evidence.contains("minecraft:spawner");
@@ -203,33 +319,34 @@ public class PoiManager {
 
         boolean hasTrialSpawner = poi.evidence.contains("minecraft:trial_spawner");
         boolean hasVault = poi.evidence.contains("minecraft:vault");
-        boolean hasTnt = poi.evidence.contains("minecraft:tnt");
-        boolean hasStonePressurePlate = poi.evidence.contains("minecraft:stone_pressure_plate");
-        boolean hasOrangeTerracotta = poi.evidence.contains("minecraft:orange_terracotta");
-        boolean hasBlueTerracotta = poi.evidence.contains("minecraft:blue_terracotta");
+        boolean hasDecoratedPot = poi.evidence.contains("minecraft:decorated_pot");
+        boolean hasTuff = poi.evidence.contains("minecraft:tuff_bricks")
+            || poi.evidence.contains("minecraft:polished_tuff")
+            || poi.evidence.contains("minecraft:chiseled_tuff")
+            || poi.evidence.contains("minecraft:chiseled_tuff_bricks");
+        boolean hasCopper = poi.evidence.contains("minecraft:waxed_copper_grate");
 
-        boolean hasBlaze = poi.evidence.contains("entity.minecraft.blaze");
-        boolean hasWitherSkeleton = poi.evidence.contains("entity.minecraft.wither_skeleton");
+        boolean hasBlaze = poi.evidence.contains("minecraft:blaze");
+        boolean hasWitherSkeleton = poi.evidence.contains("minecraft:wither_skeleton");
 
-        boolean hasPiglin = poi.evidence.contains("entity.minecraft.piglin");
-        boolean hasPiglinBrute = poi.evidence.contains("entity.minecraft.piglin_brute");
+        boolean hasPiglin = poi.evidence.contains("minecraft:piglin");
+        boolean hasPiglinBrute = poi.evidence.contains("minecraft:piglin_brute");
 
         boolean hasEndPortalFrame = poi.evidence.contains("minecraft:end_portal_frame");
-        boolean hasSilverfish = poi.evidence.contains("entity.minecraft.silverfish");
+        boolean hasSilverfish = poi.evidence.contains("minecraft:silverfish");
 
         boolean hasObsidian = poi.evidence.contains("minecraft:obsidian");
         boolean hasCryingObsidian = poi.evidence.contains("minecraft:crying_obsidian");
 
-        boolean hasShulker = poi.evidence.contains("entity.minecraft.shulker");
+        boolean hasShulker = poi.evidence.contains("minecraft:shulker");
         boolean hasDragonHead = poi.evidence.contains("minecraft:dragon_head");
 
-        boolean hasWitch = poi.evidence.contains("entity.minecraft.witch");
-        boolean hasCat = poi.evidence.contains("entity.minecraft.cat");
+        boolean hasWitch = poi.evidence.contains("minecraft:witch");
 
         boolean hasSculkShrieker = poi.evidence.contains("minecraft:sculk_shrieker");
         boolean hasSculkSensor = poi.evidence.contains("minecraft:sculk_sensor");
         boolean hasReinforcedDeepslate = poi.evidence.contains("minecraft:reinforced_deepslate");
-        boolean hasWarden = poi.evidence.contains("entity.minecraft.warden");
+        boolean hasWarden = poi.evidence.contains("minecraft:warden");
 
         boolean hasBuddingAmethyst = poi.evidence.contains("minecraft:budding_amethyst");
         boolean hasAmethystBlock = poi.evidence.contains("minecraft:amethyst_block");
@@ -254,13 +371,13 @@ public class PoiManager {
             || poi.evidence.contains("minecraft:coal_ore")
             || poi.evidence.contains("minecraft:deepslate_coal_ore");
 
-        switch (poi.type) {
-            case "village", "village_candidate" -> {
+        switch (finalType) {
+            case "village" -> {
                 int score = 0;
 
                 if (hasBed) score += 3;
                 if (hasVillager) score += 3;
-                if (hasBell) score += 3;
+                if (hasBell) score += 4;
                 if (hasIronGolem) score += 2;
                 if (hasLectern) score += 2;
                 if (hasBrewingStand) score += 2;
@@ -268,19 +385,24 @@ public class PoiManager {
                 if (hasSmoker) score += 1;
                 if (hasCartographyTable) score += 2;
                 if (hasComposter) score += 1;
-                if (hasBarrel) score += 1;
+                if (hasCat) score += 1;
 
-                if (posCount >= 6) score += 3;
-                else if (posCount >= 3) score += 2;
-                else if (posCount >= 2) score += 1;
+                if (posCount >= 12) score += 3;
+                else if (posCount >= 6) score += 2;
+                else if (posCount >= 3) score += 1;
 
-                if (evidenceCount >= 5) score += 3;
-                else if (evidenceCount >= 3) score += 2;
-                else if (evidenceCount >= 2) score += 1;
+                if (evidenceCount >= 5) score += 2;
+                else if (evidenceCount >= 3) score += 1;
 
-                if (score >= 10) return "very_high";
-                if (score >= 6) return "high";
-                if (score >= 3) return "medium";
+                if (score >= 12) return "very_high";
+                if (score >= 8) return "high";
+                if (score >= 5) return "medium";
+                return "low";
+            }
+
+            case "village_candidate" -> {
+                if ((hasBed && hasVillager) || (hasBell && hasBed)) return "high";
+                if (hasBed || hasVillager || hasBell || hasLectern || hasBlastFurnace || hasSmoker) return "medium";
                 return "low";
             }
 
@@ -291,23 +413,19 @@ public class PoiManager {
                 return "low";
             }
 
-            case "temple" -> {
+            case "trial_chamber" -> {
                 int score = 0;
-
                 if (hasTrialSpawner) score += 4;
                 if (hasVault) score += 4;
+                if (hasDecoratedPot) score += 2;
+                if (hasTuff) score += 2;
+                if (hasCopper) score += 2;
+                if (posCount >= 6) score += 2;
+                else if (posCount >= 3) score += 1;
 
-                if (hasTnt) score += 3;
-                if (hasStonePressurePlate) score += 3;
-                if (hasOrangeTerracotta) score += 1;
-                if (hasBlueTerracotta) score += 1;
-
-                if (posCount >= 4) score += 2;
-                else if (posCount >= 2) score += 1;
-
-                if (score >= 8) return "very_high";
-                if (score >= 5) return "high";
-                if (score >= 3) return "medium";
+                if (score >= 10) return "very_high";
+                if (score >= 7) return "high";
+                if (score >= 4) return "medium";
                 return "low";
             }
 
@@ -320,10 +438,6 @@ public class PoiManager {
             case "bastion" -> {
                 if (hasPiglinBrute && hasPiglin) return "very_high";
                 if (hasPiglinBrute || hasPiglin) return "high";
-                return posCount >= 3 ? "medium" : "low";
-            }
-
-            case "shipwreck" -> {
                 return posCount >= 3 ? "medium" : "low";
             }
 
@@ -353,12 +467,10 @@ public class PoiManager {
 
             case "ancient_city" -> {
                 int score = 0;
-
                 if (hasSculkShrieker) score += 4;
                 if (hasSculkSensor) score += 3;
                 if (hasReinforcedDeepslate) score += 4;
                 if (hasWarden) score += 5;
-
                 if (posCount >= 3) score += 2;
                 if (evidenceCount >= 3) score += 2;
 
@@ -370,12 +482,10 @@ public class PoiManager {
 
             case "geode" -> {
                 int score = 0;
-
                 if (hasBuddingAmethyst) score += 4;
                 if (hasAmethystBlock) score += 2;
                 if (hasCalcite) score += 2;
                 if (hasSmoothBasalt) score += 2;
-
                 if (posCount >= 4) score += 2;
 
                 if (score >= 8) return "very_high";
@@ -421,8 +531,9 @@ public class PoiManager {
         Poi nearest = null;
         double bestDist = Double.MAX_VALUE;
 
-        for (Poi poi : pois) {   // replace POIS with your actual collection
-            if (!poi.type.equals(type)) continue;
+        for (Poi poi : pois) {
+            String finalType = classifyPoiType(poi);
+            if (!finalType.equals(type)) continue;
 
             double dist = poi.center.distSqr(fromPos);
             if (dist < bestDist) {
@@ -439,10 +550,10 @@ public class PoiManager {
         double bestDistXZ = Double.MAX_VALUE;
 
         for (Poi poi : pois) {
-            if (!poi.type.equals("village_candidate")) continue;
-            if (poi.count < 3) continue;
+            String finalType = classifyPoiType(poi);
+            if (!finalType.equals("village")) continue;
 
-            String confidence = getConfidence(poi);
+            String confidence = getConfidence(poi, finalType);
             if ("low".equals(confidence)) continue;
 
             double dx = poi.center.getX() - fromPos.getX();
@@ -457,5 +568,4 @@ public class PoiManager {
 
         return nearest == null ? null : nearest.center.immutable();
     }
-
 }
