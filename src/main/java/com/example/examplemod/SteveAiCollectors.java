@@ -14,21 +14,63 @@ import java.util.function.Predicate;
 
 public class SteveAiCollectors {
 
-    public static class SeenSummary {
-        public final int x;
-        public final int y;
-        public final int z;
-        public int count;
+ public static class SeenSummary {
+    public final int x;
+    public final int y;
+    public final int z;
+    public int count;
+    public final java.util.List<BlockPos> allLocations = new java.util.ArrayList<>();
+    private final boolean storeAllLocations;
 
-        public SeenSummary(int x, int y, int z) {
+    public SeenSummary(int x, int y, int z) {
+            this(x, y, z, false);
+        }
+
+        public SeenSummary(int x, int y, int z, boolean storeAllLocations) {
             this.x = x;
             this.y = y;
             this.z = z;
             this.count = 1;
+            this.storeAllLocations = storeAllLocations;
+
+            if (storeAllLocations) {
+                this.allLocations.add(new BlockPos(x, y, z));
+            }
         }
 
         public void increment() {
             this.count++;
+        }
+
+        public void addLocation(BlockPos pos) {
+            this.count++;
+            if (storeAllLocations) {
+                this.allLocations.add(pos.immutable());
+            }
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("firstLoc=(").append(x).append(",").append(y).append(",").append(z).append(")");
+            sb.append(", count=").append(count);
+
+            if (storeAllLocations && !allLocations.isEmpty()) {
+                sb.append(", allLocs=(");
+                for (int i = 0; i < allLocations.size(); i++) {
+                    BlockPos p = allLocations.get(i);
+                    if (i > 0) {
+                        sb.append("; ");
+                    }
+                    sb.append("(")
+                    .append(p.getX()).append(",")
+                    .append(p.getY()).append(",")
+                    .append(p.getZ()).append(")");
+                }
+                sb.append(")");
+            }
+
+            return sb.toString();
         }
     }
 
@@ -56,9 +98,9 @@ public class SteveAiCollectors {
 
             SeenSummary summary = grouped.get(typeName);
             if (summary == null) {
-                grouped.put(typeName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ()));
+                grouped.put(typeName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
             } else {
-                summary.increment();
+                summary.addLocation(pos);
             }
         }
 
@@ -143,9 +185,9 @@ public class SteveAiCollectors {
 
             SeenSummary summary = grouped.get(typeName);
             if (summary == null) {
-                grouped.put(typeName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ()));
+                grouped.put(typeName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
             } else {
-                summary.increment();
+                summary.addLocation(pos);
             }
         }
 

@@ -74,9 +74,9 @@ public class CommandEvents {
     private static net.minecraft.core.BlockPos lastEntityScanCenter = null;
     private static net.minecraft.core.BlockPos lastBlockScanCenter = null;
     private static net.minecraft.core.BlockPos lastBlockEntityScanCenter = null;
-    private static final double ENTITY_SCAN_MOVE_THRESHOLD = 75.0;
-    private static final double BLOCK_SCAN_MOVE_THRESHOLD = 50.0;
-    private static final double BLOCK_ENTITY_SCAN_MOVE_THRESHOLD = 300.0;
+    private static final double ENTITY_SCAN_MOVE_THRESHOLD = 30.0;
+    private static final double BLOCK_SCAN_MOVE_THRESHOLD = 30.0;
+    private static final double BLOCK_ENTITY_SCAN_MOVE_THRESHOLD = 30.0;
     private static boolean steveAiFollowMode = false;
     private static UUID steveAiFollowPlayerUuid = null;
     private static long lastFollowTick = 0L;
@@ -133,6 +133,50 @@ public class CommandEvents {
                                         IntegerArgumentType.getInteger(ctx, "radius")
                                     ))
                                 )
+                            )
+                        )
+                        .then(Commands.literal("scanStatus")
+                            .executes(context -> {
+                                context.getSource().sendSuccess(
+                                    () -> Component.literal(SteveAiScanManager.getStatusText()),
+                                    false
+                                );
+                                return 1;
+                            })
+                        )
+                        .then(Commands.literal("writeT")
+                            .executes(context -> {
+                                try {
+                                    ServerLevel serverLevel = context.getSource().getLevel();
+                                    Path folder = SteveAiScanManager.writeTextFiles(serverLevel, "");
+
+                                    context.getSource().sendSuccess(
+                                        () -> Component.literal("SteveAI scan text files written to: " + folder.toAbsolutePath()),
+                                        false
+                                    );
+                                    return 1;
+                                } catch (Exception e) {
+                                    context.getSource().sendFailure(Component.literal("writeT failed: " + e.getMessage()));
+                                    return 0;
+                                }
+                            })
+                            .then(Commands.argument("suffix", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    try {
+                                        ServerLevel serverLevel = context.getSource().getLevel();
+                                        String suffix = StringArgumentType.getString(context, "suffix");
+                                        Path folder = SteveAiScanManager.writeTextFiles(serverLevel, suffix);
+
+                                        context.getSource().sendSuccess(
+                                            () -> Component.literal("SteveAI scan text files written to: " + folder.toAbsolutePath()),
+                                            false
+                                        );
+                                        return 1;
+                                    } catch (Exception e) {
+                                        context.getSource().sendFailure(Component.literal("writeT failed: " + e.getMessage()));
+                                        return 0;
+                                    }
+                                })
                             )
                         )
                         .then(Commands.literal("forceChunkOn")
@@ -595,7 +639,7 @@ public class CommandEvents {
                         )
                     );
 
-                    appendNearbyEntities(serverLevel, entity, 100.0);
+                    appendNearbyEntities(serverLevel, entity, 30.0);
                 }
 
                 if (hasMovedFarEnough(lastBlockScanCenter, entity, BLOCK_SCAN_MOVE_THRESHOLD)) {
@@ -612,7 +656,7 @@ public class CommandEvents {
                         )
                     );
 
-                    appendNearbyBlocks(serverLevel, entity, 50, 100);
+                    appendNearbyBlocks(serverLevel, entity, 30, 70);
 
                     if (entity instanceof Villager villager) {
                         //addCoalToSteveAiInventory(villager, 4);
@@ -641,7 +685,7 @@ public class CommandEvents {
                         )
                     );
 
-                    poiChanged = appendNearbyBlockEntities(serverLevel, entity, 300);
+                    poiChanged = appendNearbyBlockEntities(serverLevel, entity, 30);
                     //didBlockEntityScan = true;
                 }
 
