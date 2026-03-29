@@ -5,6 +5,8 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -89,6 +91,31 @@ public class CommandEvents {
     private static BlockPos currentExploreTarget = null;
     private static long nextExploreRepathGameTime = 0L;
     private static final Set<BlockPos> exploredTargets = new HashSet<>();
+    private static final long PERIODIC_SCAN_INTERVAL_TICKS = 1200L;
+    private static final long MAX_PERIODIC_SCAN_MS_PER_TICK = 1000L;
+    private static final Deque<PeriodicScanJob> periodicScanQueue = new ArrayDeque<>();
+    private static boolean periodicScanCycleActive = false;
+
+    private enum PeriodicScanPhase {
+        LOCATION_AND_WORLD,
+        ENTITIES,
+        BLOCKS,
+        BLOCK_ENTITIES,
+        SUMMARY
+    }
+
+    private static final class PeriodicScanJob {
+        private final ServerLevel serverLevel;
+        private final Entity steveAi;
+        private PeriodicScanPhase phase = PeriodicScanPhase.LOCATION_AND_WORLD;
+        private boolean poiChanged = false;
+        private BlockPos blockEntityScanCenter = null;
+
+        PeriodicScanJob(ServerLevel serverLevel, Entity steveAi) {
+            this.serverLevel = serverLevel;
+            this.steveAi = steveAi;
+        }
+    }
 
     @SubscribeEvent
     public static void onCommandsRegister(RegisterCommandsEvent event) {
@@ -650,17 +677,128 @@ public class CommandEvents {
             return;
         }
 
-        if (server.overworld().getGameTime() % 1200 != 0) {
+        maybeStartPeriodicScan(server);
+        processPeriodicScanQueue();
+    }
+
+    private static void maybeStartPeriodicScan(net.minecraft.server.MinecraftServer server) {
+        long now = server.overworld().getGameTime();
+        if (now % PERIODIC_SCAN_INTERVAL_TICKS != 0) {
+            return;
+        }
+        if (!periodicScanQueue.isEmpty()) {
             return;
         }
 
+        int queued = enqueuePeriodicScanJobs(server);
+        if (queued > 0) {
+            periodicScanCycleActive = true;
+            LOGGER.info("Periodic scan cycle started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+        }
+    }
+
+    private static void forceStartPeriodicScanNow(net.minecraft.server.MinecraftServer server) {
+        if (server == null || server.overworld() == null) {
+            return;
+        }
+        if (!periodicScanQueue.isEmpty()) {
+            return;
+        }
+
+        int queued = enqueuePeriodicScanJobs(server);
+        if (queued > 0) {
+            periodicScanCycleActive = true;
+            LOGGER.info("Periodic scan force-started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+        }
+    }
+
+    private static int enqueuePeriodicScanJobs(net.minecraft.server.MinecraftServer server) {
+        int queued = 0;
         for (ServerLevel serverLevel : server.getAllLevels()) {
             var matches = serverLevel.getEntities(
                 (Entity) null,
                 new AABB(-30000000, -64, -30000000, 30000000, 320, 30000000),
-                entity -> isSteveAi(entity)
+                CommandEvents::isSteveAi
             );
+
             for (Entity entity : matches) {
+                periodicScanQueue.addLast(new PeriodicScanJob(serverLevel, entity));
+                queued++;
+            }
+        }
+        return queued;
+    }
+
+    private static void processPeriodicScanQueue() {
+        if (periodicScanQueue.isEmpty()) {
+            return;
+        }
+
+        int queueSizeBefore = periodicScanQueue.size();
+
+        long startNs = System.nanoTime();
+        long deadlineNs = startNs + (MAX_PERIODIC_SCAN_MS_PER_TICK * 1_000_000L);
+        int steps = 0;
+
+        while (!periodicScanQueue.isEmpty() && System.nanoTime() < deadlineNs) {
+            PeriodicScanJob job = periodicScanQueue.pollFirst();
+            if (job == null) {
+                break;
+            }
+
+            if (!job.steveAi.isAlive()) {
+                continue;
+            }
+
+            processPeriodicScanJobPhase(job);
+            steps++;
+
+            if (job.phase != null) {
+                periodicScanQueue.addLast(job);
+            }
+        }
+
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+        LOGGER.info("Periodic scan tick processed: steps={} remainingJobs={} elapsedMs={} budgetMs={}",
+            steps,
+            periodicScanQueue.size(),
+            elapsedMs,
+            MAX_PERIODIC_SCAN_MS_PER_TICK
+        );
+
+        if (periodicScanCycleActive && queueSizeBefore > 0 && periodicScanQueue.isEmpty()) {
+            periodicScanCycleActive = false;
+            notifyPeriodicScanFinished();
+        }
+    }
+
+    private static void notifyPeriodicScanFinished() {
+        String msg = "[testmod] SteveAI full periodic scan finished.";
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+
+        if (server == null) {
+            LOGGER.info(msg);
+            return;
+        }
+
+        if (lastPlayerUuid != null) {
+            ServerPlayer player = server.getPlayerList().getPlayer(lastPlayerUuid);
+            if (player != null) {
+                player.displayClientMessage(Component.literal(msg), true);
+                player.sendSystemMessage(Component.literal(msg));
+                return;
+            }
+        }
+
+        LOGGER.info(msg);
+    }
+
+    private static void processPeriodicScanJobPhase(PeriodicScanJob job) {
+        ServerLevel serverLevel = job.serverLevel;
+        Entity entity = job.steveAi;
+
+        switch (job.phase) {
+            case LOCATION_AND_WORLD -> {
                 lastSteveAiKnownPos = entity.blockPosition();
                 lastSteveAiKnownDimension = entity.level().dimension();
 
@@ -688,7 +826,9 @@ public class CommandEvents {
 
                 appendSteveAiLine(serverLevel, lastPlayerUuid, line);
                 appendWorldInfo(serverLevel, entity);
-
+                job.phase = PeriodicScanPhase.ENTITIES;
+            }
+            case ENTITIES -> {
                 if (hasMovedFarEnough(lastEntityScanCenter, entity, ENTITY_SCAN_MOVE_THRESHOLD)) {
                     lastEntityScanCenter = entity.blockPosition();
 
@@ -705,7 +845,9 @@ public class CommandEvents {
 
                     appendNearbyEntities(serverLevel, entity, 20.0);
                 }
-
+                job.phase = PeriodicScanPhase.BLOCKS;
+            }
+            case BLOCKS -> {
                 if (hasMovedFarEnough(lastBlockScanCenter, entity, BLOCK_SCAN_MOVE_THRESHOLD)) {
                     lastBlockScanCenter = entity.blockPosition();
 
@@ -731,10 +873,12 @@ public class CommandEvents {
                         );
                     }
                 }
-
-                boolean poiChanged = false;
+                job.phase = PeriodicScanPhase.BLOCK_ENTITIES;
+            }
+            case BLOCK_ENTITIES -> {
                 if (hasMovedFarEnough(lastBlockEntityScanCenter, entity, BLOCK_ENTITY_SCAN_MOVE_THRESHOLD)) {
                     lastBlockEntityScanCenter = entity.blockPosition();
+                    job.blockEntityScanCenter = lastBlockEntityScanCenter;
 
                     appendSteveAiLine(
                         serverLevel,
@@ -747,18 +891,20 @@ public class CommandEvents {
                         )
                     );
 
-                    poiChanged = appendNearbyBlockEntities(serverLevel, entity, 20);
+                    job.poiChanged = appendNearbyBlockEntities(serverLevel, entity, 20);
                 }
-
-                if (poiChanged) {
+                job.phase = PeriodicScanPhase.SUMMARY;
+            }
+            case SUMMARY -> {
+                if (job.poiChanged && job.blockEntityScanCenter != null) {
                     java.util.List<String> summaryLines = new java.util.ArrayList<>();
                     summaryLines.add("");
                     summaryLines.add("=== POI Summary ===");
                     summaryLines.add(String.format(
                         "scanCenter=(%d,%d,%d)",
-                        lastBlockEntityScanCenter.getX(),
-                        lastBlockEntityScanCenter.getY(),
-                        lastBlockEntityScanCenter.getZ()
+                        job.blockEntityScanCenter.getX(),
+                        job.blockEntityScanCenter.getY(),
+                        job.blockEntityScanCenter.getZ()
                     ));
 
                     for (String poiLine : PoiManager.buildSummaryLines()) {
@@ -767,7 +913,9 @@ public class CommandEvents {
 
                     writeSteveAiSummary(serverLevel, lastPlayerUuid, entity, summaryLines);
                 }
+                job.phase = null;
             }
+            default -> job.phase = null;
         }
     }
 
@@ -790,6 +938,7 @@ public class CommandEvents {
 
             if (findSteveAiAnywhere(serverLevel) != null) {
                 LOGGER.info("steveAI already exists somewhere in the world, skipping spawn");
+                forceStartPeriodicScanNow(serverLevel.getServer());
                 return;
             }
 
@@ -818,6 +967,7 @@ public class CommandEvents {
 
                 serverLevel.addFreshEntity(villager);
                 LOGGER.info("Spawned steveAI at {}, {}, {}", spawnX, spawnY, spawnZ);
+                forceStartPeriodicScanNow(serverLevel.getServer());
             } else {
                 LOGGER.warn("Failed to create villager entity for steveAI");
             }
@@ -1640,9 +1790,19 @@ public class CommandEvents {
             return 0;
         }
 
+        long scanStartNs = System.nanoTime();
         try {
             SteveAiScanManager.scanSAI(serverLevel, steveAi, rawScanInput, chunkRadius);
         } catch (IllegalArgumentException e) {
+            long elapsedMs = (System.nanoTime() - scanStartNs) / 1_000_000L;
+            LOGGER.info(
+                "scanSAI failed thread={} input={} chunkRadius={} elapsedMs={} reason={}",
+                Thread.currentThread().getName(),
+                rawScanInput,
+                chunkRadius,
+                elapsedMs,
+                e.getMessage()
+            );
             source.sendFailure(Component.literal(e.getMessage()));
             return 0;
         }
@@ -1654,6 +1814,20 @@ public class CommandEvents {
 
         String normalizedInput = SteveAiScanManager.getLastScanType();
         int finalCount = count;
+        long elapsedMs = (System.nanoTime() - scanStartNs) / 1_000_000L;
+
+        LOGGER.info(
+            "scanSAI complete thread={} input={} normalizedInput={} chunkRadius={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
+            Thread.currentThread().getName(),
+            rawScanInput,
+            normalizedInput,
+            chunkRadius,
+            SteveAiScanManager.getScannedBlocks().size(),
+            SteveAiScanManager.getScannedEntities().size(),
+            SteveAiScanManager.getScannedBlockEntities().size(),
+            finalCount,
+            elapsedMs
+        );
 
         source.sendSuccess(() -> Component.literal(
             "SteveAI scan complete: input=" + normalizedInput +
@@ -1723,15 +1897,13 @@ public class CommandEvents {
         String prompt =
             behaviorText + " " +
             "Use the context files below if relevant.\n" +
-            "IMPORTANT: The POI summary may list confirmed villages with a 'personality' field and a 'scene' field. " +
-            "Those are locked once assigned and must not be changed. " +
+            "IMPORTANT: The POI summary may list confirmed villages with a 'personality' field. " +
             "When a village has a personality, its villagers ARE the characters from that theme. " +
             "For example, a village with personality=scooby_doo has villagers named Scooby-Doo, Shaggy, Velma, Daphne, and Fred. " +
             "A village with personality=er_tv_series has Dr. Mark Greene, Dr. Doug Ross, Dr. John Carter, Nurse Carol Hathaway, and Dr. Peter Benton. " +
             "A village with personality=lord_of_the_rings has Gandalf, Frodo, Aragorn, Legolas, Gimli, Samwise Gamgee, and Boromir. " +
             "A village with personality=pirates_of_the_caribbean has Jack Sparrow, Will Turner, Elizabeth Swann, Hector Barbossa, and Davy Jones. " +
-            "Always refer to those villagers by their character names and stay in character for that theme. " +
-            "Also use the locked scene to describe what those characters are currently doing in the village when answering questions.\n\n" +
+            "Always refer to those villagers by their character names and stay in character for that theme.\n\n" +
             fileContext + "\n\n" +
             "Player asks: " + message;
 
