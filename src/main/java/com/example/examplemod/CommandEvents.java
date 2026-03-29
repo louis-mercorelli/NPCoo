@@ -70,9 +70,9 @@ public class CommandEvents {
     private static net.minecraft.core.BlockPos lastEntityScanCenter = null;
     private static net.minecraft.core.BlockPos lastBlockScanCenter = null;
     private static net.minecraft.core.BlockPos lastBlockEntityScanCenter = null;
-    private static final double ENTITY_SCAN_MOVE_THRESHOLD = 30.0;
-    private static final double BLOCK_SCAN_MOVE_THRESHOLD = 30.0;
-    private static final double BLOCK_ENTITY_SCAN_MOVE_THRESHOLD = 30.0;
+    private static final double ENTITY_SCAN_MOVE_THRESHOLD = 20.0;
+    private static final double BLOCK_SCAN_MOVE_THRESHOLD = 20.0;
+    private static final double BLOCK_ENTITY_SCAN_MOVE_THRESHOLD = 20.0;
     private static boolean steveAiFollowMode = false;
     private static UUID steveAiFollowPlayerUuid = null;
     private static long lastFollowTick = 0L;
@@ -577,6 +577,9 @@ public class CommandEvents {
                             )
                         )
                     )
+                    .then(Commands.literal("writeNow")
+                        .executes(CommandEvents::handleWriteNow)
+                    )
                     .then(Commands.argument("message", StringArgumentType.greedyString())
                         .executes(context -> {
                             CommandSourceStack source = context.getSource();
@@ -700,7 +703,7 @@ public class CommandEvents {
                         )
                     );
 
-                    appendNearbyEntities(serverLevel, entity, 30.0);
+                    appendNearbyEntities(serverLevel, entity, 20.0);
                 }
 
                 if (hasMovedFarEnough(lastBlockScanCenter, entity, BLOCK_SCAN_MOVE_THRESHOLD)) {
@@ -717,7 +720,7 @@ public class CommandEvents {
                         )
                     );
 
-                    appendNearbyBlocks(serverLevel, entity, 30, 70);
+                    appendNearbyBlocks(serverLevel, entity, 10, 70);
 
                     if (entity instanceof Villager villager) {
                         addItemToSteveAiInventory(villager, new ItemStack(Items.COAL, 4));
@@ -744,7 +747,7 @@ public class CommandEvents {
                         )
                     );
 
-                    poiChanged = appendNearbyBlockEntities(serverLevel, entity, 30);
+                    poiChanged = appendNearbyBlockEntities(serverLevel, entity, 20);
                 }
 
                 if (poiChanged) {
@@ -762,7 +765,7 @@ public class CommandEvents {
                         summaryLines.add(poiLine);
                     }
 
-                    writeSteveAiSummary(serverLevel, lastPlayerUuid, summaryLines);
+                    writeSteveAiSummary(serverLevel, lastPlayerUuid, entity, summaryLines);
                 }
             }
         }
@@ -1367,22 +1370,204 @@ public class CommandEvents {
         return 1;
     }
 
-    private static void writeSteveAiSummary(ServerLevel serverLevel, UUID playerUuid, java.util.List<String> lines) {
-        try {
-            Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
-            Path summaryFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_summary.txt");
+    private static int handleWriteNow(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
 
-            Files.write(
-                summaryFile,
-                lines,
+        LOGGER.info("[WRITE DEBUG] /testmod writeNow invoked");
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        Villager steveAi = findSteveAi(serverLevel);
+        if (steveAi == null) {
+            source.sendFailure(Component.literal("SteveAI not found."));
+            return 0;
+        }
+
+        UUID playerUuid = lastPlayerUuid;
+        if (source.getEntity() instanceof ServerPlayer player) {
+            playerUuid = player.getUUID();
+        }
+
+        if (playerUuid == null) {
+            source.sendFailure(Component.literal("No tracked player UUID available."));
+            return 0;
+        }
+
+        java.util.Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities =
+            SteveAiCollectors.collectNearbyBlockEntities(serverLevel, steveAi, 30);
+        java.util.Map<String, SteveAiCollectors.SeenSummary> groupedEntities =
+            SteveAiCollectors.collectNearbyEntities(serverLevel, steveAi, 30.0);
+
+        PoiManager.clear();
+
+        for (var entry : groupedBlockEntities.entrySet()) {
+            String typeName = entry.getKey();
+            SteveAiCollectors.SeenSummary summary = entry.getValue();
+
+            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                for (BlockPos pos : summary.allLocations) {
+                    PoiManager.processBlockEntity(typeName, pos);
+                }
+            } else {
+                PoiManager.processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
+            }
+        }
+
+        for (var entry : groupedEntities.entrySet()) {
+            String typeName = entry.getKey();
+            SteveAiCollectors.SeenSummary summary = entry.getValue();
+
+            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                for (BlockPos pos : summary.allLocations) {
+                    PoiManager.processEntity(typeName, pos);
+                }
+            } else {
+                PoiManager.processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
+            }
+        }
+
+        BlockPos center = steveAi.blockPosition();
+        java.util.List<String> summaryLines = new java.util.ArrayList<>();
+        summaryLines.add("");
+        summaryLines.add("=== POI Summary ===");
+        summaryLines.add(String.format(
+            "scanCenter=(%d,%d,%d)",
+            center.getX(),
+            center.getY(),
+            center.getZ()
+        ));
+
+        for (String poiLine : PoiManager.buildSummaryLines()) {
+            summaryLines.add(poiLine);
+        }
+
+        writeSteveAiSummary(serverLevel, playerUuid, steveAi, summaryLines);
+
+        source.sendSuccess(
+            () -> Component.literal("SteveAI wrote all scan/POI files now."),
+            false
+        );
+
+        return 1;
+    }
+
+    private static void writeSteveAiSummary(
+        ServerLevel serverLevel,
+        UUID playerUuid,
+        Entity steveAiEntity,
+        java.util.List<String> poiSummaryLines
+    ) {
+        try {
+            LOGGER.info("[WRITE DEBUG] writeSteveAiSummary start playerUuid={} steveAiPos={}", playerUuid, steveAiEntity.blockPosition());
+
+            Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
+
+            java.util.Map<String, SteveAiCollectors.SeenSummary> groupedBlocks =
+                SteveAiCollectors.collectNearbyBlocks(serverLevel, steveAiEntity, 30, 70, CommandEvents::isInterestingLookSeeBlock);
+
+            java.util.Map<String, SteveAiCollectors.SeenSummary> groupedEntities =
+                SteveAiCollectors.collectNearbyEntities(serverLevel, steveAiEntity, 30.0);
+
+            java.util.Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities =
+                SteveAiCollectors.collectNearbyBlockEntities(serverLevel, steveAiEntity, 30);
+
+            Path blocksFile = playerDataDir.resolve("scannedBlocks_" + playerUuid + ".txt");
+            Path entitiesFile = playerDataDir.resolve("scannedEntities_" + playerUuid + ".txt");
+            Path blockEntitiesFile = playerDataDir.resolve("scannedBlockEntities_" + playerUuid + ".txt");
+            Path poiSummaryFile = playerDataDir.resolve("poiSummary_" + playerUuid + ".txt");
+
+            logFileTail("WRITE DEBUG", blocksFile, 10);
+            logFileTail("WRITE DEBUG", entitiesFile, 10);
+            logFileTail("WRITE DEBUG", blockEntitiesFile, 10);
+            logFileTail("WRITE DEBUG", poiSummaryFile, 10);
+
+            Files.writeString(
+                blocksFile,
+                mapToText(groupedBlocks, "SCANNED BLOCKS"),
                 java.nio.charset.StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.WRITE
             );
+
+            Files.writeString(
+                entitiesFile,
+                mapToText(groupedEntities, "SCANNED ENTITIES"),
+                java.nio.charset.StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+            );
+
+            Files.writeString(
+                blockEntitiesFile,
+                mapToText(groupedBlockEntities, "SCANNED BLOCK ENTITIES"),
+                java.nio.charset.StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+            );
+
+            StringBuilder poiText = new StringBuilder();
+            poiText.append("POI SUMMARY\n");
+            for (String line : poiSummaryLines) {
+                poiText.append(line).append("\n");
+            }
+
+            Files.writeString(
+                poiSummaryFile,
+                poiText.toString(),
+                java.nio.charset.StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+            );
+
+            LOGGER.info("[WRITE DEBUG] writeSteveAiSummary finished folder={}", playerDataDir.toAbsolutePath());
         } catch (IOException e) {
             LOGGER.error("Failed to write steveAI summary file", e);
         }
+    }
+
+    private static void logFileTail(String logPrefix, Path file, int maxLines) {
+        try {
+            if (file == null || !Files.exists(file)) {
+                LOGGER.info("[{}] tail skipped, file missing: {}", logPrefix, file);
+                return;
+            }
+
+            java.util.List<String> lines = Files.readAllLines(file);
+            if (lines.isEmpty()) {
+                LOGGER.info("[{}] tail for {} -> (file empty)", logPrefix, file.getFileName());
+                return;
+            }
+
+            int start = Math.max(0, lines.size() - maxLines);
+            java.util.List<String> tail = lines.subList(start, lines.size());
+
+            LOGGER.info("[{}] tail for {} (last {} lines):", logPrefix, file.getFileName(), tail.size());
+            for (String line : tail) {
+                LOGGER.info("[{}] {}", logPrefix, line);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to log [{}] tail for file {}", logPrefix, file, e);
+        }
+    }
+
+    private static String mapToText(java.util.Map<String, SteveAiCollectors.SeenSummary> map, String title) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(title).append("\n");
+        sb.append("count=").append(map.size()).append("\n\n");
+
+        for (java.util.Map.Entry<String, SteveAiCollectors.SeenSummary> entry : map.entrySet()) {
+            sb.append(entry.getKey()).append(" -> ").append(entry.getValue()).append("\n");
+        }
+
+        return sb.toString();
     }
 
     private static void appendSteveAiLine(ServerLevel serverLevel, UUID playerUuid, String line) {
@@ -1504,13 +1689,27 @@ public class CommandEvents {
         LOGGER.info("askSteveAi START playerUuid={} message={}", playerUuid, message);
 
         String fileContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
+        String normalizedMessage = message == null ? "" : message.toLowerCase(java.util.Locale.ROOT);
+        boolean louTruthMode = normalizedMessage.contains("lou wants to know");
+
+        String behaviorText;
+        if (louTruthMode) {
+            behaviorText =
+                "You are SteveAI, a Minecraft villager. " +
+                "Be very honest and direct. " +
+                "Add a bit of specific detail that helps answer the question clearly. " +
+                "Keep responses concise and not too long.";
+        } else {
+            behaviorText =
+                "You are SteveAI, a Minecraft villager. " +
+                "You are shy at first and mistrustful in this new world. " +
+                "You are truthful but vague and may fib to protect yourself, especially early in a relationship. " +
+                "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
+                "Keep replies short if possible, even curt if warranted.";
+        }
 
         String prompt =
-            "You are SteveAI, a Minecraft villager. " +
-            "You are shy at first and mistrustful in this new world. " +
-            "You are truthful but vague and may fib to protect yourself, especially early in a relationship. " +
-            "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
-            "Keep replies short if possible, even curt if warranted. " +
+            behaviorText + " " +
             "Use the context files below if relevant.\n\n" +
             fileContext + "\n\n" +
             "Player asks: " + message;

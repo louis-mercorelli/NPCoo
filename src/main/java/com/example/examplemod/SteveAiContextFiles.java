@@ -35,21 +35,28 @@ public class SteveAiContextFiles {
         }
 
         try {
+            LOGGER.info("[OPENAI DEBUG] buildChatContext start playerUuid={} tailLines={}", playerUuid, tailLines);
+
             Path playerDataDir = getSteveAiDataDir(serverLevel);
 
             Path rawFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI.txt");
-            Path summaryFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_summary.txt");
+            Path poiSummaryFile = findLatestPoiSummaryFile(playerDataDir);
 
-            String summaryText = readWholeFile(summaryFile);
+            logFileTail("OPENAI DEBUG", poiSummaryFile, 10);
+            logFileTail("OPENAI DEBUG", rawFile, 10);
+
+            String poiSummaryText = readWholeFile(poiSummaryFile);
             String rawTailText = readLastNLines(rawFile, tailLines);
 
             StringBuilder sb = new StringBuilder();
 
-            sb.append("=== SteveAI Summary File ===\n");
-            sb.append(summaryText.isBlank() ? "(summary file empty or missing)\n" : summaryText).append("\n");
+            sb.append("=== SteveAI POI Summary File ===\n");
+            sb.append(poiSummaryText.isBlank() ? "(POI summary file empty or missing)\n" : poiSummaryText).append("\n");
 
             sb.append("=== SteveAI Raw File (last ").append(tailLines).append(" lines) ===\n");
             sb.append(rawTailText.isBlank() ? "(raw file empty or missing)\n" : rawTailText).append("\n");
+
+            LOGGER.info("[OPENAI DEBUG] buildChatContext finished playerDataDir={}", playerDataDir.toAbsolutePath());
 
             return sb.toString();
 
@@ -91,6 +98,56 @@ public class SteveAiContextFiles {
             return "";
         }
         return Files.readString(file);
+    }
+
+    private static Path findLatestPoiSummaryFile(Path dir) throws IOException {
+        if (dir == null || !Files.exists(dir) || !Files.isDirectory(dir)) {
+            return null;
+        }
+
+        Path latest = null;
+        java.nio.file.attribute.FileTime latestTime = null;
+
+        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "poiSummary*.txt")) {
+            for (Path candidate : stream) {
+                if (!Files.isRegularFile(candidate)) {
+                    continue;
+                }
+
+                java.nio.file.attribute.FileTime modified = Files.getLastModifiedTime(candidate);
+                if (latest == null || modified.compareTo(latestTime) > 0) {
+                    latest = candidate;
+                    latestTime = modified;
+                }
+            }
+        }
+
+        return latest;
+    }
+
+    private static void logFileTail(String logPrefix, Path file, int maxLines) {
+        try {
+            if (file == null || !Files.exists(file)) {
+                LOGGER.info("[{}] tail skipped, file missing: {}", logPrefix, file);
+                return;
+            }
+
+            List<String> lines = Files.readAllLines(file);
+            if (lines.isEmpty()) {
+                LOGGER.info("[{}] tail for {} -> (file empty)", logPrefix, file.getFileName());
+                return;
+            }
+
+            int start = Math.max(0, lines.size() - maxLines);
+            List<String> tail = lines.subList(start, lines.size());
+
+            LOGGER.info("[{}] tail for {} (last {} lines):", logPrefix, file.getFileName(), tail.size());
+            for (String line : tail) {
+                LOGGER.info("[{}] {}", logPrefix, line);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Failed to log [{}] tail for file {}", logPrefix, file, e);
+        }
     }
 
     private static String readLastNLines(Path file, int maxLines) throws IOException {

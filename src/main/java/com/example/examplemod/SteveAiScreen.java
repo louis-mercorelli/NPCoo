@@ -54,6 +54,12 @@ public class SteveAiScreen extends MerchantScreen {
     private EditBox chatInput;
     private String lastPrompt = "";
     private String lastResponse = "";
+    private int chatScrollLines = 0;
+
+    private static final int CHAT_CONTENT_X_OFFSET = 24;
+    private static final int CHAT_CONTENT_Y_OFFSET = 42;
+    private static final int CHAT_CONTENT_BOTTOM_PADDING = 8;
+    private static final int CHAT_LINE_HEIGHT = 10;
 
     public SteveAiScreen(SteveAiMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -205,26 +211,32 @@ public class SteveAiScreen extends MerchantScreen {
     }
 
     private void drawChatTab(GuiGraphics guiGraphics) {
-        int x = this.leftPos + 24;
-        int y = this.topPos + 42;
-        int maxWidth = this.imageWidth - 48;
-        int lineHeight = 10;
-        int labelWidth = 52;
+        int x = this.leftPos + CHAT_CONTENT_X_OFFSET;
+        int y = this.topPos + CHAT_CONTENT_Y_OFFSET;
+        int maxWidth = this.imageWidth - (CHAT_CONTENT_X_OFFSET * 2);
+        int contentBottom = (chatInput != null)
+            ? chatInput.getY() - CHAT_CONTENT_BOTTOM_PADDING
+            : (this.topPos + this.imageHeight - CHAT_CONTENT_BOTTOM_PADDING);
+        int contentHeight = Math.max(CHAT_LINE_HEIGHT, contentBottom - y);
 
-        guiGraphics.drawString(this.font, "You:", x, y, 0xFF000000, false);
+        java.util.List<net.minecraft.util.FormattedCharSequence> lines = new java.util.ArrayList<>();
+        lines.addAll(this.font.split(Component.literal("You: " + (lastPrompt == null ? "" : lastPrompt)), maxWidth));
+        lines.add(Component.literal("").getVisualOrderText());
+        lines.add(Component.literal("SteveAI:").getVisualOrderText());
+        lines.addAll(this.font.split(Component.literal(lastResponse == null ? "" : lastResponse), maxWidth));
 
-        var promptLines = this.font.split(Component.literal(lastPrompt), maxWidth - labelWidth);
-        int py = y;
-        for (var line : promptLines) {
-            guiGraphics.drawString(this.font, line, x + labelWidth, py, 0xFF000000, false);
-            py += lineHeight;
+        int visibleLines = Math.max(1, contentHeight / CHAT_LINE_HEIGHT);
+        int maxScroll = Math.max(0, lines.size() - visibleLines);
+        chatScrollLines = Math.max(0, Math.min(chatScrollLines, maxScroll));
+
+        int start = chatScrollLines;
+        int end = Math.min(lines.size(), start + visibleLines);
+
+        int drawY = y;
+        for (int i = start; i < end; i++) {
+            guiGraphics.drawString(this.font, lines.get(i), x, drawY, 0xFF000000, false);
+            drawY += CHAT_LINE_HEIGHT;
         }
-
-        y = py + 8;
-        guiGraphics.drawString(this.font, "SteveAI:", x, y, 0xFF000000, false);
-
-        y += 16;
-        drawWrappedText(guiGraphics, lastResponse, x, y, maxWidth, 0xFF000000);
     }
 
     private void drawWrappedText(GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color) {
@@ -304,6 +316,16 @@ public class SteveAiScreen extends MerchantScreen {
                 return true;
             }
 
+            // Scroll chat history in the chat tab.
+            if (keyCode == 266) { // Page Up
+                chatScrollLines = Math.max(0, chatScrollLines - 6);
+                return true;
+            }
+            if (keyCode == 267) { // Page Down
+                chatScrollLines += 6;
+                return true;
+            }
+
             // Handle Enter FIRST
             if (keyCode == 257 || keyCode == 335) {
                 LOGGER.info("SteveAiScreen keypressed started to wait for input");
@@ -349,6 +371,29 @@ public class SteveAiScreen extends MerchantScreen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
+        if (activeTab == Tab.CHAT) {
+            int x = this.leftPos + CHAT_CONTENT_X_OFFSET;
+            int y = this.topPos + CHAT_CONTENT_Y_OFFSET;
+            int width = this.imageWidth - (CHAT_CONTENT_X_OFFSET * 2);
+            int bottom = (chatInput != null)
+                ? chatInput.getY() - CHAT_CONTENT_BOTTOM_PADDING
+                : (this.topPos + this.imageHeight - CHAT_CONTENT_BOTTOM_PADDING);
+
+            if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= bottom) {
+                if (deltaY > 0) {
+                    chatScrollLines = Math.max(0, chatScrollLines - 2);
+                } else if (deltaY < 0) {
+                    chatScrollLines += 2;
+                }
+                return true;
+            }
+        }
+
+        return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
+    }
+
+    @Override
     public void onClose() {
         LOGGER.info("### SteveAiScreen onClose ###");
         super.onClose();
@@ -357,6 +402,7 @@ public class SteveAiScreen extends MerchantScreen {
     public void receiveServerReply(String prompt, String reply) {
         this.lastPrompt = prompt;
         this.lastResponse = reply;
+        this.chatScrollLines = 0;
     }
 
     @Override
