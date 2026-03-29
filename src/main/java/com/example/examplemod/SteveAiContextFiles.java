@@ -49,7 +49,7 @@ public class SteveAiContextFiles {
 
     public static void appendChatLine(UUID playerUuid, String line) {
         try {
-            Path playerDataDir = java.nio.file.Paths.get("saves", "steveAI 2 desert", "playerdata");
+            Path playerDataDir = java.nio.file.Paths.get("saves", "SAI 3", "testmode","player");
             LOGGER.info("SteveAiContextFiles ready to append to chat file");
             Files.createDirectories(playerDataDir);
             LOGGER.info("SteveAiContextFiles playerDataDir: " + playerDataDir.toAbsolutePath().toString());

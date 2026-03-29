@@ -109,15 +109,15 @@ public class PoiManager {
         return switch (type) {
 
             // Village evidence
-            case "minecraft:bed",
-                 "minecraft:bell",
+            case "minecraft:bell",
+                 "minecraft:villager",                
                  "minecraft:lectern",
+                 "minecraft:bed",
                  "minecraft:brewing_stand",
                  "minecraft:blast_furnace",
                  "minecraft:smoker",
                  "minecraft:cartography_table",
                  "minecraft:composter",
-                 "minecraft:villager",
                  "minecraft:iron_golem",
                  "minecraft:cat" -> "village_candidate";
 
