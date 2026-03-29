@@ -40,10 +40,10 @@ public class SteveAiContextFiles {
             Path playerDataDir = getSteveAiDataDir(serverLevel);
 
             Path rawFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI.txt");
-            Path poiSummaryFile = findLatestPoiSummaryFile(playerDataDir);
-            Path detailBlockEntitiesFile = playerDataDir.resolve("detailBlockEntities_nowD.txt");
-            Path detailEntitiesFile = playerDataDir.resolve("detailEntities_nowD.txt");
-            Path detailStatusFile = playerDataDir.resolve("detailStatus_nowD.txt");
+            Path poiSummaryFile = findLatestMatchingFile(playerDataDir, "poiSummary*.txt");
+            Path detailBlockEntitiesFile = findLatestMatchingFile(playerDataDir, "detailBlockEntities*.txt");
+            Path detailEntitiesFile = findLatestMatchingFile(playerDataDir, "detailEntities*.txt");
+            Path detailStatusFile = findLatestMatchingFile(playerDataDir, "detailStatus*.txt");
 
             logFileTail("OPENAI DEBUG", poiSummaryFile, 10);
             logFileTail("OPENAI DEBUG", rawFile, 10);
@@ -66,13 +66,13 @@ public class SteveAiContextFiles {
             sb.append(rawTailText.isBlank() ? "(raw file empty or missing)\n" : rawTailText).append("\n");
 
             sb.append("=== SteveAI Detail Block Entities ===\n");
-            sb.append(detailBlockEntitiesText.isBlank() ? "(detailBlockEntities_nowD.txt empty or missing)\n" : detailBlockEntitiesText).append("\n");
+            sb.append(detailBlockEntitiesText.isBlank() ? "(latest detailBlockEntities*.txt empty or missing)\n" : detailBlockEntitiesText).append("\n");
 
             sb.append("=== SteveAI Detail Entities ===\n");
-            sb.append(detailEntitiesText.isBlank() ? "(detailEntities_nowD.txt empty or missing)\n" : detailEntitiesText).append("\n");
+            sb.append(detailEntitiesText.isBlank() ? "(latest detailEntities*.txt empty or missing)\n" : detailEntitiesText).append("\n");
 
             sb.append("=== SteveAI Detail Status ===\n");
-            sb.append(detailStatusText.isBlank() ? "(detailStatus_nowD.txt empty or missing)\n" : detailStatusText).append("\n");
+            sb.append(detailStatusText.isBlank() ? "(latest detailStatus*.txt empty or missing)\n" : detailStatusText).append("\n");
 
             LOGGER.info("[OPENAI DEBUG] buildChatContext finished playerDataDir={}", playerDataDir.toAbsolutePath());
 
@@ -118,7 +118,7 @@ public class SteveAiContextFiles {
         return Files.readString(file);
     }
 
-    private static Path findLatestPoiSummaryFile(Path dir) throws IOException {
+    private static Path findLatestMatchingFile(Path dir, String globPattern) throws IOException {
         if (dir == null || !Files.exists(dir) || !Files.isDirectory(dir)) {
             return null;
         }
@@ -126,7 +126,7 @@ public class SteveAiContextFiles {
         Path latest = null;
         java.nio.file.attribute.FileTime latestTime = null;
 
-        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "poiSummary*.txt")) {
+        try (java.nio.file.DirectoryStream<Path> stream = Files.newDirectoryStream(dir, globPattern)) {
             for (Path candidate : stream) {
                 if (!Files.isRegularFile(candidate)) {
                     continue;
