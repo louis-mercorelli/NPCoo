@@ -41,12 +41,21 @@ public class SteveAiContextFiles {
 
             Path rawFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI.txt");
             Path poiSummaryFile = findLatestPoiSummaryFile(playerDataDir);
+            Path detailBlockEntitiesFile = playerDataDir.resolve("detailBlockEntities_nowD.txt");
+            Path detailEntitiesFile = playerDataDir.resolve("detailEntities_nowD.txt");
+            Path detailStatusFile = playerDataDir.resolve("detailStatus_nowD.txt");
 
             logFileTail("OPENAI DEBUG", poiSummaryFile, 10);
             logFileTail("OPENAI DEBUG", rawFile, 10);
+            logFileTail("OPENAI DEBUG", detailBlockEntitiesFile, 10);
+            logFileTail("OPENAI DEBUG", detailEntitiesFile, 10);
+            logFileTail("OPENAI DEBUG", detailStatusFile, 10);
 
             String poiSummaryText = readWholeFile(poiSummaryFile);
             String rawTailText = readLastNLines(rawFile, tailLines);
+            String detailBlockEntitiesText = readWholeFile(detailBlockEntitiesFile);
+            String detailEntitiesText = readWholeFile(detailEntitiesFile);
+            String detailStatusText = readWholeFile(detailStatusFile);
 
             StringBuilder sb = new StringBuilder();
 
@@ -55,6 +64,15 @@ public class SteveAiContextFiles {
 
             sb.append("=== SteveAI Raw File (last ").append(tailLines).append(" lines) ===\n");
             sb.append(rawTailText.isBlank() ? "(raw file empty or missing)\n" : rawTailText).append("\n");
+
+            sb.append("=== SteveAI Detail Block Entities ===\n");
+            sb.append(detailBlockEntitiesText.isBlank() ? "(detailBlockEntities_nowD.txt empty or missing)\n" : detailBlockEntitiesText).append("\n");
+
+            sb.append("=== SteveAI Detail Entities ===\n");
+            sb.append(detailEntitiesText.isBlank() ? "(detailEntities_nowD.txt empty or missing)\n" : detailEntitiesText).append("\n");
+
+            sb.append("=== SteveAI Detail Status ===\n");
+            sb.append(detailStatusText.isBlank() ? "(detailStatus_nowD.txt empty or missing)\n" : detailStatusText).append("\n");
 
             LOGGER.info("[OPENAI DEBUG] buildChatContext finished playerDataDir={}", playerDataDir.toAbsolutePath());
 

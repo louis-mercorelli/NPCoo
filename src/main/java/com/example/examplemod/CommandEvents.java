@@ -1690,7 +1690,8 @@ public class CommandEvents {
 
         String fileContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
         String normalizedMessage = message == null ? "" : message.toLowerCase(java.util.Locale.ROOT);
-        boolean louTruthMode = normalizedMessage.contains("lou wants to know");
+        boolean louTruthMode = normalizedMessage.contains("lou wants to know")
+            || normalizedMessage.contains("lwtk");
 
         String behaviorText;
         if (louTruthMode) {
