@@ -2,9 +2,15 @@ package com.example.examplemod;
 
 import net.minecraft.core.BlockPos;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class PoiManager {
@@ -61,6 +67,18 @@ public class PoiManager {
     }
 
     private static final List<Poi> pois = new ArrayList<>();
+
+    // Village personality options — assigned when a village reaches high/very_high confidence.
+    // Persists across PoiManager.clear() calls and is saved/loaded from disk.
+    private static final String[] PERSONALITY_OPTIONS = {
+        "scooby_doo",
+        "er_tv_series",
+        "lord_of_the_rings",
+        "pirates_of_the_caribbean"
+    };
+
+    // Keyed by grid-snapped "X,Z" so minor center drift doesn't create duplicates.
+    private static final Map<String, String> savedPersonalities = new HashMap<>();
 
     // MVP tuning constants
     private static final int VILLAGE_MIN_POSITION_COUNT = 2;   // proxy for "villager > 1"
@@ -339,19 +357,100 @@ public class PoiManager {
             String finalType = classifyPoiType(poi);
             String confidence = getConfidence(poi, finalType);
 
+            String personalityPart = "";
+            if ("village".equals(finalType)
+                    && ("high".equals(confidence) || "very_high".equals(confidence))) {
+                String personality = getOrAssignPersonality(poi);
+                String chars = getPersonalityCharacters(personality);
+                personalityPart = " personality=" + personality + " characters=[" + chars + "]";
+            }
+
             lines.add(String.format(
-                "%s loc=(%d,%d,%d) evidence=%s count=%d confidence=%s",
+                "%s loc=(%d,%d,%d) evidence=%s count=%d confidence=%s%s",
                 finalType,
                 poi.center.getX(),
                 poi.center.getY(),
                 poi.center.getZ(),
                 String.join(",", new java.util.TreeSet<>(poi.evidence)),
                 poi.count,
-                confidence
+                confidence,
+                personalityPart
             ));
         }
 
         return lines;
+    }
+
+    // -------------------------------------------------------------------------
+    // Village personality helpers
+    // -------------------------------------------------------------------------
+
+    /** Grid-snapped key so minor center drift doesn't create duplicate entries. */
+    private static String personalityKey(BlockPos center) {
+        int gx = Math.round((float) center.getX() / 64) * 64;
+        int gz = Math.round((float) center.getZ() / 64) * 64;
+        return gx + "," + gz;
+    }
+
+    /** Returns the existing personality for this village, or randomly assigns one. */
+    private static String getOrAssignPersonality(Poi poi) {
+        String key = personalityKey(poi.center);
+        return savedPersonalities.computeIfAbsent(key, k -> {
+            // Default to scooby_doo (index 0); use random to pick across options.
+            int idx = (int) (Math.random() * PERSONALITY_OPTIONS.length);
+            return PERSONALITY_OPTIONS[idx];
+        });
+    }
+
+    /** Human-readable character list for a personality theme. */
+    public static String getPersonalityCharacters(String personality) {
+        if (personality == null) return "";
+        return switch (personality) {
+            case "scooby_doo"             -> "Scooby-Doo, Shaggy, Velma, Daphne, Fred";
+            case "er_tv_series"           -> "Dr. Mark Greene, Dr. Doug Ross, Dr. John Carter, Nurse Carol Hathaway, Dr. Peter Benton";
+            case "lord_of_the_rings"      -> "Gandalf, Frodo, Aragorn, Legolas, Gimli, Samwise Gamgee, Boromir";
+            case "pirates_of_the_caribbean" -> "Jack Sparrow, Will Turner, Elizabeth Swann, Hector Barbossa, Davy Jones";
+            default -> "";
+        };
+    }
+
+    /** Loads saved personalities from a flat properties file (survives server restarts). */
+    public static void loadPersonalitiesFromFile(Path file) {
+        if (file == null || !Files.exists(file)) return;
+        try {
+            List<String> lines = Files.readAllLines(file);
+            for (String line : lines) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+                String[] parts = trimmed.split("=", 2);
+                if (parts.length == 2) {
+                    savedPersonalities.put(parts[0].trim(), parts[1].trim());
+                }
+            }
+        } catch (IOException e) {
+            // start fresh — personalities will be re-assigned on next scan
+        }
+    }
+
+    /** Persists all assignments to a flat properties file. */
+    public static void savePersonalitiesToFile(Path file) {
+        if (savedPersonalities.isEmpty()) return;
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append("# Village personalities — do not edit manually\n");
+            sb.append("# Format: gridX,gridZ=personality\n");
+            for (Map.Entry<String, String> entry : savedPersonalities.entrySet()) {
+                sb.append(entry.getKey()).append("=").append(entry.getValue()).append("\n");
+            }
+            Files.writeString(
+                file, sb.toString(),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+            );
+        } catch (IOException e) {
+            // non-fatal — data will be re-derived on next scan
+        }
     }
 
     private static String getConfidence(Poi poi, String finalType) {

@@ -1401,6 +1401,14 @@ public class CommandEvents {
         java.util.Map<String, SteveAiCollectors.SeenSummary> groupedEntities =
             SteveAiCollectors.collectNearbyEntities(serverLevel, steveAi, 30.0);
 
+        // Load persisted village personalities BEFORE clearing, so they survive the rebuild.
+        try {
+            Path pd = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
+            PoiManager.loadPersonalitiesFromFile(pd.resolve("village_personalities.txt"));
+        } catch (IOException ex) {
+            LOGGER.warn("[WRITE DEBUG] Could not load village personalities file", ex);
+        }
+
         PoiManager.clear();
 
         for (var entry : groupedBlockEntities.entrySet()) {
@@ -1525,6 +1533,9 @@ public class CommandEvents {
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.WRITE
             );
+
+            // Persist village personality assignments so they survive server restarts.
+            PoiManager.savePersonalitiesToFile(playerDataDir.resolve("village_personalities.txt"));
 
             LOGGER.info("[WRITE DEBUG] writeSteveAiSummary finished folder={}", playerDataDir.toAbsolutePath());
         } catch (IOException e) {
@@ -1711,7 +1722,14 @@ public class CommandEvents {
 
         String prompt =
             behaviorText + " " +
-            "Use the context files below if relevant.\n\n" +
+            "Use the context files below if relevant.\n" +
+            "IMPORTANT: The POI summary may list confirmed villages with a 'personality' field. " +
+            "When a village has a personality, its villagers ARE the characters from that theme. " +
+            "For example, a village with personality=scooby_doo has villagers named Scooby-Doo, Shaggy, Velma, Daphne, and Fred. " +
+            "A village with personality=er_tv_series has Dr. Mark Greene, Dr. Doug Ross, Dr. John Carter, Nurse Carol Hathaway, and Dr. Peter Benton. " +
+            "A village with personality=lord_of_the_rings has Gandalf, Frodo, Aragorn, Legolas, Gimli, Samwise Gamgee, and Boromir. " +
+            "A village with personality=pirates_of_the_caribbean has Jack Sparrow, Will Turner, Elizabeth Swann, Hector Barbossa, and Davy Jones. " +
+            "Always refer to those villagers by their character names and stay in character for that theme.\n\n" +
             fileContext + "\n\n" +
             "Player asks: " + message;
 
