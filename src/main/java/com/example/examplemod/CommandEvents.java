@@ -95,6 +95,8 @@ public class CommandEvents {
     private static final long MAX_PERIODIC_SCAN_MS_PER_TICK = 1000L;
     private static final Deque<PeriodicScanJob> periodicScanQueue = new ArrayDeque<>();
     private static boolean periodicScanCycleActive = false;
+    private static long periodicScanCycleStartNs = 0L;
+    private static String periodicScanCycleStartTs = "";
 
     private enum PeriodicScanPhase {
         LOCATION_AND_WORLD,
@@ -692,8 +694,7 @@ public class CommandEvents {
 
         int queued = enqueuePeriodicScanJobs(server);
         if (queued > 0) {
-            periodicScanCycleActive = true;
-            LOGGER.info("Periodic scan cycle started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+            startPeriodicScanCycle(queued, false);
         }
     }
 
@@ -707,9 +708,22 @@ public class CommandEvents {
 
         int queued = enqueuePeriodicScanJobs(server);
         if (queued > 0) {
-            periodicScanCycleActive = true;
-            LOGGER.info("Periodic scan force-started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+            startPeriodicScanCycle(queued, true);
         }
+    }
+
+    private static void startPeriodicScanCycle(int queued, boolean forced) {
+        periodicScanCycleActive = true;
+        periodicScanCycleStartNs = System.nanoTime();
+        periodicScanCycleStartTs = chatTs();
+
+        if (forced) {
+            LOGGER.info("Periodic scan force-started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+        } else {
+            LOGGER.info("Periodic scan cycle started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+        }
+
+        notifyPeriodicScanStarted(queued);
     }
 
     private static int enqueuePeriodicScanJobs(net.minecraft.server.MinecraftServer server) {
@@ -772,10 +786,38 @@ public class CommandEvents {
         }
     }
 
-    private static void notifyPeriodicScanFinished() {
-        String msg = "[testmod] SteveAI full periodic scan finished.";
-        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+    private static void notifyPeriodicScanStarted(int queuedJobs) {
+        String msg = String.format(
+            "[testmod] SteveAI full periodic scan START %s jobs=%d",
+            periodicScanCycleStartTs,
+            queuedJobs
+        );
+        sendScanStatusToTrackedPlayer(msg);
+    }
 
+    private static void notifyPeriodicScanFinished() {
+        String finishTs = chatTs();
+        long elapsedMs = periodicScanCycleStartNs > 0L
+            ? (System.nanoTime() - periodicScanCycleStartNs) / 1_000_000L
+            : -1L;
+        String durationText = elapsedMs >= 0L
+            ? String.format("%d ms (%.2f s)", elapsedMs, elapsedMs / 1000.0)
+            : "unknown";
+
+        String msg = String.format(
+            "[testmod] SteveAI full periodic scan FINISH %s start=%s duration=%s",
+            finishTs,
+            (periodicScanCycleStartTs == null || periodicScanCycleStartTs.isEmpty()) ? "unknown" : periodicScanCycleStartTs,
+            durationText
+        );
+
+        periodicScanCycleStartNs = 0L;
+        periodicScanCycleStartTs = "";
+        sendScanStatusToTrackedPlayer(msg);
+    }
+
+    private static void sendScanStatusToTrackedPlayer(String msg) {
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         if (server == null) {
             LOGGER.info(msg);
             return;
