@@ -220,6 +220,41 @@ public class CommandEvents {
                                 })
                             )
                         )
+                        .then(Commands.literal("writeTD")
+                            .executes(context -> {
+                                try {
+                                    ServerLevel serverLevel = context.getSource().getLevel();
+                                    Path folder = SteveAiScanManager.writeDetailTextFiles(serverLevel, "");
+
+                                    context.getSource().sendSuccess(
+                                        () -> Component.literal("SteveAI detail text files written to: " + folder.toAbsolutePath()),
+                                        false
+                                    );
+                                    return 1;
+                                } catch (Exception e) {
+                                    context.getSource().sendFailure(Component.literal("writeTD failed: " + e.getMessage()));
+                                    return 0;
+                                }
+                            })
+                            .then(Commands.argument("suffix", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    try {
+                                        ServerLevel serverLevel = context.getSource().getLevel();
+                                        String suffix = StringArgumentType.getString(context, "suffix");
+                                        Path folder = SteveAiScanManager.writeDetailTextFiles(serverLevel, suffix);
+
+                                        context.getSource().sendSuccess(
+                                            () -> Component.literal("SteveAI detail text files written to: " + folder.toAbsolutePath()),
+                                            false
+                                        );
+                                        return 1;
+                                    } catch (Exception e) {
+                                        context.getSource().sendFailure(Component.literal("writeTD failed: " + e.getMessage()));
+                                        return 0;
+                                    }
+                                })
+                            )
+                        )
                         .then(Commands.literal("forceChunkOn")
                             .executes(context -> {
                                 CommandSourceStack source = context.getSource();
