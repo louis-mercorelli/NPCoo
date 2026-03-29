@@ -5,7 +5,6 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -553,12 +552,7 @@ public class SteveAiScanManager {
 
         String safeSuffix = sanitizeSuffix(suffix);
 
-        Path baseFolder = serverLevel.getServer()
-            .getWorldPath(LevelResource.ROOT)
-            .resolve("testmod")
-            .resolve("player");
-
-        Files.createDirectories(baseFolder);
+        Path baseFolder = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
 
         Path statusFile = baseFolder.resolve(buildFileName("scanStatus", safeSuffix));
         Path blocksFile = baseFolder.resolve(buildFileName("scannedBlocks", safeSuffix));
@@ -595,12 +589,7 @@ public class SteveAiScanManager {
 
         String safeSuffix = sanitizeSuffix(suffix);
 
-        Path baseFolder = serverLevel.getServer()
-            .getWorldPath(LevelResource.ROOT)
-            .resolve("testmod")
-            .resolve("player");
-
-        Files.createDirectories(baseFolder);
+        Path baseFolder = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
 
         Path detailStatusFile = baseFolder.resolve(buildFileName("detailStatus", safeSuffix));
         Path detailBlocksFile = baseFolder.resolve(buildFileName("detailBlocks", safeSuffix));

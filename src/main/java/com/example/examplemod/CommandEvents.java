@@ -56,19 +56,15 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.core.registries.Registries;
-//import com.mojang.brigadier.arguments.StringArgumentType;
-//import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.Item;
-//import net.minecraft.world.item.ItemStack;
 
 @Mod.EventBusSubscriber(modid = ExampleMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class CommandEvents {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final String STEVE_AI_NAME = "steveAI";
-    private static final String STEVE_AI_TAG = "steveai_npc";   
+    private static final String STEVE_AI_TAG = "steveai_npc";
     private static UUID lastPlayerUuid = null;
     private static String lastPlayerName = null;
     private static net.minecraft.core.BlockPos lastEntityScanCenter = null;
@@ -95,101 +91,112 @@ public class CommandEvents {
     private static final Set<BlockPos> exploredTargets = new HashSet<>();
 
     @SubscribeEvent
-        public static void onCommandsRegister(RegisterCommandsEvent event) {
-            LOGGER.info("CommandEvents.onCommandsRegister START");
-            try {
-                event.getDispatcher().register(
-                    Commands.literal("testmod")
-                        // optional: /testmod with no argument
-                        .executes(context -> {
-                            CommandSourceStack source = context.getSource();
-                            source.sendSuccess(
-                                () -> Component.literal("§6[testmod] The mod command system is working!"),
-                                false
-                            );
-                            LOGGER.info("ExampleMod command executed with no message");
-                            return 1;
-                        })
-                        .then(Commands.literal("lookSee")
-                            .executes(CommandEvents::handleLookSee)
+    public static void onCommandsRegister(RegisterCommandsEvent event) {
+        LOGGER.info("CommandEvents.onCommandsRegister START");
+        try {
+            event.getDispatcher().register(
+                Commands.literal("testmod")
+                    .executes(context -> {
+                        CommandSourceStack source = context.getSource();
+                        source.sendSuccess(
+                            () -> Component.literal("§6[testmod] The mod command system is working!"),
+                            false
+                        );
+                        LOGGER.info("ExampleMod command executed with no message");
+                        return 1;
+                    })
+                    .then(Commands.literal("lookSee")
+                        .executes(CommandEvents::handleLookSee)
+                    )
+                    .then(Commands.literal("explore")
+                        .then(Commands.argument("poi", StringArgumentType.word())
+                            .executes(CommandEvents::handleExplorePoi)
                         )
-                        .then(Commands.literal("explore")
-                            .then(Commands.argument("poi", StringArgumentType.word())
-                                .executes(CommandEvents::handleExplorePoi)
-                            )
-                        )
-                        .then(Commands.literal("exploreStop")
-                            .executes(CommandEvents::handleExploreStop)
-                        )
-                        .then(Commands.literal("exploreStatus")
-                            .executes(CommandEvents::handleExploreStatus)
-                        )
-                        .then(Commands.literal("scanSAI")
-                            .executes(ctx -> handleScanSai(ctx, "all", 2))
-
-                            // new: detailed scan at explicit coordinates
-                            .then(Commands.literal("detail")
-                                .then(Commands.argument("x", IntegerArgumentType.integer())
-                                    .then(Commands.argument("y", IntegerArgumentType.integer())
-                                        .then(Commands.argument("z", IntegerArgumentType.integer())
-                                            .then(Commands.argument("radius", IntegerArgumentType.integer(1))
-                                                .executes(ctx -> handleDetailSaiAtPos(
-                                                    ctx,
-                                                    new BlockPos(
-                                                        IntegerArgumentType.getInteger(ctx, "x"),
-                                                        IntegerArgumentType.getInteger(ctx, "y"),
-                                                        IntegerArgumentType.getInteger(ctx, "z")
-                                                    ),
-                                                    IntegerArgumentType.getInteger(ctx, "radius")
-                                                ))
-                                            )
+                    )
+                    .then(Commands.literal("exploreStop")
+                        .executes(CommandEvents::handleExploreStop)
+                    )
+                    .then(Commands.literal("exploreStatus")
+                        .executes(CommandEvents::handleExploreStatus)
+                    )
+                    .then(Commands.literal("scanSAI")
+                        .executes(ctx -> handleScanSai(ctx, "all", 2))
+                        .then(Commands.literal("detail")
+                            .then(Commands.argument("x", IntegerArgumentType.integer())
+                                .then(Commands.argument("y", IntegerArgumentType.integer())
+                                    .then(Commands.argument("z", IntegerArgumentType.integer())
+                                        .then(Commands.argument("radius", IntegerArgumentType.integer(1))
+                                            .executes(ctx -> handleDetailSaiAtPos(
+                                                ctx,
+                                                new BlockPos(
+                                                    IntegerArgumentType.getInteger(ctx, "x"),
+                                                    IntegerArgumentType.getInteger(ctx, "y"),
+                                                    IntegerArgumentType.getInteger(ctx, "z")
+                                                ),
+                                                IntegerArgumentType.getInteger(ctx, "radius")
+                                            ))
                                         )
                                     )
                                 )
                             )
-
-                            // new: detailed scan around SteveAI
-                            .then(Commands.literal("detailSAI")
-                                .executes(ctx -> handleDetailSaiAtSteve(ctx, 1))
-                                .then(Commands.argument("radius", IntegerArgumentType.integer(1))
-                                    .executes(ctx -> handleDetailSaiAtSteve(
-                                        ctx,
-                                        IntegerArgumentType.getInteger(ctx, "radius")
-                                    ))
-                                )
-                            )
-                            // existing broad scan modes
-                            .then(Commands.argument("scanArgs", StringArgumentType.greedyString())
-                                .executes(ctx -> {
-                                    CommandSourceStack source = ctx.getSource();
-                                    String tail = StringArgumentType.getString(ctx, "scanArgs");
-
-                                    ParsedScanSaiArgs parsed;
-                                    try {
-                                        parsed = parseScanSaiArgs(tail, 2);
-                                    } catch (Exception e) {
-                                        source.sendFailure(Component.literal("scanSAI parse error: " + e.getMessage()));
-                                        return 0;
-                                    }
-
-                                    return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
-                                })
+                        )
+                        .then(Commands.literal("detailSAI")
+                            .executes(ctx -> handleDetailSaiAtSteve(ctx, 1))
+                            .then(Commands.argument("radius", IntegerArgumentType.integer(1))
+                                .executes(ctx -> handleDetailSaiAtSteve(
+                                    ctx,
+                                    IntegerArgumentType.getInteger(ctx, "radius")
+                                ))
                             )
                         )
-                        .then(Commands.literal("scanStatus")
-                            .executes(context -> {
+                        .then(Commands.argument("scanArgs", StringArgumentType.greedyString())
+                            .executes(ctx -> {
+                                CommandSourceStack source = ctx.getSource();
+                                String tail = StringArgumentType.getString(ctx, "scanArgs");
+
+                                ParsedScanSaiArgs parsed;
+                                try {
+                                    parsed = parseScanSaiArgs(tail, 2);
+                                } catch (Exception e) {
+                                    source.sendFailure(Component.literal("scanSAI parse error: " + e.getMessage()));
+                                    return 0;
+                                }
+
+                                return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
+                            })
+                        )
+                    )
+                    .then(Commands.literal("scanStatus")
+                        .executes(context -> {
+                            context.getSource().sendSuccess(
+                                () -> Component.literal(SteveAiScanManager.getStatusText()),
+                                false
+                            );
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("writeT")
+                        .executes(context -> {
+                            try {
+                                ServerLevel serverLevel = context.getSource().getLevel();
+                                Path folder = SteveAiScanManager.writeTextFiles(serverLevel, "");
+
                                 context.getSource().sendSuccess(
-                                    () -> Component.literal(SteveAiScanManager.getStatusText()),
+                                    () -> Component.literal("SteveAI scan text files written to: " + folder.toAbsolutePath()),
                                     false
                                 );
                                 return 1;
-                            })
-                        )
-                        .then(Commands.literal("writeT")
+                            } catch (Exception e) {
+                                context.getSource().sendFailure(Component.literal("writeT failed: " + e.getMessage()));
+                                return 0;
+                            }
+                        })
+                        .then(Commands.argument("suffix", StringArgumentType.greedyString())
                             .executes(context -> {
                                 try {
                                     ServerLevel serverLevel = context.getSource().getLevel();
-                                    Path folder = SteveAiScanManager.writeTextFiles(serverLevel, "");
+                                    String suffix = StringArgumentType.getString(context, "suffix");
+                                    Path folder = SteveAiScanManager.writeTextFiles(serverLevel, suffix);
 
                                     context.getSource().sendSuccess(
                                         () -> Component.literal("SteveAI scan text files written to: " + folder.toAbsolutePath()),
@@ -201,30 +208,30 @@ public class CommandEvents {
                                     return 0;
                                 }
                             })
-                            .then(Commands.argument("suffix", StringArgumentType.greedyString())
-                                .executes(context -> {
-                                    try {
-                                        ServerLevel serverLevel = context.getSource().getLevel();
-                                        String suffix = StringArgumentType.getString(context, "suffix");
-                                        Path folder = SteveAiScanManager.writeTextFiles(serverLevel, suffix);
-
-                                        context.getSource().sendSuccess(
-                                            () -> Component.literal("SteveAI scan text files written to: " + folder.toAbsolutePath()),
-                                            false
-                                        );
-                                        return 1;
-                                    } catch (Exception e) {
-                                        context.getSource().sendFailure(Component.literal("writeT failed: " + e.getMessage()));
-                                        return 0;
-                                    }
-                                })
-                            )
                         )
-                        .then(Commands.literal("writeTD")
+                    )
+                    .then(Commands.literal("writeTD")
+                        .executes(context -> {
+                            try {
+                                ServerLevel serverLevel = context.getSource().getLevel();
+                                Path folder = SteveAiScanManager.writeDetailTextFiles(serverLevel, "");
+
+                                context.getSource().sendSuccess(
+                                    () -> Component.literal("SteveAI detail text files written to: " + folder.toAbsolutePath()),
+                                    false
+                                );
+                                return 1;
+                            } catch (Exception e) {
+                                context.getSource().sendFailure(Component.literal("writeTD failed: " + e.getMessage()));
+                                return 0;
+                            }
+                        })
+                        .then(Commands.argument("suffix", StringArgumentType.greedyString())
                             .executes(context -> {
                                 try {
                                     ServerLevel serverLevel = context.getSource().getLevel();
-                                    Path folder = SteveAiScanManager.writeDetailTextFiles(serverLevel, "");
+                                    String suffix = StringArgumentType.getString(context, "suffix");
+                                    Path folder = SteveAiScanManager.writeDetailTextFiles(serverLevel, suffix);
 
                                     context.getSource().sendSuccess(
                                         () -> Component.literal("SteveAI detail text files written to: " + folder.toAbsolutePath()),
@@ -236,395 +243,375 @@ public class CommandEvents {
                                     return 0;
                                 }
                             })
-                            .then(Commands.argument("suffix", StringArgumentType.greedyString())
-                                .executes(context -> {
-                                    try {
-                                        ServerLevel serverLevel = context.getSource().getLevel();
-                                        String suffix = StringArgumentType.getString(context, "suffix");
-                                        Path folder = SteveAiScanManager.writeDetailTextFiles(serverLevel, suffix);
-
-                                        context.getSource().sendSuccess(
-                                            () -> Component.literal("SteveAI detail text files written to: " + folder.toAbsolutePath()),
-                                            false
-                                        );
-                                        return 1;
-                                    } catch (Exception e) {
-                                        context.getSource().sendFailure(Component.literal("writeTD failed: " + e.getMessage()));
-                                        return 0;
-                                    }
-                                })
-                            )
                         )
-                        .then(Commands.literal("forceChunkOn")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
+                    )
+                    .then(Commands.literal("forceChunkOn")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
 
-                                if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                    source.sendFailure(Component.literal("Player only command."));
-                                    return 0;
-                                }
-
-                                Villager steveAi = findSteveAi((ServerLevel) player.level());
-                                if (steveAi == null) {
-                                    source.sendFailure(Component.literal("Could not find steveAI in loaded chunks."));
-                                    return 0;
-                                }
-
-                                steveAiChunkForceEnabled = true;
-                                updateForcedChunkForSteveAi((ServerLevel) player.level(), steveAi);
-
-                                source.sendSuccess(() -> Component.literal("§6[testmod] SteveAI chunk forcing enabled."), false);
-                                return 1;
-                            })
-                        )
-                        .then(Commands.literal("forceChunkOff")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
-
-                                if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                    source.sendFailure(Component.literal("Player only command."));
-                                    return 0;
-                                }
-
-                                steveAiChunkForceEnabled = false;
-                                clearForcedSteveAiChunk((ServerLevel) player.level());
-
-                                source.sendSuccess(() -> Component.literal("§6[testmod] SteveAI chunk forcing disabled."), false);
-                                return 1;
-                            })
-                        )
-                        .then(Commands.literal("whereRu")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
-
-                                if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                    source.sendFailure(Component.literal("Player only command."));
-                                    return 0;
-                                }
-
-                                ServerLevel serverLevel = (ServerLevel) player.level();
-                                Villager steveAi = findSteveAi(serverLevel);
-
-                                if (steveAi != null) {
-                                    String msg = String.format(
-                                        "§6[testmod] steveAI is loaded now at dimension=%s x=%.2f y=%.2f z=%.2f",
-                                        steveAi.level().dimension(),
-                                        steveAi.getX(),
-                                        steveAi.getY(),
-                                        steveAi.getZ()
-                                    );
-
-                                    source.sendSuccess(() -> Component.literal(msg), false);
-
-                                    LOGGER.info(
-                                        "whereRu loaded -> dimension={} x={} y={} z={}",
-                                        steveAi.level().dimension(),
-                                        steveAi.getX(),
-                                        steveAi.getY(),
-                                        steveAi.getZ()
-                                    );
-
-                                    return 1;
-                                }
-
-                                if (lastSteveAiKnownPos != null && lastSteveAiKnownDimension != null) {
-                                    String msg = String.format(
-                                        "§6[testmod] steveAI is not loaded. Last known position: dimension=%s x=%d y=%d z=%d",
-                                        lastSteveAiKnownDimension,
-                                        lastSteveAiKnownPos.getX(),
-                                        lastSteveAiKnownPos.getY(),
-                                        lastSteveAiKnownPos.getZ()
-                                    );
-
-                                    source.sendSuccess(() -> Component.literal(msg), false);
-
-                                    LOGGER.info(
-                                        "whereRu unloaded -> last known dimension={} x={} y={} z={}",
-                                        lastSteveAiKnownDimension,
-                                        lastSteveAiKnownPos.getX(),
-                                        lastSteveAiKnownPos.getY(),
-                                        lastSteveAiKnownPos.getZ()
-                                    );
-
-                                    return 1;
-                                }
-
-                                source.sendFailure(Component.literal("Could not find steveAI, and no last known position is recorded."));
+                            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                source.sendFailure(Component.literal("Player only command."));
                                 return 0;
-                            })
-                        )
-                        .then(Commands.literal("tele")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
+                            }
 
-                                if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                    source.sendFailure(Component.literal("Player only command."));
-                                    return 0;
-                                }
+                            Villager steveAi = findSteveAi((ServerLevel) player.level());
+                            if (steveAi == null) {
+                                source.sendFailure(Component.literal("Could not find steveAI in loaded chunks."));
+                                return 0;
+                            }
 
-                                ServerLevel serverLevel = (ServerLevel) player.level();
-                                Villager steveAi = findSteveAi(serverLevel);
+                            steveAiChunkForceEnabled = true;
+                            updateForcedChunkForSteveAi((ServerLevel) player.level(), steveAi);
 
-                                if (steveAi == null) {
-                                    source.sendFailure(Component.literal("Could not find steveAI."));
-                                    return 0;
-                                }
+                            source.sendSuccess(() -> Component.literal("§6[testmod] SteveAI chunk forcing enabled."), false);
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("forceChunkOff")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
 
-                                BlockPos safePos = findSafeTeleportPosNearPlayer(serverLevel, player);
+                            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                source.sendFailure(Component.literal("Player only command."));
+                                return 0;
+                            }
 
-                                if (safePos == null) {
-                                    source.sendFailure(Component.literal("Could not find a safe place to teleport steveAI."));
-                                    return 0;
-                                }
+                            steveAiChunkForceEnabled = false;
+                            clearForcedSteveAiChunk((ServerLevel) player.level());
 
-                                steveAi.teleportTo(
-                                    safePos.getX() + 0.5,
-                                    safePos.getY(),
-                                    safePos.getZ() + 0.5
+                            source.sendSuccess(() -> Component.literal("§6[testmod] SteveAI chunk forcing disabled."), false);
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("whereRu")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
+
+                            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                source.sendFailure(Component.literal("Player only command."));
+                                return 0;
+                            }
+
+                            ServerLevel serverLevel = (ServerLevel) player.level();
+                            Villager steveAi = findSteveAi(serverLevel);
+
+                            if (steveAi != null) {
+                                String msg = String.format(
+                                    "§6[testmod] steveAI is loaded now at dimension=%s x=%.2f y=%.2f z=%.2f",
+                                    steveAi.level().dimension(),
+                                    steveAi.getX(),
+                                    steveAi.getY(),
+                                    steveAi.getZ()
                                 );
 
-                                steveAi.getNavigation().stop();
-
-                                source.sendSuccess(
-                                    () -> Component.literal(String.format(
-                                        "§6[testmod] steveAI teleported to x=%d y=%d z=%d",
-                                        safePos.getX(),
-                                        safePos.getY(),
-                                        safePos.getZ()
-                                    )),
-                                    false
-                                );
+                                source.sendSuccess(() -> Component.literal(msg), false);
 
                                 LOGGER.info(
-                                    "steveAI teleported safely to x={}, y={}, z={}",
+                                    "whereRu loaded -> dimension={} x={} y={} z={}",
+                                    steveAi.level().dimension(),
+                                    steveAi.getX(),
+                                    steveAi.getY(),
+                                    steveAi.getZ()
+                                );
+
+                                return 1;
+                            }
+
+                            if (lastSteveAiKnownPos != null && lastSteveAiKnownDimension != null) {
+                                String msg = String.format(
+                                    "§6[testmod] steveAI is not loaded. Last known position: dimension=%s x=%d y=%d z=%d",
+                                    lastSteveAiKnownDimension,
+                                    lastSteveAiKnownPos.getX(),
+                                    lastSteveAiKnownPos.getY(),
+                                    lastSteveAiKnownPos.getZ()
+                                );
+
+                                source.sendSuccess(() -> Component.literal(msg), false);
+
+                                LOGGER.info(
+                                    "whereRu unloaded -> last known dimension={} x={} y={} z={}",
+                                    lastSteveAiKnownDimension,
+                                    lastSteveAiKnownPos.getX(),
+                                    lastSteveAiKnownPos.getY(),
+                                    lastSteveAiKnownPos.getZ()
+                                );
+
+                                return 1;
+                            }
+
+                            source.sendFailure(Component.literal("Could not find steveAI, and no last known position is recorded."));
+                            return 0;
+                        })
+                    )
+                    .then(Commands.literal("tele")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
+
+                            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                source.sendFailure(Component.literal("Player only command."));
+                                return 0;
+                            }
+
+                            ServerLevel serverLevel = (ServerLevel) player.level();
+                            Villager steveAi = findSteveAi(serverLevel);
+
+                            if (steveAi == null) {
+                                source.sendFailure(Component.literal("Could not find steveAI."));
+                                return 0;
+                            }
+
+                            BlockPos safePos = findSafeTeleportPosNearPlayer(serverLevel, player);
+
+                            if (safePos == null) {
+                                source.sendFailure(Component.literal("Could not find a safe place to teleport steveAI."));
+                                return 0;
+                            }
+
+                            steveAi.teleportTo(
+                                safePos.getX() + 0.5,
+                                safePos.getY(),
+                                safePos.getZ() + 0.5
+                            );
+
+                            steveAi.getNavigation().stop();
+
+                            source.sendSuccess(
+                                () -> Component.literal(String.format(
+                                    "§6[testmod] steveAI teleported to x=%d y=%d z=%d",
                                     safePos.getX(),
                                     safePos.getY(),
                                     safePos.getZ()
-                                );
+                                )),
+                                false
+                            );
 
-                                return 1;
-                            })
-                        )
-                        .then(Commands.literal("followMe")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
+                            LOGGER.info(
+                                "steveAI teleported safely to x={}, y={}, z={}",
+                                safePos.getX(),
+                                safePos.getY(),
+                                safePos.getZ()
+                            );
 
-                                if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                    source.sendFailure(Component.literal("Player only command."));
-                                    return 0;
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("followMe")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
+
+                            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                source.sendFailure(Component.literal("Player only command."));
+                                return 0;
+                            }
+
+                            ServerLevel serverLevel = (ServerLevel) player.level();
+                            Villager steveAi = findSteveAi(serverLevel);
+
+                            if (steveAi == null) {
+                                source.sendFailure(Component.literal("Could not find steveAI."));
+                                return 0;
+                            }
+
+                            steveAiFollowMode = true;
+                            steveAiFollowPlayerUuid = player.getUUID();
+
+                            boolean started = moveSteveAiTowardPlayer(serverLevel, player, 1.0D);
+
+                            source.sendSuccess(
+                                () -> Component.literal("§6[testmod] steveAI is now following you."),
+                                false
+                            );
+
+                            LOGGER.info("steveAI followMe enabled for player {}", player.getName().getString());
+                            LOGGER.info("Initial follow path start result: {}", started);
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("findMe")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
+
+                            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                source.sendFailure(Component.literal("Player only command."));
+                                return 0;
+                            }
+
+                            ServerLevel serverLevel = (ServerLevel) player.level();
+                            Villager steveAi = findSteveAi(serverLevel);
+
+                            if (steveAi == null) {
+                                source.sendFailure(Component.literal("Could not find steveAI."));
+                                return 0;
+                            }
+
+                            boolean started = moveSteveAiTowardPlayer(serverLevel, player, 1.0D);
+
+                            source.sendSuccess(
+                                () -> Component.literal("§6[testmod] steveAI is trying to find you."),
+                                false
+                            );
+
+                            LOGGER.info("steveAI findMe started for player {} result={}", player.getName().getString(), started);
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("stopFollow")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
+                            steveAiFollowMode = false;
+                            steveAiFollowPlayerUuid = null;
+
+                            if (source.getEntity() instanceof ServerPlayer player) {
+                                Villager steveAi = findSteveAi((ServerLevel) player.level());
+                                if (steveAi != null) {
+                                    steveAi.getNavigation().stop();
                                 }
+                            }
 
-                                ServerLevel serverLevel = (ServerLevel) player.level();
-                                Villager steveAi = findSteveAi(serverLevel);
+                            source.sendSuccess(
+                                () -> Component.literal("§6[testmod] steveAI follow stopped."),
+                                false
+                            );
 
-                                if (steveAi == null) {
-                                    source.sendFailure(Component.literal("Could not find steveAI."));
-                                    return 0;
-                                }
+                            LOGGER.info("steveAI follow mode disabled");
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("opengui")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
 
-                                steveAiFollowMode = true;
-                                steveAiFollowPlayerUuid = player.getUUID();
+                            if (source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
 
-                                boolean started = moveSteveAiTowardPlayer(serverLevel, player, 1.0D);
+                                MerchantOffers offers = new MerchantOffers();
+                                offers.add(new MerchantOffer(
+                                    new ItemCost(Items.OAK_LOG, 1),
+                                    Optional.empty(),
+                                    new ItemStack(Items.APPLE, 1),
+                                    9999,
+                                    1,
+                                    0.05f
+                                ));
 
-                                source.sendSuccess(
-                                    () -> Component.literal("§6[testmod] steveAI is now following you."),
-                                    false
-                                );
+                                java.util.OptionalInt containerId = player.openMenu(new net.minecraft.world.MenuProvider() {
 
-                                LOGGER.info("steveAI followMe enabled for player {}", player.getName().getString());
-                                LOGGER.info("Initial follow path start result: {}", started);
-                                return 1;
-                            })
-                        )
-                        .then(Commands.literal("findMe")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
-
-                                if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                    source.sendFailure(Component.literal("Player only command."));
-                                    return 0;
-                                }
-
-                                ServerLevel serverLevel = (ServerLevel) player.level();
-                                Villager steveAi = findSteveAi(serverLevel);
-
-                                if (steveAi == null) {
-                                    source.sendFailure(Component.literal("Could not find steveAI."));
-                                    return 0;
-                                }
-
-                                boolean started = moveSteveAiTowardPlayer(serverLevel, player, 1.0D);
-
-                                source.sendSuccess(
-                                    () -> Component.literal("§6[testmod] steveAI is trying to find you."),
-                                    false
-                                );
-
-                                LOGGER.info("steveAI findMe started for player {} result={}", player.getName().getString(), started);
-                                return 1;
-                            })
-                        )
-
-                        .then(Commands.literal("stopFollow")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
-                                steveAiFollowMode = false;
-                                steveAiFollowPlayerUuid = null;
-
-                                if (source.getEntity() instanceof ServerPlayer player) {
-                                    Villager steveAi = findSteveAi((ServerLevel) player.level());
-                                    if (steveAi != null) {
-                                        steveAi.getNavigation().stop();
+                                    @Override
+                                    public Component getDisplayName() {
+                                        return Component.literal("SteveAI");
                                     }
-                                }
 
-                                source.sendSuccess(
-                                    () -> Component.literal("§6[testmod] steveAI follow stopped."),
-                                    false
-                                );
-
-                                LOGGER.info("steveAI follow mode disabled");
-                                return 1;
-                            })
-                        )
-                        // testmod opengui will open trading my custom trading window 
-                        .then(Commands.literal("opengui")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
-
-                                if (source.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
-
-                                    MerchantOffers offers = new MerchantOffers();
-                                    offers.add(new MerchantOffer(
-                                        new ItemCost(Items.OAK_LOG, 1),
-                                        Optional.empty(),
-                                        new ItemStack(Items.APPLE, 1),
-                                        9999,
-                                        1,
-                                        0.05f
-                                    ));
-
-                                    java.util.OptionalInt containerId = player.openMenu(new net.minecraft.world.MenuProvider() {
-
-                                        @Override
-                                        public Component getDisplayName() {
-                                            return Component.literal("SteveAI");
-                                        }
-
-                                        @Override
-                                        public net.minecraft.world.inventory.AbstractContainerMenu createMenu(
-                                                int containerId,
-                                                net.minecraft.world.entity.player.Inventory playerInventory,
-                                                net.minecraft.world.entity.player.Player pPlayer) {
-                                            LOGGER.info("CommandEvents.opengui ### CREATE MENU ### called ");
-                                            return new SteveAiMenu(containerId, playerInventory);
-                                        }
-                                    });
-
-                                    if (containerId.isPresent()) {
-                                        LOGGER.info("Sending merchant offers to client, count={}", offers.size());
-
-                                        player.sendMerchantOffers(
-                                            containerId.getAsInt(),
-                                            offers,
-                                            2,      // villager level
-                                            0,      // villager xp
-                                            false,  // show progress bar
-                                            false   // can restock
-                                        );
-                                    } else {
-                                        LOGGER.warn("openMenu returned empty OptionalInt");
+                                    @Override
+                                    public net.minecraft.world.inventory.AbstractContainerMenu createMenu(
+                                            int containerId,
+                                            net.minecraft.world.entity.player.Inventory playerInventory,
+                                            net.minecraft.world.entity.player.Player pPlayer) {
+                                        LOGGER.info("CommandEvents.opengui ### CREATE MENU ### called ");
+                                        return new SteveAiMenu(containerId, playerInventory);
                                     }
+                                });
+
+                                if (containerId.isPresent()) {
+                                    LOGGER.info("Sending merchant offers to client, count={}", offers.size());
+
+                                    player.sendMerchantOffers(
+                                        containerId.getAsInt(),
+                                        offers,
+                                        2,
+                                        0,
+                                        false,
+                                        false
+                                    );
+                                } else {
+                                    LOGGER.warn("openMenu returned empty OptionalInt");
                                 }
+                            }
 
-                                return 1;
-                            })
-                        )
-                        .then(Commands.literal("inv")
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("inv")
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
 
-                                if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
-                                    source.sendFailure(Component.literal("Not on server level."));
-                                    return 0;
-                                }
+                            if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+                                source.sendFailure(Component.literal("Not on server level."));
+                                return 0;
+                            }
 
-                                Villager steveAi = findSteveAi(serverLevel);
-                                if (steveAi == null) {
-                                    source.sendFailure(Component.literal("SteveAI not found."));
-                                    return 0;
-                                }
+                            Villager steveAi = findSteveAi(serverLevel);
+                            if (steveAi == null) {
+                                source.sendFailure(Component.literal("SteveAI not found."));
+                                return 0;
+                            }
 
-                                String summary = getSteveAiInventorySummary(steveAi);
+                            String summary = getSteveAiInventorySummary(steveAi);
 
-                                source.sendSuccess(
-                                    () -> Component.literal("SteveAI inventory: " + summary),
-                                    false
-                                );
+                            source.sendSuccess(
+                                () -> Component.literal("SteveAI inventory: " + summary),
+                                false
+                            );
 
-                                LOGGER.info("SteveAI inventory command -> {}", summary);
-                                return 1;
-                            })
-                        )
-                        .then(Commands.literal("invAdd")
-                            .then(Commands.argument("itemName", StringArgumentType.word())
-                                .executes(context -> handleInvAdd(context, 1))
-                                .then(Commands.argument("count", IntegerArgumentType.integer(1))
-                                    .executes(context -> handleInvAdd(
-                                        context,
-                                        IntegerArgumentType.getInteger(context, "count")
-                                    ))
-                                )
+                            LOGGER.info("SteveAI inventory command -> {}", summary);
+                            return 1;
+                        })
+                    )
+                    .then(Commands.literal("invAdd")
+                        .then(Commands.argument("itemName", StringArgumentType.word())
+                            .executes(context -> handleInvAdd(context, 1))
+                            .then(Commands.argument("count", IntegerArgumentType.integer(1))
+                                .executes(context -> handleInvAdd(
+                                    context,
+                                    IntegerArgumentType.getInteger(context, "count")
+                                ))
                             )
                         )
-                        .then(Commands.literal("invDrop")
-                            .then(Commands.argument("itemName", StringArgumentType.word())
-                                .executes(context -> handleInvDrop(context, 1))
-                                .then(Commands.argument("count", IntegerArgumentType.integer(1))
-                                    .executes(context -> {
-                                        int count = IntegerArgumentType.getInteger(context, "count");
-                                        return handleInvDrop(context, count);
-                                    })
-                                )
+                    )
+                    .then(Commands.literal("invDrop")
+                        .then(Commands.argument("itemName", StringArgumentType.word())
+                            .executes(context -> handleInvDrop(context, 1))
+                            .then(Commands.argument("count", IntegerArgumentType.integer(1))
+                                .executes(context -> {
+                                    int count = IntegerArgumentType.getInteger(context, "count");
+                                    return handleInvDrop(context, count);
+                                })
                             )
                         )
-                        // /testmod hello John
-                        .then(Commands.argument("message", StringArgumentType.greedyString())
-                            .executes(context -> {
-                                CommandSourceStack source = context.getSource();
-                                String message = StringArgumentType.getString(context, "message");
+                    )
+                    .then(Commands.argument("message", StringArgumentType.greedyString())
+                        .executes(context -> {
+                            CommandSourceStack source = context.getSource();
+                            String message = StringArgumentType.getString(context, "message");
 
-                                LOGGER.info("TESTMOD asking OpenAI...: {}", message);
+                            LOGGER.info("TESTMOD asking OpenAI...: {}", message);
 
-                                source.sendSuccess(
-                                    () -> Component.literal("§6[testmod] Asking OpenAI: " + message),
-                                    false
-                                );
+                            source.sendSuccess(
+                                () -> Component.literal("§6[testmod] Asking OpenAI: " + message),
+                                false
+                            );
 
-                                if (!(source.getEntity() instanceof ServerPlayer player)) {
-                                    source.sendFailure(Component.literal("Player only command."));
-                                    return 0;
-                                }
+                            if (!(source.getEntity() instanceof ServerPlayer player)) {
+                                source.sendFailure(Component.literal("Player only command."));
+                                return 0;
+                            }
 
-                                ServerLevel serverLevel = (ServerLevel) player.level();
-                                UUID playerUuid = player.getUUID();
+                            ServerLevel serverLevel = (ServerLevel) player.level();
+                            UUID playerUuid = player.getUUID();
 
-                                String reply = askSteveAi(serverLevel, playerUuid, message);          
-                                source.sendSuccess(
-                                    () -> Component.literal("§6[testmod] OpenAI reply: " + reply),
-                                    false
-                                );
+                            String reply = askSteveAi(serverLevel, playerUuid, message);
+                            source.sendSuccess(
+                                () -> Component.literal("§6[testmod] OpenAI reply: " + reply),
+                                false
+                            );
 
-                                LOGGER.info("ExampleMod OpenAI response... {}", reply);
-                                return 1;
-                            })
-                        )
-                );
-            } finally {
-                LOGGER.info("CommandEvents.onCommandsRegister FINISH");
-            }
+                            LOGGER.info("ExampleMod OpenAI response... {}", reply);
+                            return 1;
+                        })
+                    )
+            );
+        } finally {
+            LOGGER.info("CommandEvents.onCommandsRegister FINISH");
         }
+    }
 
     @SubscribeEvent
     public static void onServerTick(net.minecraftforge.event.TickEvent.ServerTickEvent.Post event) {
@@ -633,11 +620,9 @@ public class CommandEvents {
             return;
         }
 
-        // steveAI should follow player
         if (steveAiFollowMode && steveAiFollowPlayerUuid != null) {
             long now = server.overworld().getGameTime();
 
-            // refresh path every 2 seconds
             if (now - lastFollowTick >= 40) {
                 lastFollowTick = now;
 
@@ -647,7 +632,6 @@ public class CommandEvents {
                     if (steveAi != null) {
                         double distSq = steveAi.distanceToSqr(followPlayer);
 
-                        // only repath if not already close
                         if (distSq > 9.0) {
                             boolean started = steveAi.getNavigation().moveTo(followPlayer, 1.0D);
                             LOGGER.info("steveAI follow tick repath result={} distSq={}", started, distSq);
@@ -658,11 +642,11 @@ public class CommandEvents {
                 }
             }
         }
+
         if (lastPlayerUuid == null) {
             return;
         }
 
-        // every 60 seconds
         if (server.overworld().getGameTime() % 1200 != 0) {
             return;
         }
@@ -675,11 +659,12 @@ public class CommandEvents {
             );
             for (Entity entity : matches) {
                 lastSteveAiKnownPos = entity.blockPosition();
-                lastSteveAiKnownDimension = entity.level().dimension(); 
+                lastSteveAiKnownDimension = entity.level().dimension();
 
                 if (steveAiChunkForceEnabled) {
                     updateForcedChunkForSteveAi(serverLevel, entity);
                 }
+
                 String line = String.format(
                     "steveAI location -> player=%s uuid=%s dimension=%s x=%.2f y=%.2f z=%.2f%n",
                     lastPlayerName,
@@ -697,7 +682,7 @@ public class CommandEvents {
                     entity.getY(),
                     entity.getZ()
                 );
-                
+
                 appendSteveAiLine(serverLevel, lastPlayerUuid, line);
                 appendWorldInfo(serverLevel, entity);
 
@@ -735,7 +720,6 @@ public class CommandEvents {
                     appendNearbyBlocks(serverLevel, entity, 30, 70);
 
                     if (entity instanceof Villager villager) {
-                        //addCoalToSteveAiInventory(villager, 4);
                         addItemToSteveAiInventory(villager, new ItemStack(Items.COAL, 4));
                         appendSteveAiLine(
                             serverLevel,
@@ -745,7 +729,6 @@ public class CommandEvents {
                     }
                 }
 
-                //boolean didBlockEntityScan = false;
                 boolean poiChanged = false;
                 if (hasMovedFarEnough(lastBlockEntityScanCenter, entity, BLOCK_ENTITY_SCAN_MOVE_THRESHOLD)) {
                     lastBlockEntityScanCenter = entity.blockPosition();
@@ -762,7 +745,6 @@ public class CommandEvents {
                     );
 
                     poiChanged = appendNearbyBlockEntities(serverLevel, entity, 30);
-                    //didBlockEntityScan = true;
                 }
 
                 if (poiChanged) {
@@ -781,12 +763,11 @@ public class CommandEvents {
                     }
 
                     writeSteveAiSummary(serverLevel, lastPlayerUuid, summaryLines);
-                    //PoiManager.clear();
                 }
             }
         }
     }
-    
+
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         LOGGER.info("CommandEvents.onPlayerLoggedIn START ");
@@ -796,7 +777,6 @@ public class CommandEvents {
             lastPlayerUuid = player.getUUID();
             lastPlayerName = player.getName().getString();
             LOGGER.info("Tracking steveAI file for player UUID: {}", lastPlayerUuid);
-
 
             LOGGER.info("Player UUID: {}", player.getUUID());
             if (!(level instanceof ServerLevel serverLevel)) {
@@ -810,7 +790,6 @@ public class CommandEvents {
                 return;
             }
 
-            // Spawn steveAI 4 blocks away in a random direction
             double angle = Math.random() * 2 * Math.PI;
             double distance = 4.0;
             double offsetX = Math.cos(angle) * distance;
@@ -892,6 +871,7 @@ public class CommandEvents {
             default -> null;
         };
     }
+
     private static boolean isInterestingLookSeeBlock(BlockState state) {
         Block block = state.getBlock();
 
@@ -926,7 +906,6 @@ public class CommandEvents {
         }
 
         double entityRadius = 20.0;
-        int blockRadius = 20;
 
         java.util.Map<String, SteveAiCollectors.SeenSummary> entityMap =
             SteveAiCollectors.collectNearbyEntities(serverLevel, steveAi, entityRadius);
@@ -968,7 +947,7 @@ public class CommandEvents {
 
         BlockPos nearest;
 
-        if ((poi.equals("village_candidate")) ||  (poi.equals("village"))){
+        if ((poi.equals("village_candidate")) || (poi.equals("village"))) {
             nearest = PoiManager.findNearestVillageForExplore(steveAi.blockPosition());
         } else {
             nearest = PoiManager.findNearestPoiCenter(poiType, steveAi.blockPosition());
@@ -996,6 +975,7 @@ public class CommandEvents {
         LOGGER.info("Explore started: poi={} poiType={} center={}", explorePoi, explorePoiType, exploreCenter);
         return 1;
     }
+
     private static int countNearbyVillagers(ServerLevel serverLevel, Villager steveAi, double radius) {
         var nearby = serverLevel.getEntities(
             (Entity) null,
@@ -1015,11 +995,13 @@ public class CommandEvents {
         exploredTargets.clear();
         nextExploreRepathGameTime = 0L;
     }
+
     private static int handleExploreStop(CommandContext<CommandSourceStack> context) {
         stopExploreTask();
         context.getSource().sendSuccess(() -> Component.literal("SteveAI exploration stopped."), false);
         return 1;
     }
+
     private static int handleExploreStatus(CommandContext<CommandSourceStack> context) {
         if (!exploreActive || exploreCenter == null) {
             context.getSource().sendSuccess(() -> Component.literal("No active exploration task."), false);
@@ -1038,7 +1020,9 @@ public class CommandEvents {
     }
 
     private static void tickExplore(ServerLevel serverLevel, Villager steveAi) {
-        if (!exploreActive || exploreCenter == null) return;
+        if (!exploreActive || exploreCenter == null) {
+            return;
+        }
 
         long gameTime = serverLevel.getGameTime();
 
@@ -1054,8 +1038,8 @@ public class CommandEvents {
                 return;
             }
         }
-        // First, travel to the POI center area
-        if (distToCenterSq > 100.0) { // farther than 10 blocks
+
+        if (distToCenterSq > 100.0) {
             if (gameTime >= nextExploreRepathGameTime) {
                 boolean ok = steveAi.getNavigation().moveTo(
                     exploreCenter.getX() + 0.5,
@@ -1069,7 +1053,6 @@ public class CommandEvents {
             return;
         }
 
-        // Then wander around the POI center
         if (currentExploreTarget == null || reachedExploreTarget(steveAi, currentExploreTarget)) {
             if (currentExploreTarget != null) {
                 exploredTargets.add(currentExploreTarget.immutable());
@@ -1163,12 +1146,12 @@ public class CommandEvents {
             ItemStack slot = inv.getItem(i);
             if (!slot.isEmpty()) {
                 sb.append("slot ")
-                .append(i)
-                .append(": ")
-                .append(slot.getHoverName().getString())
-                .append(" x")
-                .append(slot.getCount())
-                .append("; ");
+                    .append(i)
+                    .append(": ")
+                    .append(slot.getHoverName().getString())
+                    .append(" x")
+                    .append(slot.getCount())
+                    .append("; ");
             }
         }
 
@@ -1202,7 +1185,7 @@ public class CommandEvents {
                 if (slot.isEmpty()) {
                     inv.setItem(i, toAdd.copy());
                     LOGGER.info("Added {} x{} to SteveAI inventory slot {}",
-                            toAdd.getItem(), toAdd.getCount(), i);
+                        toAdd.getItem(), toAdd.getCount(), i);
                     return true;
                 }
 
@@ -1214,7 +1197,7 @@ public class CommandEvents {
                     toAdd.shrink(move);
 
                     LOGGER.info("Stacked {} of {} into SteveAI inventory slot {}",
-                            move, slot.getItem(), i);
+                        move, slot.getItem(), i);
 
                     if (toAdd.isEmpty()) {
                         return true;
@@ -1337,6 +1320,7 @@ public class CommandEvents {
 
         serverLevel.addFreshEntity(itemEntity);
     }
+
     private static int handleInvDrop(CommandContext<CommandSourceStack> context, int count) {
         CommandSourceStack source = context.getSource();
 
@@ -1378,16 +1362,14 @@ public class CommandEvents {
         );
 
         LOGGER.info("SteveAI invDrop -> item={} requested={} dropped={} ; {}",
-                itemName, count, removed.getCount(), summary);
+            itemName, count, removed.getCount(), summary);
 
         return 1;
     }
 
     private static void writeSteveAiSummary(ServerLevel serverLevel, UUID playerUuid, java.util.List<String> lines) {
         try {
-            Path playerDataDir = serverLevel.getServer().getWorldPath(LevelResource.PLAYER_DATA_DIR);
-            Files.createDirectories(playerDataDir);
-
+            Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
             Path summaryFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_summary.txt");
 
             Files.write(
@@ -1405,13 +1387,9 @@ public class CommandEvents {
 
     private static void appendSteveAiLine(ServerLevel serverLevel, UUID playerUuid, String line) {
         try {
-            LOGGER.error("CommandEvents - Writing to steveAI text file");
-            Path playerDataDir = serverLevel.getServer().getWorldPath(LevelResource.PLAYER_DATA_DIR);
-            LOGGER.error("CommandEvents - Writing to steveAI text file playerDataDir:" + playerDataDir.toString());
-            Files.createDirectories(playerDataDir);
-
+            Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
             Path steveAiFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI.txt");
-            LOGGER.error("CommandEvents - Writing to steveAI text file line: " + line);
+
             Files.writeString(
                 steveAiFile,
                 line,
@@ -1478,7 +1456,6 @@ public class CommandEvents {
             + SteveAiScanManager.getScannedEntities().size()
             + SteveAiScanManager.getScannedBlockEntities().size();
 
-        //String normalizedInput = rawScanInput.trim().toLowerCase(java.util.Locale.ROOT);
         String normalizedInput = SteveAiScanManager.getLastScanType();
         int finalCount = count;
 
@@ -1493,9 +1470,7 @@ public class CommandEvents {
 
     public static void appendSteveAiChatLine(ServerLevel serverLevel, UUID playerUuid, String line) {
         try {
-            Path playerDataDir = serverLevel.getServer().getWorldPath(LevelResource.PLAYER_DATA_DIR);
-            Files.createDirectories(playerDataDir);
-
+            Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
             Path chatFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat.txt");
 
             String out = (line == null ? "" : line);
@@ -1528,7 +1503,7 @@ public class CommandEvents {
     public static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
         LOGGER.info("askSteveAi START playerUuid={} message={}", playerUuid, message);
 
-        String fileContext = SteveAiContextFiles.buildChatContext(playerUuid, 200);
+        String fileContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
 
         String prompt =
             "You are SteveAI, a Minecraft villager. " +
@@ -1670,11 +1645,9 @@ public class CommandEvents {
         int radiusSq = radiusBlocks * radiusBlocks;
         boolean foundAny = false;
         boolean foundNewPoi = false;
-        
+
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                
-                // Only use chunks that are already loaded; do NOT force load.
                 LevelChunk chunk = serverLevel.getChunkSource().getChunkNow(chunkX, chunkZ);
                 if (chunk == null) {
                     continue;
@@ -1695,7 +1668,6 @@ public class CommandEvents {
 
                     foundAny = true;
 
-                    //String typeName = blockEntity.getType().toString();
                     String typeName = String.valueOf(BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(blockEntity.getType()));
                     if (PoiManager.processBlockEntity(typeName, pos)) {
                         foundNewPoi = true;
@@ -1744,8 +1716,8 @@ public class CommandEvents {
 
         double distanceSq = dx * dx + dy * dy + dz * dz;
         return distanceSq >= threshold * threshold;
-
     }
+
     private static class ParsedScanSaiArgs {
         final String rawScanInput;
         final int chunkRadius;
@@ -1755,6 +1727,7 @@ public class CommandEvents {
             this.chunkRadius = chunkRadius;
         }
     }
+
     private static int handleDetailSaiAtSteve(CommandContext<CommandSourceStack> context, int radius) {
         CommandSourceStack source = context.getSource();
 
@@ -1816,6 +1789,7 @@ public class CommandEvents {
 
         return 1;
     }
+
     private static ParsedScanSaiArgs parseScanSaiArgs(String tail, int defaultChunkRadius) {
         if (tail == null || tail.isBlank()) {
             return new ParsedScanSaiArgs("all", defaultChunkRadius);
@@ -1823,7 +1797,6 @@ public class CommandEvents {
 
         String s = tail.trim();
 
-        // Bracketed form: [villager bell] 3
         if (s.startsWith("[")) {
             int close = s.lastIndexOf(']');
             if (close < 0) {
@@ -1845,7 +1818,6 @@ public class CommandEvents {
             return new ParsedScanSaiArgs(rawScanInput, chunkRadius);
         }
 
-        // Legacy/simple form: all 3
         int lastSpace = s.lastIndexOf(' ');
         if (lastSpace > 0) {
             String maybeRadius = s.substring(lastSpace + 1).trim();
@@ -1857,12 +1829,12 @@ public class CommandEvents {
                 }
                 return new ParsedScanSaiArgs(rawScanInput, radius);
             } catch (NumberFormatException ignored) {
-                // whole thing is the raw input
             }
         }
 
         return new ParsedScanSaiArgs(s, defaultChunkRadius);
     }
+
     private static Villager findSteveAi(ServerLevel serverLevel) {
         var matches = serverLevel.getEntities(
             EntityType.VILLAGER,
@@ -1887,10 +1859,10 @@ public class CommandEvents {
         PathNavigation nav = steveAi.getNavigation();
         return nav.moveTo(player, speed);
     }
+
     private static BlockPos findSafeTeleportPosNearPlayer(ServerLevel serverLevel, ServerPlayer player) {
         BlockPos playerPos = player.blockPosition();
 
-        // Search nearby spots around the player first
         for (int radius = 1; radius <= 4; radius++) {
             for (int dx = -radius; dx <= radius; dx++) {
                 for (int dz = -radius; dz <= radius; dz++) {
@@ -1904,11 +1876,10 @@ public class CommandEvents {
             }
         }
 
-        // Fallback: try player's exact area
         return findSafeStandingPos(serverLevel, playerPos);
     }
+
     private static BlockPos findSafeStandingPos(ServerLevel serverLevel, BlockPos nearPos) {
-        // search a little up/down in case terrain is uneven
         for (int dy = -3; dy <= 3; dy++) {
             BlockPos feetPos = nearPos.offset(0, dy, 0);
             BlockPos headPos = feetPos.above();
@@ -1934,19 +1905,16 @@ public class CommandEvents {
         int chunkX = steveAiEntity.chunkPosition().x;
         int chunkZ = steveAiEntity.chunkPosition().z;
 
-        // already forcing the right chunk
         if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null
                 && forcedSteveAiChunkX == chunkX && forcedSteveAiChunkZ == chunkZ) {
             return;
         }
 
-        // unforce previous chunk
         if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null) {
             boolean removed = serverLevel.setChunkForced(forcedSteveAiChunkX, forcedSteveAiChunkZ, false);
             LOGGER.info("Unforced old steveAI chunk {},{} result={}", forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);
         }
 
-        // force current chunk
         boolean added = serverLevel.setChunkForced(chunkX, chunkZ, true);
         forcedSteveAiChunkX = chunkX;
         forcedSteveAiChunkZ = chunkZ;
@@ -1963,5 +1931,4 @@ public class CommandEvents {
         forcedSteveAiChunkX = null;
         forcedSteveAiChunkZ = null;
     }
-
 }
