@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +79,17 @@ public class PoiManager {
     };
 
     // Keyed by grid-snapped "X,Z" so minor center drift doesn't create duplicates.
-    private static final Map<String, String> savedPersonalities = new HashMap<>();
+    private static final Map<String, VillageAssignment> savedPersonalities = new HashMap<>();
+
+    public static class VillageAssignment {
+        public final String personality;
+        public final String scene;
+
+        public VillageAssignment(String personality, String scene) {
+            this.personality = personality;
+            this.scene = scene;
+        }
+    }
 
     // MVP tuning constants
     private static final int VILLAGE_MIN_POSITION_COUNT = 2;   // proxy for "villager > 1"
@@ -360,9 +371,11 @@ public class PoiManager {
             String personalityPart = "";
             if ("village".equals(finalType)
                     && ("high".equals(confidence) || "very_high".equals(confidence))) {
-                String personality = getOrAssignPersonality(poi);
-                String chars = getPersonalityCharacters(personality);
-                personalityPart = " personality=" + personality + " characters=[" + chars + "]";
+                VillageAssignment assignment = getOrAssignVillageAssignment(poi);
+                String chars = getPersonalityCharacters(assignment.personality);
+                personalityPart = " personality=" + assignment.personality
+                    + " scene=\"" + assignment.scene + "\""
+                    + " characters=[" + chars + "]";
             }
 
             lines.add(String.format(
@@ -392,14 +405,54 @@ public class PoiManager {
         return gx + "," + gz;
     }
 
-    /** Returns the existing personality for this village, or randomly assigns one. */
-    private static String getOrAssignPersonality(Poi poi) {
+    /** Returns the locked assignment for this village, or assigns one once and keeps it. */
+    private static VillageAssignment getOrAssignVillageAssignment(Poi poi) {
         String key = personalityKey(poi.center);
         return savedPersonalities.computeIfAbsent(key, k -> {
-            // Default to scooby_doo (index 0); use random to pick across options.
-            int idx = (int) (Math.random() * PERSONALITY_OPTIONS.length);
-            return PERSONALITY_OPTIONS[idx];
+            String personality = choosePersonality();
+            String scene = chooseSceneForPersonality(personality);
+            return new VillageAssignment(personality, scene);
         });
+    }
+
+    private static String choosePersonality() {
+        if (PERSONALITY_OPTIONS.length == 0) {
+            return "scooby_doo";
+        }
+        int idx = ThreadLocalRandom.current().nextInt(PERSONALITY_OPTIONS.length);
+        String chosen = PERSONALITY_OPTIONS[idx];
+        return (chosen == null || chosen.isBlank()) ? "scooby_doo" : chosen;
+    }
+
+    private static String chooseSceneForPersonality(String personality) {
+        String[] scenes = switch (personality) {
+            case "scooby_doo" -> new String[] {
+                "The gang investigates a spooky old mill after dark.",
+                "A 'monster' chases everyone through hallways and trap doors.",
+                "Scooby and Shaggy are bribed with snacks to check the creepy barn."
+            };
+            case "er_tv_series" -> new String[] {
+                "The village clinic is in triage mode after multiple walk-in injuries.",
+                "A storm causes a surge of patients and the team coordinates emergency care.",
+                "Doctors debate a difficult diagnosis while villagers wait anxiously."
+            };
+            case "lord_of_the_rings" -> new String[] {
+                "A council gathers to decide a dangerous quest beyond the village.",
+                "Rangers patrol the roads while the fellowship plans supplies.",
+                "A feast in the hall turns into a strategy meeting before dawn."
+            };
+            case "pirates_of_the_caribbean" -> new String[] {
+                "A daring harbor escape begins as bells ring and villagers scramble.",
+                "A hidden map is traded at the tavern under suspicious eyes.",
+                "Two rival crews negotiate a truce before hunting buried treasure."
+            };
+            default -> new String[] {
+                "Village life continues with a mysterious event unfolding."
+            };
+        };
+
+        int idx = ThreadLocalRandom.current().nextInt(scenes.length);
+        return scenes[idx];
     }
 
     /** Human-readable character list for a personality theme. */
@@ -424,7 +477,25 @@ public class PoiManager {
                 if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
                 String[] parts = trimmed.split("=", 2);
                 if (parts.length == 2) {
-                    savedPersonalities.put(parts[0].trim(), parts[1].trim());
+                    String key = parts[0].trim();
+                    String value = parts[1].trim();
+
+                    // Backward compatible format support:
+                    // old: gridX,gridZ=personality
+                    // new: gridX,gridZ=personality|scene text
+                    String[] valueParts = value.split("\\|", 2);
+                    String personality = valueParts[0].trim();
+                    if (personality.isBlank()) {
+                        personality = "scooby_doo";
+                    }
+                    String scene;
+                    if (valueParts.length > 1 && !valueParts[1].trim().isBlank()) {
+                        scene = valueParts[1].trim();
+                    } else {
+                        scene = chooseSceneForPersonality(personality);
+                    }
+
+                    savedPersonalities.put(key, new VillageAssignment(personality, scene));
                 }
             }
         } catch (IOException e) {
@@ -437,10 +508,21 @@ public class PoiManager {
         if (savedPersonalities.isEmpty()) return;
         try {
             StringBuilder sb = new StringBuilder();
-            sb.append("# Village personalities — do not edit manually\n");
-            sb.append("# Format: gridX,gridZ=personality\n");
-            for (Map.Entry<String, String> entry : savedPersonalities.entrySet()) {
-                sb.append(entry.getKey()).append("=").append(entry.getValue()).append("\n");
+            sb.append("# Village personalities and scenes (locked after first assignment)\n");
+            sb.append("# Format: gridX,gridZ=personality|scene\n");
+            for (Map.Entry<String, VillageAssignment> entry : savedPersonalities.entrySet()) {
+                VillageAssignment assignment = entry.getValue();
+                if (assignment == null) continue;
+                String personality = (assignment.personality == null || assignment.personality.isBlank())
+                    ? "scooby_doo"
+                    : assignment.personality;
+                String scene = assignment.scene == null ? "" : assignment.scene;
+                sb.append(entry.getKey())
+                    .append("=")
+                    .append(personality)
+                    .append("|")
+                    .append(scene)
+                    .append("\n");
             }
             Files.writeString(
                 file, sb.toString(),
