@@ -62,6 +62,13 @@ public class PoiManager {
 
     private static final List<Poi> pois = new ArrayList<>();
 
+    // MVP tuning constants
+    private static final int VILLAGE_MIN_POSITION_COUNT = 2;   // proxy for "villager > 1"
+    private static final int VILLAGE_MIN_Y = 10;
+
+    private static final int UNDERGROUND_MAX_Y = 10;
+    private static final int UNDERGROUND_BED_CLUSTER_MIN_POSITIONS = 5; // proxy for "beds > 4"
+
     public static boolean processBlockEntity(String typeName, BlockPos pos) {
         String normalized = normalizeEvidence(typeName);
         String poiType = mapToPoi(normalized);
@@ -236,24 +243,63 @@ public class PoiManager {
         return true;
     }
 
+    private static boolean hasAnyVillageWorkstation(Poi poi) {
+        return poi.evidence.contains("minecraft:lectern")
+            || poi.evidence.contains("minecraft:brewing_stand")
+            || poi.evidence.contains("minecraft:blast_furnace")
+            || poi.evidence.contains("minecraft:smoker")
+            || poi.evidence.contains("minecraft:cartography_table")
+            || poi.evidence.contains("minecraft:composter");
+    }
+
+    private static boolean hasTrialChamberCore(Poi poi) {
+        return poi.evidence.contains("minecraft:trial_spawner")
+            || poi.evidence.contains("minecraft:vault");
+    }
+
+    private static boolean hasTrialChamberSupport(Poi poi) {
+        return poi.evidence.contains("minecraft:decorated_pot")
+            || poi.evidence.contains("minecraft:dispenser")
+            || poi.evidence.contains("minecraft:hopper")
+            || poi.evidence.contains("minecraft:barrel")
+            || poi.evidence.contains("minecraft:waxed_copper_grate")
+            || poi.evidence.contains("minecraft:chiseled_tuff")
+            || poi.evidence.contains("minecraft:chiseled_tuff_bricks")
+            || poi.evidence.contains("minecraft:polished_tuff")
+            || poi.evidence.contains("minecraft:tuff_bricks");
+    }
+
     private static String classifyPoiType(Poi poi) {
         if (!poi.type.equals("village_candidate")) {
             return poi.type;
         }
+
+        int centerY = poi.center.getY();
 
         boolean hasBed = poi.evidence.contains("minecraft:bed");
         boolean hasBell = poi.evidence.contains("minecraft:bell");
         boolean hasVillager = poi.evidence.contains("minecraft:villager");
         boolean hasIronGolem = poi.evidence.contains("minecraft:iron_golem");
         boolean hasCat = poi.evidence.contains("minecraft:cat");
+        boolean hasWorkstation = hasAnyVillageWorkstation(poi);
 
-        boolean hasWorkstation =
-            poi.evidence.contains("minecraft:lectern") ||
-            poi.evidence.contains("minecraft:brewing_stand") ||
-            poi.evidence.contains("minecraft:blast_furnace") ||
-            poi.evidence.contains("minecraft:smoker") ||
-            poi.evidence.contains("minecraft:cartography_table") ||
-            poi.evidence.contains("minecraft:composter");
+        boolean hasTrialCore = hasTrialChamberCore(poi);
+        boolean hasTrialSupport = hasTrialChamberSupport(poi);
+
+        int posCount = poi.seenPositions.size();
+        int evidenceCount = poi.evidence.size();
+
+        // New tuning:
+        // - underground bed-heavy clusters should not become villages
+        // - underground chamber-ish support should push away from village
+        boolean undergroundBedClusterLike =
+            hasBed
+            && centerY < UNDERGROUND_MAX_Y
+            && posCount >= UNDERGROUND_BED_CLUSTER_MIN_POSITIONS;
+
+        if (undergroundBedClusterLike) {
+            return "village_candidate";
+        }
 
         int score = 0;
         if (hasBed) score += 3;
@@ -263,16 +309,27 @@ public class PoiManager {
         if (hasWorkstation) score += 2;
         if (hasCat) score += 1;
 
-        int posCount = poi.seenPositions.size();
         if (posCount >= 12) score += 3;
         else if (posCount >= 6) score += 2;
         else if (posCount >= 3) score += 1;
 
-        int evidenceCount = poi.evidence.size();
         if (evidenceCount >= 5) score += 2;
         else if (evidenceCount >= 3) score += 1;
 
-        return score >= 7 ? "village" : "village_candidate";
+        if (centerY < UNDERGROUND_MAX_Y && (hasTrialCore || hasTrialSupport)) {
+            score -= 4;
+        }
+
+        boolean canBeVillage =
+            hasVillager
+            && posCount >= VILLAGE_MIN_POSITION_COUNT
+            && centerY > VILLAGE_MIN_Y;
+
+        if (canBeVillage && score >= 7) {
+            return "village";
+        }
+
+        return "village_candidate";
     }
 
     public static List<String> buildSummaryLines() {
@@ -401,8 +458,17 @@ public class PoiManager {
             }
 
             case "village_candidate" -> {
-                if ((hasBed && hasVillager) || (hasBell && hasBed)) return "high";
-                if (hasBed || hasVillager || hasBell || hasLectern || hasBlastFurnace || hasSmoker) return "medium";
+                int centerY = poi.center.getY();
+
+                boolean undergroundBedClusterLike =
+                    hasBed
+                    && centerY < UNDERGROUND_MAX_Y
+                    && posCount >= UNDERGROUND_BED_CLUSTER_MIN_POSITIONS;
+
+                if (undergroundBedClusterLike) return "low";
+
+                if (centerY > VILLAGE_MIN_Y && hasVillager && (hasBed || hasBell)) return "high";
+                if (centerY > VILLAGE_MIN_Y && (hasBed || hasVillager || hasBell || hasLectern || hasBlastFurnace || hasSmoker)) return "medium";
                 return "low";
             }
 
