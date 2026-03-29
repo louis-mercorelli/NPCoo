@@ -60,6 +60,11 @@ public class SteveAiScreen extends MerchantScreen {
     private static final int CHAT_CONTENT_Y_OFFSET = 42;
     private static final int CHAT_CONTENT_BOTTOM_PADDING = 8;
     private static final int CHAT_LINE_HEIGHT = 10;
+    private static final int CHAT_TEXT_COLOR = 0xFF000000;
+
+    private void scrollChatToBottom() {
+        this.chatScrollLines = Integer.MAX_VALUE;
+    }
 
     public SteveAiScreen(SteveAiMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -212,18 +217,17 @@ public class SteveAiScreen extends MerchantScreen {
 
     private void drawChatTab(GuiGraphics guiGraphics) {
         int x = this.leftPos + CHAT_CONTENT_X_OFFSET;
-        int y = this.topPos + CHAT_CONTENT_Y_OFFSET;
+        int y = (chatInput != null)
+            ? (chatInput.getY() + chatInput.getHeight() + CHAT_CONTENT_BOTTOM_PADDING)
+            : (this.topPos + CHAT_CONTENT_Y_OFFSET);
         int maxWidth = this.imageWidth - (CHAT_CONTENT_X_OFFSET * 2);
-        int contentBottom = (chatInput != null)
-            ? chatInput.getY() - CHAT_CONTENT_BOTTOM_PADDING
-            : (this.topPos + this.imageHeight - CHAT_CONTENT_BOTTOM_PADDING);
+        int contentBottom = this.topPos + this.imageHeight - CHAT_CONTENT_BOTTOM_PADDING;
         int contentHeight = Math.max(CHAT_LINE_HEIGHT, contentBottom - y);
 
         java.util.List<net.minecraft.util.FormattedCharSequence> lines = new java.util.ArrayList<>();
-        lines.addAll(this.font.split(Component.literal("You: " + (lastPrompt == null ? "" : lastPrompt)), maxWidth));
+    lines.addAll(this.font.split(Component.literal("YOU: " + (lastPrompt == null ? "" : lastPrompt)), maxWidth));
         lines.add(Component.literal("").getVisualOrderText());
-        lines.add(Component.literal("SteveAI:").getVisualOrderText());
-        lines.addAll(this.font.split(Component.literal(lastResponse == null ? "" : lastResponse), maxWidth));
+    lines.addAll(this.font.split(Component.literal("STEVEAI: " + (lastResponse == null ? "" : lastResponse)), maxWidth));
 
         int visibleLines = Math.max(1, contentHeight / CHAT_LINE_HEIGHT);
         int maxScroll = Math.max(0, lines.size() - visibleLines);
@@ -234,7 +238,7 @@ public class SteveAiScreen extends MerchantScreen {
 
         int drawY = y;
         for (int i = start; i < end; i++) {
-            guiGraphics.drawString(this.font, lines.get(i), x, drawY, 0xFF000000, false);
+            guiGraphics.drawString(this.font, lines.get(i), x, drawY, CHAT_TEXT_COLOR, false);
             drawY += CHAT_LINE_HEIGHT;
         }
     }
@@ -335,6 +339,7 @@ public class SteveAiScreen extends MerchantScreen {
                 if (!message.isEmpty()) {
                     lastPrompt = message;
                     lastResponse = "Thinking...";
+                    scrollChatToBottom();
                     chatInput.setValue("");
                     LOGGER.info("SteveAiScreen calling openai to get reply"); 
 
@@ -374,11 +379,11 @@ public class SteveAiScreen extends MerchantScreen {
     public boolean mouseScrolled(double mouseX, double mouseY, double deltaX, double deltaY) {
         if (activeTab == Tab.CHAT) {
             int x = this.leftPos + CHAT_CONTENT_X_OFFSET;
-            int y = this.topPos + CHAT_CONTENT_Y_OFFSET;
+            int y = (chatInput != null)
+                ? (chatInput.getY() + chatInput.getHeight() + CHAT_CONTENT_BOTTOM_PADDING)
+                : (this.topPos + CHAT_CONTENT_Y_OFFSET);
             int width = this.imageWidth - (CHAT_CONTENT_X_OFFSET * 2);
-            int bottom = (chatInput != null)
-                ? chatInput.getY() - CHAT_CONTENT_BOTTOM_PADDING
-                : (this.topPos + this.imageHeight - CHAT_CONTENT_BOTTOM_PADDING);
+            int bottom = this.topPos + this.imageHeight - CHAT_CONTENT_BOTTOM_PADDING;
 
             if (mouseX >= x && mouseX <= x + width && mouseY >= y && mouseY <= bottom) {
                 if (deltaY > 0) {
@@ -402,7 +407,7 @@ public class SteveAiScreen extends MerchantScreen {
     public void receiveServerReply(String prompt, String reply) {
         this.lastPrompt = prompt;
         this.lastResponse = reply;
-        this.chatScrollLines = 0;
+        scrollChatToBottom();
     }
 
     @Override
