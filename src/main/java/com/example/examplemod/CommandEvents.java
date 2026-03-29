@@ -126,22 +126,55 @@ public class CommandEvents {
                         )
                         .then(Commands.literal("scanSAI")
                             .executes(ctx -> handleScanSai(ctx, "all", 2))
-                                .then(Commands.argument("scanArgs", StringArgumentType.greedyString())
-                                    .executes(ctx -> {
-                                        CommandSourceStack source = ctx.getSource();
-                                        String tail = StringArgumentType.getString(ctx, "scanArgs");
 
-                                        ParsedScanSaiArgs parsed;
-                                        try {
-                                            parsed = parseScanSaiArgs(tail, 2);
-                                        } catch (Exception e) {
-                                            source.sendFailure(Component.literal("scanSAI parse error: " + e.getMessage()));
-                                            return 0;
-                                        }
-
-                                        return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
-                                    })
+                            // new: detailed scan at explicit coordinates
+                            .then(Commands.literal("detail")
+                                .then(Commands.argument("x", IntegerArgumentType.integer())
+                                    .then(Commands.argument("y", IntegerArgumentType.integer())
+                                        .then(Commands.argument("z", IntegerArgumentType.integer())
+                                            .then(Commands.argument("radius", IntegerArgumentType.integer(1))
+                                                .executes(ctx -> handleDetailSaiAtPos(
+                                                    ctx,
+                                                    new BlockPos(
+                                                        IntegerArgumentType.getInteger(ctx, "x"),
+                                                        IntegerArgumentType.getInteger(ctx, "y"),
+                                                        IntegerArgumentType.getInteger(ctx, "z")
+                                                    ),
+                                                    IntegerArgumentType.getInteger(ctx, "radius")
+                                                ))
+                                            )
+                                        )
+                                    )
                                 )
+                            )
+
+                            // new: detailed scan around SteveAI
+                            .then(Commands.literal("detailSAI")
+                                .executes(ctx -> handleDetailSaiAtSteve(ctx, 1))
+                                .then(Commands.argument("radius", IntegerArgumentType.integer(1))
+                                    .executes(ctx -> handleDetailSaiAtSteve(
+                                        ctx,
+                                        IntegerArgumentType.getInteger(ctx, "radius")
+                                    ))
+                                )
+                            )
+                            // existing broad scan modes
+                            .then(Commands.argument("scanArgs", StringArgumentType.greedyString())
+                                .executes(ctx -> {
+                                    CommandSourceStack source = ctx.getSource();
+                                    String tail = StringArgumentType.getString(ctx, "scanArgs");
+
+                                    ParsedScanSaiArgs parsed;
+                                    try {
+                                        parsed = parseScanSaiArgs(tail, 2);
+                                    } catch (Exception e) {
+                                        source.sendFailure(Component.literal("scanSAI parse error: " + e.getMessage()));
+                                        return 0;
+                                    }
+
+                                    return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
+                                })
+                            )
                         )
                         .then(Commands.literal("scanStatus")
                             .executes(context -> {
@@ -1686,6 +1719,67 @@ public class CommandEvents {
             this.rawScanInput = rawScanInput;
             this.chunkRadius = chunkRadius;
         }
+    }
+    private static int handleDetailSaiAtSteve(CommandContext<CommandSourceStack> context, int radius) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        Villager steveAi = findSteveAi(serverLevel);
+        if (steveAi == null) {
+            source.sendFailure(Component.literal("SteveAI not found."));
+            return 0;
+        }
+
+        try {
+            SteveAiScanManager.detailSAI(serverLevel, steveAi.blockPosition(), radius);
+        } catch (IllegalArgumentException e) {
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(
+            "SteveAI detail scan complete: center=" + steveAi.blockPosition().toShortString() +
+            " radius=" + radius +
+            " blocks=" + SteveAiScanManager.getDetailedBlocks().size() +
+            " entities=" + SteveAiScanManager.getDetailedEntities().size() +
+            " blockEntities=" + SteveAiScanManager.getDetailedBlockEntities().size()
+        ), false);
+
+        return 1;
+    }
+
+    private static int handleDetailSaiAtPos(
+        CommandContext<CommandSourceStack> context,
+        BlockPos center,
+        int radius
+    ) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        try {
+            SteveAiScanManager.detailSAI(serverLevel, center, radius);
+        } catch (IllegalArgumentException e) {
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        source.sendSuccess(() -> Component.literal(
+            "SteveAI detail scan complete: center=" + center.toShortString() +
+            " radius=" + radius +
+            " blocks=" + SteveAiScanManager.getDetailedBlocks().size() +
+            " entities=" + SteveAiScanManager.getDetailedEntities().size() +
+            " blockEntities=" + SteveAiScanManager.getDetailedBlockEntities().size()
+        ), false);
+
+        return 1;
     }
     private static ParsedScanSaiArgs parseScanSaiArgs(String tail, int defaultChunkRadius) {
         if (tail == null || tail.isBlank()) {

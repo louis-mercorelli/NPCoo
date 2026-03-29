@@ -10,7 +10,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -79,6 +81,21 @@ public class SteveAiCollectors {
             }
 
             return sb.toString();
+        }
+    }
+
+    public static class DetailedEntry {
+        public final String typeName;
+        public final BlockPos pos;
+
+        public DetailedEntry(String typeName, BlockPos pos) {
+            this.typeName = typeName;
+            this.pos = pos.immutable();
+        }
+
+        @Override
+        public String toString() {
+            return typeName + " @ (" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ")";
         }
     }
 
@@ -296,5 +313,91 @@ public class SteveAiCollectors {
                 return key != null && targetBlockEntityIds.contains(key.toString());
             }
         );
+    }
+
+    public static List<DetailedEntry> collectDetailedBlocksAt(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int radiusBlocks
+    ) {
+        List<DetailedEntry> out = new ArrayList<>();
+
+        for (int y = -radiusBlocks; y <= radiusBlocks; y++) {
+            for (int x = -radiusBlocks; x <= radiusBlocks; x++) {
+                for (int z = -radiusBlocks; z <= radiusBlocks; z++) {
+                    BlockPos pos = center.offset(x, y, z);
+                    BlockState state = serverLevel.getBlockState(pos);
+
+                    if (state.isAir()) {
+                        continue;
+                    }
+
+                    Block block = state.getBlock();
+                    Identifier key = BuiltInRegistries.BLOCK.getKey(block);
+                    if (key == null) {
+                        continue;
+                    }
+
+                    out.add(new DetailedEntry(key.toString(), pos));
+                }
+            }
+        }
+
+        return out;
+    }
+
+    public static List<DetailedEntry> collectDetailedBlockEntitiesAt(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int radiusBlocks
+    ) {
+        List<DetailedEntry> out = new ArrayList<>();
+
+        BlockPos min = center.offset(-radiusBlocks, -radiusBlocks, -radiusBlocks);
+        BlockPos max = center.offset(radiusBlocks, radiusBlocks, radiusBlocks);
+
+        for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+            BlockEntity be = serverLevel.getBlockEntity(pos);
+            if (be == null) {
+                continue;
+            }
+
+            Identifier key = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (key == null) {
+                continue;
+            }
+
+            out.add(new DetailedEntry(key.toString(), pos));
+        }
+
+        return out;
+    }
+
+    public static List<DetailedEntry> collectDetailedEntitiesAt(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int radiusBlocks
+    ) {
+        List<DetailedEntry> out = new ArrayList<>();
+
+        var nearbyEntities = serverLevel.getEntities(
+            (Entity) null,
+            new net.minecraft.world.phys.AABB(
+                center.getX() - radiusBlocks, center.getY() - radiusBlocks, center.getZ() - radiusBlocks,
+                center.getX() + radiusBlocks + 1, center.getY() + radiusBlocks + 1, center.getZ() + radiusBlocks + 1
+            ),
+            other -> other != null && other.isAlive()
+        );
+
+        for (Entity nearby : nearbyEntities) {
+            Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType());
+            if (key == null) {
+                continue;
+            }
+
+            out.add(new DetailedEntry(key.toString(), nearby.blockPosition()));
+        }
+
+        return out;
     }
 }

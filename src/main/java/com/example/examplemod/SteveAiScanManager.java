@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SteveAiScanManager {
@@ -20,10 +21,18 @@ public class SteveAiScanManager {
     private static Map<String, SteveAiCollectors.SeenSummary> scannedEntities = new LinkedHashMap<>();
     private static Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities = new LinkedHashMap<>();
 
+    private static List<SteveAiCollectors.DetailedEntry> detailedBlocks = new java.util.ArrayList<>();
+    private static List<SteveAiCollectors.DetailedEntry> detailedEntities = new java.util.ArrayList<>();
+    private static List<SteveAiCollectors.DetailedEntry> detailedBlockEntities = new java.util.ArrayList<>();
+
     private static int lastScanChunkRadius = 0;
     private static String lastScanType = "";
     private static BlockPos lastScanCenter = null;
     private static long lastScanGameTime = 0L;
+
+    private static int lastDetailRadius = 0;
+    private static BlockPos lastDetailCenter = null;
+    private static long lastDetailGameTime = 0L;
 
     public static class ScanFilterTargets {
         public final java.util.Set<String> blockIds = new java.util.LinkedHashSet<>();
@@ -40,16 +49,28 @@ public class SteveAiScanManager {
         scannedBlocks.clear();
         scannedEntities.clear();
         scannedBlockEntities.clear();
+        detailedBlocks.clear();
+        detailedEntities.clear();
+        detailedBlockEntities.clear();
         lastScanChunkRadius = 0;
         lastScanType = "";
         lastScanCenter = null;
         lastScanGameTime = 0L;
+        lastDetailRadius = 0;
+        lastDetailCenter = null;
+        lastDetailGameTime = 0L;
     }
 
     private static void clearScannedMapsOnly() {
         scannedBlocks.clear();
         scannedEntities.clear();
         scannedBlockEntities.clear();
+    }
+
+    private static void clearDetailOnly() {
+        detailedBlocks.clear();
+        detailedEntities.clear();
+        detailedBlockEntities.clear();
     }
 
     public static void scanSAI(ServerLevel serverLevel, Entity steveAiEntity, String rawInput, int chunkRadius) {
@@ -84,6 +105,34 @@ public class SteveAiScanManager {
         }
 
         rebuildPoisFromCurrentScan();
+    }
+
+    public static void detailSAI(ServerLevel serverLevel, BlockPos center, int radiusBlocks) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (center == null) {
+            throw new IllegalArgumentException("detail center is null");
+        }
+        if (radiusBlocks < 1) {
+            throw new IllegalArgumentException("detail radius must be >= 1");
+        }
+
+        clearDetailOnly();
+
+        detailedBlocks = new java.util.ArrayList<>(
+            SteveAiCollectors.collectDetailedBlocksAt(serverLevel, center, radiusBlocks)
+        );
+        detailedEntities = new java.util.ArrayList<>(
+            SteveAiCollectors.collectDetailedEntitiesAt(serverLevel, center, radiusBlocks)
+        );
+        detailedBlockEntities = new java.util.ArrayList<>(
+            SteveAiCollectors.collectDetailedBlockEntitiesAt(serverLevel, center, radiusBlocks)
+        );
+
+        lastDetailCenter = center.immutable();
+        lastDetailRadius = radiusBlocks;
+        lastDetailGameTime = serverLevel.getGameTime();
     }
 
     private static boolean looksLikeTargetList(String rawInput) {
@@ -328,6 +377,23 @@ public class SteveAiScanManager {
         return sb.toString();
     }
 
+    private static String detailListToText(List<SteveAiCollectors.DetailedEntry> entries, String title) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(title).append("\n");
+        sb.append("count=").append(entries.size()).append("\n\n");
+
+        for (SteveAiCollectors.DetailedEntry entry : entries) {
+            sb.append(entry.typeName)
+                .append(" -> loc=(")
+                .append(entry.pos.getX()).append(",")
+                .append(entry.pos.getY()).append(",")
+                .append(entry.pos.getZ()).append(")")
+                .append("\n");
+        }
+
+        return sb.toString();
+    }
+
     private static java.util.List<java.util.Set<BlockPos>> splitIntoTouchingClusters(java.util.List<BlockPos> positions) {
         java.util.List<java.util.Set<BlockPos>> clusters = new java.util.ArrayList<>();
         java.util.Set<BlockPos> unvisited = new java.util.HashSet<>();
@@ -415,6 +481,18 @@ public class SteveAiScanManager {
         return scannedBlockEntities;
     }
 
+    public static List<SteveAiCollectors.DetailedEntry> getDetailedBlocks() {
+        return detailedBlocks;
+    }
+
+    public static List<SteveAiCollectors.DetailedEntry> getDetailedEntities() {
+        return detailedEntities;
+    }
+
+    public static List<SteveAiCollectors.DetailedEntry> getDetailedBlockEntities() {
+        return detailedBlockEntities;
+    }
+
     public static int getLastScanChunkRadius() {
         return lastScanChunkRadius;
     }
@@ -431,10 +509,26 @@ public class SteveAiScanManager {
         return lastScanGameTime;
     }
 
+    public static int getLastDetailRadius() {
+        return lastDetailRadius;
+    }
+
+    public static BlockPos getLastDetailCenter() {
+        return lastDetailCenter;
+    }
+
+    public static long getLastDetailGameTime() {
+        return lastDetailGameTime;
+    }
+
     public static String getStatusText() {
         String centerText = (lastScanCenter == null)
             ? "null"
             : lastScanCenter.getX() + ", " + lastScanCenter.getY() + ", " + lastScanCenter.getZ();
+
+        String detailCenterText = (lastDetailCenter == null)
+            ? "null"
+            : lastDetailCenter.getX() + ", " + lastDetailCenter.getY() + ", " + lastDetailCenter.getZ();
 
         return "SteveAI Scan Status\n"
             + "lastScanType=" + blankIfNeeded(lastScanType) + "\n"
@@ -443,7 +537,13 @@ public class SteveAiScanManager {
             + "lastScanGameTime=" + lastScanGameTime + "\n"
             + "scannedBlocks.count=" + scannedBlocks.size() + "\n"
             + "scannedEntities.count=" + scannedEntities.size() + "\n"
-            + "scannedBlockEntities.count=" + scannedBlockEntities.size();
+            + "scannedBlockEntities.count=" + scannedBlockEntities.size() + "\n"
+            + "lastDetailRadius=" + lastDetailRadius + "\n"
+            + "lastDetailCenter=" + detailCenterText + "\n"
+            + "lastDetailGameTime=" + lastDetailGameTime + "\n"
+            + "detailedBlocks.count=" + detailedBlocks.size() + "\n"
+            + "detailedEntities.count=" + detailedEntities.size() + "\n"
+            + "detailedBlockEntities.count=" + detailedBlockEntities.size();
     }
 
     public static Path writeTextFiles(ServerLevel serverLevel, String suffix) throws IOException {
@@ -484,6 +584,44 @@ public class SteveAiScanManager {
         }
 
         Files.writeString(poiSummaryFile, poiText.toString(), StandardCharsets.UTF_8);
+
+        return baseFolder;
+    }
+
+    public static Path writeDetailTextFiles(ServerLevel serverLevel, String suffix) throws IOException {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+
+        String safeSuffix = sanitizeSuffix(suffix);
+
+        Path baseFolder = serverLevel.getServer()
+            .getWorldPath(LevelResource.ROOT)
+            .resolve("testmod")
+            .resolve("player");
+
+        Files.createDirectories(baseFolder);
+
+        Path detailStatusFile = baseFolder.resolve(buildFileName("detailStatus", safeSuffix));
+        Path detailBlocksFile = baseFolder.resolve(buildFileName("detailBlocks", safeSuffix));
+        Path detailEntitiesFile = baseFolder.resolve(buildFileName("detailEntities", safeSuffix));
+        Path detailBlockEntitiesFile = baseFolder.resolve(buildFileName("detailBlockEntities", safeSuffix));
+
+        String detailStatus =
+            "STEVEAI DETAIL STATUS\n"
+                + "lastDetailRadius=" + lastDetailRadius + "\n"
+                + "lastDetailCenter=" + (lastDetailCenter == null
+                    ? "null"
+                    : lastDetailCenter.getX() + ", " + lastDetailCenter.getY() + ", " + lastDetailCenter.getZ()) + "\n"
+                + "lastDetailGameTime=" + lastDetailGameTime + "\n"
+                + "detailedBlocks.count=" + detailedBlocks.size() + "\n"
+                + "detailedEntities.count=" + detailedEntities.size() + "\n"
+                + "detailedBlockEntities.count=" + detailedBlockEntities.size() + "\n";
+
+        Files.writeString(detailStatusFile, detailStatus, StandardCharsets.UTF_8);
+        Files.writeString(detailBlocksFile, detailListToText(detailedBlocks, "DETAIL BLOCKS"), StandardCharsets.UTF_8);
+        Files.writeString(detailEntitiesFile, detailListToText(detailedEntities, "DETAIL ENTITIES"), StandardCharsets.UTF_8);
+        Files.writeString(detailBlockEntitiesFile, detailListToText(detailedBlockEntities, "DETAIL BLOCK ENTITIES"), StandardCharsets.UTF_8);
 
         return baseFolder;
     }
