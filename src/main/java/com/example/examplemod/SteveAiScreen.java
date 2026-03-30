@@ -55,6 +55,7 @@ public class SteveAiScreen extends MerchantScreen {
     private String lastPrompt = "";
     private String lastResponse = "";
     private int chatScrollLines = 0;
+    private boolean chatSessionStarted = false;
 
     private static final int CHAT_CONTENT_X_OFFSET = 24;
     private static final int CHAT_CONTENT_Y_OFFSET = 42;
@@ -74,6 +75,14 @@ public class SteveAiScreen extends MerchantScreen {
     @Override
     protected void init() {
         super.init();
+
+        if (!chatSessionStarted && minecraft != null && minecraft.player != null && minecraft.player.connection != null) {
+            ModNetworking.CHANNEL.send(
+                new SteveAiChatSessionPacket(true),
+                net.minecraftforge.network.PacketDistributor.SERVER.noArg()
+            );
+            chatSessionStarted = true;
+        }
 
         tabY = this.topPos - 18;
 
@@ -413,6 +422,13 @@ public class SteveAiScreen extends MerchantScreen {
     @Override
     public void removed() {
         LOGGER.info("### SteveAiScreen removed ###");
+        if (chatSessionStarted && minecraft != null && minecraft.player != null && minecraft.player.connection != null) {
+            ModNetworking.CHANNEL.send(
+                new SteveAiChatSessionPacket(false),
+                net.minecraftforge.network.PacketDistributor.SERVER.noArg()
+            );
+            chatSessionStarted = false;
+        }
         super.removed();
     }
 

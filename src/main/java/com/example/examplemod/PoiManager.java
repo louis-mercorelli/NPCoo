@@ -372,9 +372,11 @@ public class PoiManager {
             if ("village".equals(finalType)
                     && ("high".equals(confidence) || "very_high".equals(confidence))) {
                 VillageAssignment assignment = getOrAssignVillageAssignment(poi);
+                // Keep personality locked, but pick a fresh scene each summary rebuild.
+                String activeScene = chooseSceneForPersonality(assignment.personality);
                 String chars = getPersonalityCharacters(assignment.personality);
                 personalityPart = " personality=" + assignment.personality
-                    + " scene=\"" + assignment.scene + "\""
+                    + " scene=\"" + activeScene + "\""
                     + " characters=[" + chars + "]";
             }
 
@@ -427,24 +429,28 @@ public class PoiManager {
     private static String chooseSceneForPersonality(String personality) {
         String[] scenes = switch (personality) {
             case "scooby_doo" -> new String[] {
-                "The gang investigates a spooky old mill after dark.",
-                "A 'monster' chases everyone through hallways and trap doors.",
-                "Scooby and Shaggy are bribed with snacks to check the creepy barn."
+                "Night of Fright Is No Delight: Scooby-Doo may inherit part of Colonel Beauregard Sanders' fortune, so the gang travels to a creepy mansion on Mystery Island. They meet the other heirs, including Cosgood Creeps, Cousin Simple, Nora, and Cousin Slicker. Key scenes include the reading of the will, secret passages, disappearing heirs, and glowing green Phantom Shadows chasing everyone through the house. Main characters: Scooby-Doo, Shaggy Rogers, Fred Jones, Daphne Blake, Velma Dinkley, Colonel Sanders' heirs, and the Phantom Shadows.",
+                "Jeepers, It's the Creeper: On the way to a barn dance, the gang finds bank guard Mr. Carswell tied up after a robbery. The case leads them to a spooky old barn and the terrifying green-faced monster known as the Creeper. Key scenes include the blackout at the dance, the Creeper stalking the gang through the barn, and Shaggy and Scooby trying to escape while still getting dragged back into the mystery. Main characters: Scooby-Doo, Shaggy Rogers, Fred Jones, Daphne Blake, Velma Dinkley, Mr. Carswell, and the Creeper.",
+                "Spooky Space Kook: After the Mystery Machine runs low on gas, the gang ends up near an abandoned airfield where they hear stories about a ghostly astronaut called the Space Kook. They meet local figures including Henry Bascomb and investigate the deserted airport and eerie hangars. Key scenes include the glowing red Space Kook laugh, flying saucer appearances, and nighttime chases across the airstrip. Main characters: Scooby-Doo, Shaggy Rogers, Fred Jones, Daphne Blake, Velma Dinkley, Henry Bascomb, and the Space Kook.",
+                "Foul Play in Funland: The gang visits an amusement park and runs into trouble when a dangerous robot named Charlie begins attacking people. They work with park owner Mr. Jenkins and his daughter Sarah Jenkins to figure out what is going on. Key scenes include Charlie chasing the gang through the empty park at night, creepy rides, and the reveal that this mystery is more mechanical than supernatural. Main characters: Scooby-Doo, Shaggy Rogers, Fred Jones, Daphne Blake, Velma Dinkley, Mr. Jenkins, Sarah Jenkins, and Charlie the Robot."
             };
             case "er_tv_series" -> new String[] {
-                "The village clinic is in triage mode after multiple walk-in injuries.",
-                "A storm causes a surge of patients and the team coordinates emergency care.",
-                "Doctors debate a difficult diagnosis while villagers wait anxiously."
+                "Dr. Greene Treats a Critical Trauma Case in the ER: In ER, Dr. Mark Greene leads the trauma team during a chaotic emergency arrival at County General. Characters involved include Dr. Mark Greene, Nurse Carol Hathaway, Dr. Susan Lewis, and Dr. Peter Benton. Key scenes include paramedics rushing in a badly injured patient, Greene calling out treatment orders, Carol managing airways and meds, and the team trying to stabilize the patient while family members wait anxiously nearby.",
+                "Doug Ross Breaks the Rules for a Child Patient: Dr. Doug Ross becomes emotionally involved in a pediatric case and pushes past hospital rules because he believes it is the right thing to do for the child. Characters involved include Dr. Doug Ross, Nurse Carol Hathaway, and the child's parents. Key scenes include Doug arguing with other staff over treatment decisions, Carol warning him about the consequences, and Doug choosing compassion over protocol even though it may cost him professionally.",
+                "Dr. Carter's Early Days in the ER: John Carter starts out as a young medical student and is thrown into the fast pace of County General under the supervision of Dr. Peter Benton. Characters involved include John Carter, Dr. Peter Benton, Dr. Mark Greene, and various ER patients. Key scenes include Carter fumbling basic tasks, Benton sharply correcting him, Carter learning how quickly lives can change in the trauma room, and his gradual shift from nervous student to determined doctor.",
+                "Carol Hathaway Handles a Mass-Casualty Emergency: A major emergency floods County General with injured patients, and Carol Hathaway becomes one of the key people holding the ER together. Characters involved include Carol Hathaway, Mark Greene, Susan Lewis, Peter Benton, and multiple trauma patients. Key scenes include packed hallways, triage decisions, nurses and doctors splitting resources, and Carol balancing medical care with emotional support for frightened patients and families."
             };
             case "lord_of_the_rings" -> new String[] {
-                "A council gathers to decide a dangerous quest beyond the village.",
-                "Rangers patrol the roads while the fellowship plans supplies.",
-                "A feast in the hall turns into a strategy meeting before dawn."
+                "The Council of Elrond (Rivendell): In The Lord of the Rings: The Fellowship of the Ring, representatives of Middle-earth gather in Rivendell under Elrond to decide the fate of the One Ring. Present are Frodo Baggins, Gandalf, Aragorn, Legolas, Gimli, and Boromir. Key scenes include Gimli attempting to smash the Ring, Boromir arguing to use it against Sauron, and Frodo stepping forward with 'I will take the Ring.' This leads to the formation of the Fellowship.",
+                "The Mines of Moria (Khazad-dum): The Fellowship travels through the ancient dwarf kingdom of Moria, once ruled by Durin. Inside, they discover the tomb of Balin and are attacked by orcs, a cave troll, and eventually the terrifying Balrog. Key scenes include the collapsing chamber battle, Gandalf reading Balin's final record, and the iconic moment on the Bridge of Khazad-dum where Gandalf confronts the Balrog: 'You shall not pass!'.",
+                "The Battle of Helm's Deep: In The Lord of the Rings: The Two Towers, the people of Rohan defend Helm's Deep against Saruman's army of Uruk-hai, led by Lurtz's forces (film continuity inspiration). Key characters include King Theoden, Aragorn, Legolas, and Gimli. Key scenes include the explosive breach of the Deeping Wall, the desperate defense in the keep, and the dawn charge led by Theoden and Aragorn as Gandalf arrives with the Rohirrim.",
+                "Shelob's Lair (Cirith Ungol): In The Lord of the Rings: The Return of the King, Frodo Baggins and Samwise Gamgee are led by Gollum into the dark tunnels of Cirith Ungol. They encounter Shelob, an ancient monstrous spider. Key scenes include Frodo being trapped and stung by Shelob, Sam returning to fight her using the Phial of Galadriel and Sting, and Sam believing Frodo is dead before the orcs carry him away."
             };
             case "pirates_of_the_caribbean" -> new String[] {
-                "A daring harbor escape begins as bells ring and villagers scramble.",
-                "A hidden map is traded at the tavern under suspicious eyes.",
-                "Two rival crews negotiate a truce before hunting buried treasure."
+                "Port Royal Arrival & Jack's Entrance: In Pirates of the Caribbean: The Curse of the Black Pearl, Captain Jack Sparrow sails into Port Royal on a sinking boat and steps onto the dock just as it goes under. He encounters Elizabeth Swann, Will Turner, and Commodore James Norrington. Key scenes include Elizabeth falling into the water (triggering the Aztec curse medallion), Jack rescuing her, and Jack's swordfight with Will inside the blacksmith shop.",
+                "Attack on Port Royal & Elizabeth's Kidnapping: The cursed crew of the Black Pearl, led by Captain Hector Barbossa, attacks Port Royal at night. The pirates reveal their skeletal forms under moonlight due to the Aztec curse. Key scenes include cannon fire lighting up the harbor, townspeople fleeing, and Barbossa confronting Elizabeth, who invokes 'parley' before being taken aboard the Black Pearl.",
+                "Isla de Muerta - The Curse Revealed: Jack Sparrow and Will Turner reach Isla de Muerta, where Barbossa's crew hoards cursed Aztec gold. Characters include Jack Sparrow, Will Turner, Barbossa, and the cursed crew. Key scenes include the reveal that the pirates cannot die, their skeletal transformations in moonlight, Jack confronting Barbossa in the treasure cave, and the explanation of the curse tied to the stolen gold and blood debt.",
+                "Maelstrom Battle - Jack vs Davy Jones: In Pirates of the Caribbean: At World's End, a massive sea battle takes place inside a maelstrom between the Black Pearl and the Flying Dutchman, commanded by Davy Jones. Key characters include Jack Sparrow, Will Turner, Elizabeth Swann, Hector Barbossa, and Davy Jones. Key scenes include ships circling the whirlpool, sword fights across decks, Will being mortally wounded, and his heart being placed into the Dead Man's Chest, binding him to the Flying Dutchman."
             };
             default -> new String[] {
                 "Village life continues with a mysterious event unfolding."

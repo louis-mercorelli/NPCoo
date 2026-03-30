@@ -23,5 +23,11 @@ public class ModNetworking {
             .decoder(SteveAiChatReplyPacket::decode)
             .consumerNetworkThread(SteveAiChatReplyPacket::handle)
             .add();
+
+        CHANNEL.messageBuilder(SteveAiChatSessionPacket.class, packetId++)
+            .encoder(SteveAiChatSessionPacket::encode)
+            .decoder(SteveAiChatSessionPacket::decode)
+            .consumerNetworkThread(SteveAiChatSessionPacket::handle)
+            .add();
     }
 }

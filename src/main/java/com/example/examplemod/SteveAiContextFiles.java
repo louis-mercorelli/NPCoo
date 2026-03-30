@@ -10,10 +10,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SteveAiContextFiles {
     private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Map<UUID, String> chatSessionPoiSummary = new ConcurrentHashMap<>();
 
     public static Path getSteveAiDataDir(ServerLevel serverLevel) throws IOException {
         if (serverLevel == null) {
@@ -52,6 +55,8 @@ public class SteveAiContextFiles {
             logFileTail("OPENAI DEBUG", detailStatusFile, 10);
 
             String poiSummaryText = readWholeFile(poiSummaryFile);
+            String sessionPoiSummaryText = (playerUuid == null) ? "" : chatSessionPoiSummary.getOrDefault(playerUuid, "");
+            String livePoiSummaryText = buildLivePoiSummaryText();
             String rawTailText = readLastNLines(rawFile, tailLines);
             String detailBlockEntitiesText = readWholeFile(detailBlockEntitiesFile);
             String detailEntitiesText = readWholeFile(detailEntitiesFile);
@@ -59,8 +64,14 @@ public class SteveAiContextFiles {
 
             StringBuilder sb = new StringBuilder();
 
-            sb.append("=== SteveAI POI Summary File ===\n");
-            sb.append(poiSummaryText.isBlank() ? "(POI summary file empty or missing)\n" : poiSummaryText).append("\n");
+            sb.append("=== SteveAI POI Summary (live) ===\n");
+            if (!sessionPoiSummaryText.isBlank()) {
+                sb.append(sessionPoiSummaryText).append("\n");
+            } else if (!livePoiSummaryText.isBlank()) {
+                sb.append(livePoiSummaryText).append("\n");
+            } else {
+                sb.append(poiSummaryText.isBlank() ? "(POI summary file empty or missing)\n" : poiSummaryText).append("\n");
+            }
 
             sb.append("=== SteveAI Raw File (last ").append(tailLines).append(" lines) ===\n");
             sb.append(rawTailText.isBlank() ? "(raw file empty or missing)\n" : rawTailText).append("\n");
@@ -116,6 +127,39 @@ public class SteveAiContextFiles {
             return "";
         }
         return Files.readString(file);
+    }
+
+    private static String buildLivePoiSummaryText() {
+        List<String> lines = PoiManager.buildSummaryLines();
+        if (lines == null || lines.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("POI SUMMARY\n");
+        sb.append("count=").append(lines.size()).append("\n\n");
+        for (String line : lines) {
+            sb.append(line).append("\n");
+        }
+        return sb.toString();
+    }
+
+    public static void startChatSession(ServerLevel serverLevel, UUID playerUuid) {
+        if (serverLevel == null || playerUuid == null) {
+            return;
+        }
+        String snapshot = buildLivePoiSummaryText();
+        if (!snapshot.isBlank()) {
+            chatSessionPoiSummary.put(playerUuid, snapshot);
+        } else {
+            chatSessionPoiSummary.remove(playerUuid);
+        }
+    }
+
+    public static void endChatSession(UUID playerUuid) {
+        if (playerUuid != null) {
+            chatSessionPoiSummary.remove(playerUuid);
+        }
     }
 
     private static Path findLatestMatchingFile(Path dir, String globPattern) throws IOException {
