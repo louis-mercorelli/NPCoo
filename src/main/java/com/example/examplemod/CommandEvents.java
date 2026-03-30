@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -93,10 +94,18 @@ public class CommandEvents {
     private static final Set<BlockPos> exploredTargets = new HashSet<>();
     private static final long PERIODIC_SCAN_INTERVAL_TICKS = 1200L;
     private static final long MAX_PERIODIC_SCAN_MS_PER_TICK = 1000L;
+    private static final int PERIODIC_SCAN_CHUNK_RADIUS = 10;
+    private static final int PERIODIC_SCAN_BLOCK_RADIUS = PERIODIC_SCAN_CHUNK_RADIUS * 16;
+    private static final int PERIODIC_TILE_BLOCK_WIDTH = 3 * 16; // 3 chunks = 48 blocks per tile
     private static final Deque<PeriodicScanJob> periodicScanQueue = new ArrayDeque<>();
     private static boolean periodicScanCycleActive = false;
+    private static boolean periodicScanNotifyThisCycle = false;
+    private static boolean initialMapBuildStarted = false;
+    private static boolean initialMapBuildCompleted = false;
+    private static boolean screenDebugEnabled = true;
     private static long periodicScanCycleStartNs = 0L;
     private static String periodicScanCycleStartTs = "";
+    private static int periodicScanCycleCount = 0;
 
     private enum PeriodicScanPhase {
         LOCATION_AND_WORLD,
@@ -112,6 +121,17 @@ public class CommandEvents {
         private PeriodicScanPhase phase = PeriodicScanPhase.LOCATION_AND_WORLD;
         private boolean poiChanged = false;
         private BlockPos blockEntityScanCenter = null;
+        // Tile grid for incremental scanning (each entry: [minX, minZ, maxX, maxZ])
+        List<int[]> tiles = new java.util.ArrayList<>();
+        int entityTileIdx = 0;
+        int blockTileIdx = 0;
+        int beTileIdx = 0;
+        int totalTiles = 0;
+        int originY = 0;
+        // Accumulated results across all tiles
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlocks = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
 
         PeriodicScanJob(ServerLevel serverLevel, Entity steveAi) {
             this.serverLevel = serverLevel;
@@ -147,6 +167,12 @@ public class CommandEvents {
                     )
                     .then(Commands.literal("exploreStatus")
                         .executes(CommandEvents::handleExploreStatus)
+                    )
+                    .then(Commands.literal("debugON")
+                        .executes(ctx -> handleDebugScreenToggle(ctx, true))
+                    )
+                    .then(Commands.literal("debugOFF")
+                        .executes(ctx -> handleDebugScreenToggle(ctx, false))
                     )
                     .then(Commands.literal("scanSAI")
                         .executes(ctx -> handleScanSai(ctx, "all", 2))
@@ -714,13 +740,19 @@ public class CommandEvents {
 
     private static void startPeriodicScanCycle(int queued, boolean forced) {
         periodicScanCycleActive = true;
+        periodicScanNotifyThisCycle = true;
+        periodicScanCycleCount++;
         periodicScanCycleStartNs = System.nanoTime();
-        periodicScanCycleStartTs = chatTs();
+        periodicScanCycleStartTs = scanTs();
+
+        if (!initialMapBuildStarted) {
+            initialMapBuildStarted = true;
+        }
 
         if (forced) {
-            LOGGER.info("Periodic scan force-started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+            LOGGER.info("Periodic scan force-started: cycle={} queuedJobs={} budgetMs={}", periodicScanCycleCount, queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
         } else {
-            LOGGER.info("Periodic scan cycle started: queuedJobs={} budgetMs={}", queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+            LOGGER.info("Periodic scan cycle started: cycle={} queuedJobs={} budgetMs={}", periodicScanCycleCount, queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
         }
 
         notifyPeriodicScanStarted(queued);
@@ -782,13 +814,18 @@ public class CommandEvents {
 
         if (periodicScanCycleActive && queueSizeBefore > 0 && periodicScanQueue.isEmpty()) {
             periodicScanCycleActive = false;
+            periodicScanNotifyThisCycle = false;
+            if (!initialMapBuildCompleted) {
+                initialMapBuildCompleted = true;
+            }
             notifyPeriodicScanFinished();
         }
     }
 
     private static void notifyPeriodicScanStarted(int queuedJobs) {
         String msg = String.format(
-            "[testmod] SteveAI full periodic scan START %s jobs=%d",
+            "[SAI] scan#%d START %s jobs=%d",
+            periodicScanCycleCount,
             periodicScanCycleStartTs,
             queuedJobs
         );
@@ -796,7 +833,7 @@ public class CommandEvents {
     }
 
     private static void notifyPeriodicScanFinished() {
-        String finishTs = chatTs();
+        String finishTs = scanTs();
         long elapsedMs = periodicScanCycleStartNs > 0L
             ? (System.nanoTime() - periodicScanCycleStartNs) / 1_000_000L
             : -1L;
@@ -805,7 +842,8 @@ public class CommandEvents {
             : "unknown";
 
         String msg = String.format(
-            "[testmod] SteveAI full periodic scan FINISH %s start=%s duration=%s",
+            "[SAI] scan#%d FINISH %s start=%s duration=%s",
+            periodicScanCycleCount,
             finishTs,
             (periodicScanCycleStartTs == null || periodicScanCycleStartTs.isEmpty()) ? "unknown" : periodicScanCycleStartTs,
             durationText
@@ -816,15 +854,44 @@ public class CommandEvents {
         sendScanStatusToTrackedPlayer(msg);
     }
 
+    private static String scanTs() {
+        return java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
+    }
+
     private static void sendScanStatusToTrackedPlayer(String msg) {
+        sendStatusToPlayer(lastPlayerUuid, msg);
+    }
+
+    /** Sends an action-bar-only progress message (no chat message) to avoid flooding. */
+    private static void sendScanProgressBar(String msg) {
+        if (!screenDebugEnabled) {
+            return;
+        }
+
+        var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
+        if (server != null && lastPlayerUuid != null) {
+            ServerPlayer player = server.getPlayerList().getPlayer(lastPlayerUuid);
+            if (player != null) {
+                player.displayClientMessage(Component.literal(msg), true);
+            }
+        }
+    }
+
+    private static void sendStatusToPlayer(UUID playerUuid, String msg) {
+        if (!screenDebugEnabled) {
+            LOGGER.info(msg);
+            return;
+        }
+
         var server = net.minecraftforge.server.ServerLifecycleHooks.getCurrentServer();
         if (server == null) {
             LOGGER.info(msg);
             return;
         }
 
-        if (lastPlayerUuid != null) {
-            ServerPlayer player = server.getPlayerList().getPlayer(lastPlayerUuid);
+        if (playerUuid != null) {
+            ServerPlayer player = server.getPlayerList().getPlayer(playerUuid);
             if (player != null) {
                 player.displayClientMessage(Component.literal(msg), true);
                 player.sendSystemMessage(Component.literal(msg));
@@ -868,93 +935,151 @@ public class CommandEvents {
 
                 appendSteveAiLine(serverLevel, lastPlayerUuid, line);
                 appendWorldInfo(serverLevel, entity);
-                job.phase = PeriodicScanPhase.ENTITIES;
-            }
-            case ENTITIES -> {
-                if (hasMovedFarEnough(lastEntityScanCenter, entity, ENTITY_SCAN_MOVE_THRESHOLD)) {
-                    lastEntityScanCenter = entity.blockPosition();
 
-                    appendSteveAiLine(
-                        serverLevel,
-                        lastPlayerUuid,
-                        String.format(
-                            "entity scan centered on -> x=%d y=%d z=%d%n",
-                            lastEntityScanCenter.getX(),
-                            lastEntityScanCenter.getY(),
-                            lastEntityScanCenter.getZ()
+                sendScanStatusToTrackedPlayer(String.format(
+                        "[SAI] scan#%d 1/5 LOC x=%.0f y=%.0f z=%.0f dim=%s building tile grid",
+                    periodicScanCycleCount,
+                    entity.getX(), entity.getY(), entity.getZ(),
+                    serverLevel.dimension()
+                ));
+
+                    // Build the non-overlapping tile grid covering the full scan diameter
+                    BlockPos origin = entity.blockPosition();
+                    job.originY = origin.getY();
+                    int diameter = PERIODIC_SCAN_BLOCK_RADIUS * 2;
+                    int tileW = PERIODIC_TILE_BLOCK_WIDTH;
+                    int gridN = (int) Math.ceil((double) diameter / tileW);
+                    int totalOccupied = gridN * tileW;
+                    int startX = origin.getX() - totalOccupied / 2;
+                    int startZ = origin.getZ() - totalOccupied / 2;
+                    job.tiles = new java.util.ArrayList<>();
+                    for (int ix = 0; ix < gridN; ix++) {
+                        for (int iz = 0; iz < gridN; iz++) {
+                            int minX = startX + ix * tileW;
+                            int minZ = startZ + iz * tileW;
+                            job.tiles.add(new int[]{minX, minZ, minX + tileW - 1, minZ + tileW - 1});
+                        }
+                    }
+                    job.totalTiles = job.tiles.size();
+                    job.groupedBlocks.clear();
+                    job.groupedEntities.clear();
+                    job.groupedBlockEntities.clear();
+                    job.entityTileIdx = 0;
+                    job.blockTileIdx = 0;
+                    job.beTileIdx = 0;
+
+                job.phase = PeriodicScanPhase.ENTITIES;
+                }
+            case ENTITIES -> {
+                // Process one tile per call; accumulate results across ticks
+                if (job.entityTileIdx < job.totalTiles) {
+                    int[] tile = job.tiles.get(job.entityTileIdx);
+                    SteveAiCollectors.mergeInto(
+                        job.groupedEntities,
+                        SteveAiCollectors.collectEntitiesInTile(
+                            serverLevel, tile[0], tile[1], tile[2], tile[3],
+                            job.originY, PERIODIC_SCAN_BLOCK_RADIUS
                         )
                     );
-
-                    appendNearbyEntities(serverLevel, entity, 20.0);
+                    job.entityTileIdx++;
+                    sendScanProgressBar(String.format(
+                        "[SAI] scan#%d 2/5 ENTITIES tile %d/%d",
+                        periodicScanCycleCount, job.entityTileIdx, job.totalTiles
+                    ));
                 }
-                job.phase = PeriodicScanPhase.BLOCKS;
+                if (job.entityTileIdx >= job.totalTiles) {
+                    lastEntityScanCenter = entity.blockPosition();
+                    appendSteveAiLine(serverLevel, lastPlayerUuid, String.format(
+                        "entity scan done -> tiles=%d types=%d%n",
+                        job.totalTiles, job.groupedEntities.size()
+                    ));
+                    sendScanStatusToTrackedPlayer(String.format(
+                        "[SAI] scan#%d 2/5 ENTITIES done tiles=%d types=%d",
+                        periodicScanCycleCount, job.totalTiles, job.groupedEntities.size()
+                    ));
+                    job.phase = PeriodicScanPhase.BLOCKS;
+                }
             }
             case BLOCKS -> {
-                if (hasMovedFarEnough(lastBlockScanCenter, entity, BLOCK_SCAN_MOVE_THRESHOLD)) {
-                    lastBlockScanCenter = entity.blockPosition();
-
-                    appendSteveAiLine(
-                        serverLevel,
-                        lastPlayerUuid,
-                        String.format(
-                            "B scan centered on -> x=%d y=%d z=%d%n",
-                            lastBlockScanCenter.getX(),
-                            lastBlockScanCenter.getY(),
-                            lastBlockScanCenter.getZ()
+                // Process one tile per call; accumulate results across ticks
+                if (job.blockTileIdx < job.totalTiles) {
+                    int[] tile = job.tiles.get(job.blockTileIdx);
+                    int yMin = job.originY - PERIODIC_SCAN_BLOCK_RADIUS;
+                    int yMax = job.originY + PERIODIC_SCAN_BLOCK_RADIUS;
+                    SteveAiCollectors.mergeInto(
+                        job.groupedBlocks,
+                        SteveAiCollectors.collectBlocksInTile(
+                            serverLevel, tile[0], tile[1], tile[2], tile[3],
+                            yMin, yMax, CommandEvents::isInterestingLookSeeBlock
                         )
                     );
-
-                    appendNearbyBlocks(serverLevel, entity, 10, 70);
-
-                    if (entity instanceof Villager villager) {
-                        addItemToSteveAiInventory(villager, new ItemStack(Items.COAL, 4));
-                        appendSteveAiLine(
-                            serverLevel,
-                            lastPlayerUuid,
-                            "SteveAI added 4 coal to inventory based on nearby scan.\n"
-                        );
-                    }
+                    job.blockTileIdx++;
+                    sendScanProgressBar(String.format(
+                        "[SAI] scan#%d 3/5 BLOCKS tile %d/%d",
+                        periodicScanCycleCount, job.blockTileIdx, job.totalTiles
+                    ));
                 }
-                job.phase = PeriodicScanPhase.BLOCK_ENTITIES;
+                if (job.blockTileIdx >= job.totalTiles) {
+                    lastBlockScanCenter = entity.blockPosition();
+                    appendSteveAiLine(serverLevel, lastPlayerUuid, String.format(
+                        "block scan done -> tiles=%d types=%d%n",
+                        job.totalTiles, job.groupedBlocks.size()
+                    ));
+                    sendScanStatusToTrackedPlayer(String.format(
+                        "[SAI] scan#%d 3/5 BLOCKS done tiles=%d types=%d",
+                        periodicScanCycleCount, job.totalTiles, job.groupedBlocks.size()
+                    ));
+                    job.phase = PeriodicScanPhase.BLOCK_ENTITIES;
+                }
             }
             case BLOCK_ENTITIES -> {
-                if (hasMovedFarEnough(lastBlockEntityScanCenter, entity, BLOCK_ENTITY_SCAN_MOVE_THRESHOLD)) {
-                    lastBlockEntityScanCenter = entity.blockPosition();
-                    job.blockEntityScanCenter = lastBlockEntityScanCenter;
-
-                    appendSteveAiLine(
-                        serverLevel,
-                        lastPlayerUuid,
-                        String.format(
-                            "BE scan centered on -> x=%d y=%d z=%d%n",
-                            lastBlockEntityScanCenter.getX(),
-                            lastBlockEntityScanCenter.getY(),
-                            lastBlockEntityScanCenter.getZ()
+                // Process one tile per call; accumulate results across ticks
+                if (job.beTileIdx < job.totalTiles) {
+                    int[] tile = job.tiles.get(job.beTileIdx);
+                    int yMin = job.originY - PERIODIC_SCAN_BLOCK_RADIUS;
+                    int yMax = job.originY + PERIODIC_SCAN_BLOCK_RADIUS;
+                    SteveAiCollectors.mergeInto(
+                        job.groupedBlockEntities,
+                        SteveAiCollectors.collectBlockEntitiesInTile(
+                            serverLevel, tile[0], tile[1], tile[2], tile[3],
+                            yMin, yMax
                         )
                     );
-
-                    job.poiChanged = appendNearbyBlockEntities(serverLevel, entity, 20);
+                    job.beTileIdx++;
+                    sendScanProgressBar(String.format(
+                        "[SAI] scan#%d 4/5 BE tile %d/%d",
+                        periodicScanCycleCount, job.beTileIdx, job.totalTiles
+                    ));
                 }
-                job.phase = PeriodicScanPhase.SUMMARY;
+                if (job.beTileIdx >= job.totalTiles) {
+                    lastBlockEntityScanCenter = entity.blockPosition();
+                    job.blockEntityScanCenter = lastBlockEntityScanCenter;
+                    job.poiChanged = !job.groupedBlockEntities.isEmpty() || !job.groupedEntities.isEmpty();
+                    appendSteveAiLine(serverLevel, lastPlayerUuid, String.format(
+                        "BE scan done -> tiles=%d types=%d%n",
+                        job.totalTiles, job.groupedBlockEntities.size()
+                    ));
+                    sendScanStatusToTrackedPlayer(String.format(
+                        "[SAI] scan#%d 4/5 BE done tiles=%d types=%d",
+                        periodicScanCycleCount, job.totalTiles, job.groupedBlockEntities.size()
+                    ));
+                    job.phase = PeriodicScanPhase.SUMMARY;
+                }
             }
             case SUMMARY -> {
-                if (job.poiChanged && job.blockEntityScanCenter != null) {
-                    java.util.List<String> summaryLines = new java.util.ArrayList<>();
-                    summaryLines.add("");
-                    summaryLines.add("=== POI Summary ===");
-                    summaryLines.add(String.format(
-                        "scanCenter=(%d,%d,%d)",
-                        job.blockEntityScanCenter.getX(),
-                        job.blockEntityScanCenter.getY(),
-                        job.blockEntityScanCenter.getZ()
-                    ));
-
-                    for (String poiLine : PoiManager.buildSummaryLines()) {
-                        summaryLines.add(poiLine);
-                    }
-
-                    writeSteveAiSummary(serverLevel, lastPlayerUuid, entity, summaryLines);
-                }
+                sendScanStatusToTrackedPlayer(String.format(
+                    "[SAI] scan#%d 5/5 SUMMARY: rebuilding POI + writing full %d-chunk files",
+                    periodicScanCycleCount,
+                    PERIODIC_SCAN_CHUNK_RADIUS
+                ));
+                writePeriodicScanFiles(
+                    serverLevel,
+                    lastPlayerUuid,
+                    entity,
+                    job.groupedBlocks,
+                    job.groupedEntities,
+                    job.groupedBlockEntities
+                );
                 job.phase = null;
             }
             default -> job.phase = null;
@@ -980,7 +1105,8 @@ public class CommandEvents {
 
             if (findSteveAiAnywhere(serverLevel) != null) {
                 LOGGER.info("steveAI already exists somewhere in the world, skipping spawn");
-                forceStartPeriodicScanNow(serverLevel.getServer());
+                // TODO: re-enable once chunks are confirmed loaded at login
+                // forceStartPeriodicScanNow(serverLevel.getServer());
                 return;
             }
 
@@ -1009,7 +1135,8 @@ public class CommandEvents {
 
                 serverLevel.addFreshEntity(villager);
                 LOGGER.info("Spawned steveAI at {}, {}, {}", spawnX, spawnY, spawnZ);
-                forceStartPeriodicScanNow(serverLevel.getServer());
+                // TODO: re-enable once chunks are confirmed loaded at login
+                // forceStartPeriodicScanNow(serverLevel.getServer());
             } else {
                 LOGGER.warn("Failed to create villager entity for steveAI");
             }
@@ -1211,6 +1338,16 @@ public class CommandEvents {
             " target=" + (currentExploreTarget == null ? "none" : currentExploreTarget.toShortString())
         ), false);
 
+        return 1;
+    }
+
+    private static int handleDebugScreenToggle(CommandContext<CommandSourceStack> context, boolean enabled) {
+        screenDebugEnabled = enabled;
+        context.getSource().sendSuccess(
+            () -> Component.literal("SteveAI screen debug messages " + (enabled ? "enabled" : "disabled") + "."),
+            false
+        );
+        LOGGER.info("SteveAI screen debug messages set to {} by {}", enabled, context.getSource().getTextName());
         return 1;
     }
 
@@ -1729,9 +1866,58 @@ public class CommandEvents {
             // Persist village personality assignments so they survive server restarts.
             PoiManager.savePersonalitiesToFile(playerDataDir.resolve("village_personalities.txt"));
 
+            String writeMsg = String.format(
+                "[testmod] SteveAI files written %s blocks/entities/blockEntities/poiSummary/personality",
+                scanTs()
+            );
+            sendStatusToPlayer(playerUuid, writeMsg);
+
             LOGGER.info("[WRITE DEBUG] writeSteveAiSummary finished folder={}", playerDataDir.toAbsolutePath());
         } catch (IOException e) {
             LOGGER.error("Failed to write steveAI summary file", e);
+            sendStatusToPlayer(playerUuid, "[testmod] SteveAI file write FAILED " + scanTs() + " (see server log)");
+        }
+    }
+
+    private static void writePeriodicScanFiles(
+        ServerLevel serverLevel,
+        UUID playerUuid,
+        Entity steveAiEntity,
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlocks,
+        Map<String, SteveAiCollectors.SeenSummary> groupedEntities,
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities
+    ) {
+        if (playerUuid == null) {
+            LOGGER.warn("Periodic scan write skipped because lastPlayerUuid is null");
+            return;
+        }
+
+        try {
+            SteveAiScanManager.replaceScanResults(
+                "all",
+                PERIODIC_SCAN_CHUNK_RADIUS,
+                steveAiEntity.blockPosition(),
+                serverLevel.getGameTime(),
+                groupedBlocks,
+                groupedEntities,
+                groupedBlockEntities
+            );
+
+            Path playerDataDir = SteveAiScanManager.writeTextFiles(serverLevel, playerUuid.toString());
+            PoiManager.savePersonalitiesToFile(playerDataDir.resolve("village_personalities.txt"));
+
+            String writeMsg = String.format(
+                "[testmod] SteveAI full %d-chunk files written %s blocks=%d entities=%d blockEntities=%d",
+                PERIODIC_SCAN_CHUNK_RADIUS,
+                scanTs(),
+                groupedBlocks.size(),
+                groupedEntities.size(),
+                groupedBlockEntities.size()
+            );
+            sendStatusToPlayer(playerUuid, writeMsg);
+        } catch (IOException e) {
+            LOGGER.error("Failed to write periodic steveAI scan files", e);
+            sendStatusToPlayer(playerUuid, "[testmod] SteveAI file write FAILED " + scanTs() + " (see server log)");
         }
     }
 

@@ -315,6 +315,128 @@ public class SteveAiCollectors {
         );
     }
 
+    // ── Tile-based incremental scan helpers ───────────────────────────────────
+
+    /**
+     * Collect entities whose block position falls inside the given horizontal tile
+     * (minX..maxX, minZ..maxZ) and within ±yRadius of yCenter.
+     */
+    public static Map<String, SeenSummary> collectEntitiesInTile(
+        ServerLevel serverLevel,
+        int minX, int minZ, int maxX, int maxZ,
+        int yCenter, int yRadius
+    ) {
+        net.minecraft.world.phys.AABB box = new net.minecraft.world.phys.AABB(
+            minX, yCenter - yRadius, minZ,
+            maxX + 1, yCenter + yRadius + 1, maxZ + 1
+        );
+        var entities = serverLevel.getEntities(
+            (net.minecraft.world.entity.Entity) null, box,
+            e -> e != null && e.isAlive()
+        );
+        Map<String, SeenSummary> grouped = new LinkedHashMap<>();
+        for (net.minecraft.world.entity.Entity nearby : entities) {
+            String typeName = BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
+            BlockPos pos = nearby.blockPosition();
+            SeenSummary summary = grouped.get(typeName);
+            if (summary == null) {
+                grouped.put(typeName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+            } else {
+                summary.addLocation(pos);
+            }
+        }
+        return grouped;
+    }
+
+    /**
+     * Collect blocks inside the given non-overlapping tile box, applying the same
+     * interesting-block filter as the regular nearby-blocks collector.
+     */
+    public static Map<String, SeenSummary> collectBlocksInTile(
+        ServerLevel serverLevel,
+        int minX, int minZ, int maxX, int maxZ,
+        int yMin, int yMax,
+        java.util.function.Predicate<net.minecraft.world.level.block.state.BlockState> filter
+    ) {
+        Map<String, SeenSummary> grouped = new LinkedHashMap<>();
+        for (int y = yMin; y <= yMax; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    net.minecraft.world.level.block.state.BlockState state = serverLevel.getBlockState(pos);
+                    if (state.isAir()) continue;
+                    if (filter != null && !filter.test(state)) continue;
+                    net.minecraft.world.level.block.Block block = state.getBlock();
+                    String blockName = BuiltInRegistries.BLOCK.getKey(block).toString();
+                    SeenSummary existing = grouped.get(blockName);
+                    if (existing == null) {
+                        grouped.put(blockName, new SeenSummary(x, y, z, shouldStoreAllLocationsForBlock(blockName)));
+                    } else {
+                        if (existing.storesAllLocations()) existing.addLocation(new BlockPos(x, y, z));
+                        else existing.increment();
+                    }
+                }
+            }
+        }
+        return grouped;
+    }
+
+    /**
+     * Collect block entities inside the given non-overlapping tile box.
+     */
+    public static Map<String, SeenSummary> collectBlockEntitiesInTile(
+        ServerLevel serverLevel,
+        int minX, int minZ, int maxX, int maxZ,
+        int yMin, int yMax
+    ) {
+        Map<String, SeenSummary> grouped = new LinkedHashMap<>();
+        BlockPos min = new BlockPos(minX, yMin, minZ);
+        BlockPos max = new BlockPos(maxX, yMax, maxZ);
+        for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+            net.minecraft.world.level.block.entity.BlockEntity be = serverLevel.getBlockEntity(pos);
+            if (be == null) continue;
+            Identifier key = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (key == null) continue;
+            String typeName = key.toString();
+            SeenSummary summary = grouped.get(typeName);
+            if (summary == null) {
+                grouped.put(typeName, new SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+            } else {
+                summary.addLocation(pos.immutable());
+            }
+        }
+        return grouped;
+    }
+
+    /**
+     * Merge all entries from {@code source} into {@code target}.
+     * Entries that store all locations will have their location lists combined;
+     * count-only entries will have their counts summed.
+     */
+    public static void mergeInto(
+        Map<String, SeenSummary> target,
+        Map<String, SeenSummary> source
+    ) {
+        for (Map.Entry<String, SeenSummary> entry : source.entrySet()) {
+            String key = entry.getKey();
+            SeenSummary src = entry.getValue();
+            SeenSummary tgt = target.get(key);
+            if (tgt == null) {
+                target.put(key, src);
+            } else {
+                if (src.storesAllLocations() && src.allLocations != null) {
+                    for (BlockPos loc : src.allLocations) {
+                        tgt.addLocation(loc);
+                    }
+                } else {
+                    for (int i = 0; i < src.count; i++) {
+                        tgt.increment();
+                    }
+                }
+            }
+        }
+    }
+
     public static List<DetailedEntry> collectDetailedBlocksAt(
         ServerLevel serverLevel,
         BlockPos center,

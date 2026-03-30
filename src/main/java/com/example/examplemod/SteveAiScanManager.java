@@ -468,6 +468,25 @@ public class SteveAiScanManager {
         }
     }
 
+    public static void replaceScanResults(
+        String scanType,
+        int chunkRadius,
+        BlockPos center,
+        long gameTime,
+        Map<String, SteveAiCollectors.SeenSummary> blocks,
+        Map<String, SteveAiCollectors.SeenSummary> entities,
+        Map<String, SteveAiCollectors.SeenSummary> blockEntities
+    ) {
+        lastScanType = scanType == null ? "" : scanType;
+        lastScanChunkRadius = Math.max(chunkRadius, 0);
+        lastScanCenter = center == null ? null : center.immutable();
+        lastScanGameTime = gameTime;
+        scannedBlocks = new LinkedHashMap<>(blocks == null ? Map.of() : blocks);
+        scannedEntities = new LinkedHashMap<>(entities == null ? Map.of() : entities);
+        scannedBlockEntities = new LinkedHashMap<>(blockEntities == null ? Map.of() : blockEntities);
+        rebuildPoisFromCurrentScan();
+    }
+
     public static Map<String, SteveAiCollectors.SeenSummary> getScannedBlocks() {
         return scannedBlocks;
     }
