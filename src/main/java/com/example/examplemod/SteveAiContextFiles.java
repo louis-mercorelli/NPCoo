@@ -43,6 +43,7 @@ public class SteveAiContextFiles {
             Path playerDataDir = getSteveAiDataDir(serverLevel);
 
             Path rawFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI.txt");
+            Path chatFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat.txt");
             Path poiSummaryFile = findLatestMatchingFile(playerDataDir, "poiSummary*.txt");
             Path detailBlockEntitiesFile = findLatestMatchingFile(playerDataDir, "detailBlockEntities*.txt");
             Path detailEntitiesFile = findLatestMatchingFile(playerDataDir, "detailEntities*.txt");
@@ -50,6 +51,7 @@ public class SteveAiContextFiles {
 
             logFileTail("OPENAI DEBUG", poiSummaryFile, 10);
             logFileTail("OPENAI DEBUG", rawFile, 10);
+            logFileTail("OPENAI DEBUG", chatFile, 10);
             logFileTail("OPENAI DEBUG", detailBlockEntitiesFile, 10);
             logFileTail("OPENAI DEBUG", detailEntitiesFile, 10);
             logFileTail("OPENAI DEBUG", detailStatusFile, 10);
@@ -64,7 +66,7 @@ public class SteveAiContextFiles {
 
             StringBuilder sb = new StringBuilder();
 
-            sb.append("=== SteveAI POI Summary (live) ===\n");
+            sb.append("=== SteveAI POINTS OF INTEREST Summary (live) ===\n");
             if (!sessionPoiSummaryText.isBlank()) {
                 sb.append(sessionPoiSummaryText).append("\n");
             } else if (!livePoiSummaryText.isBlank()) {
@@ -75,6 +77,9 @@ public class SteveAiContextFiles {
 
             sb.append("=== SteveAI Raw File (last ").append(tailLines).append(" lines) ===\n");
             sb.append(rawTailText.isBlank() ? "(raw file empty or missing)\n" : rawTailText).append("\n");
+
+            sb.append("=== SteveAI Chat File ===\n");
+            sb.append(chatFile == null ? "(chat file empty or missing)\n" : readWholeFile(chatFile)).append("\n");
 
             sb.append("=== SteveAI Detail Block Entities ===\n");
             sb.append(detailBlockEntitiesText.isBlank() ? "(latest detailBlockEntities*.txt empty or missing)\n" : detailBlockEntitiesText).append("\n");

@@ -418,12 +418,24 @@ public class PoiManager {
     }
 
     private static String choosePersonality() {
-        if (PERSONALITY_OPTIONS.length == 0) {
+        if (savedPersonalities.isEmpty()) {
             return "scooby_doo";
         }
-        int idx = ThreadLocalRandom.current().nextInt(PERSONALITY_OPTIONS.length);
-        String chosen = PERSONALITY_OPTIONS[idx];
-        return (chosen == null || chosen.isBlank()) ? "scooby_doo" : chosen;
+
+        List<String> remainingOptions = new ArrayList<>();
+        for (String option : PERSONALITY_OPTIONS) {
+            if (option == null || option.isBlank() || "scooby_doo".equals(option)) {
+                continue;
+            }
+            remainingOptions.add(option);
+        }
+
+        if (remainingOptions.isEmpty()) {
+            return "scooby_doo";
+        }
+
+        int idx = ThreadLocalRandom.current().nextInt(remainingOptions.size());
+        return remainingOptions.get(idx);
     }
 
     private static String chooseSceneForPersonality(String personality) {
