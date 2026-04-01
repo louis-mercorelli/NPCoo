@@ -1980,6 +1980,7 @@ public class CommandEvents {
         Map<String, SteveAiCollectors.SeenSummary> entities = Map.of();
         Map<String, SteveAiCollectors.SeenSummary> blockEntities = Map.of();
 
+        long startNs = System.nanoTime();
         try {
             switch (mode) {
                 case "scanB" -> blocks = SteveAiScanManager.scanB(serverLevel, center, chunkRadius, forceLoad);
@@ -1994,6 +1995,7 @@ public class CommandEvents {
             source.sendFailure(Component.literal(e.getMessage()));
             return 0;
         }
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
 
         SteveAiScanManager.replaceScanResults(
             mode.toLowerCase(Locale.ROOT),
@@ -2011,6 +2013,7 @@ public class CommandEvents {
                 + " chunkRadius=" + chunkRadius
                 + " forceLoad=" + forceLoad
                 + " groupedCount=" + groupedCount
+                + " time=" + elapsedMs + "ms"
         ), false);
 
         return 1;
