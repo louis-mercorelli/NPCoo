@@ -162,6 +162,7 @@ public class PoiManager {
 
     private static final int UNDERGROUND_MAX_Y = 10;
     private static final int UNDERGROUND_BED_CLUSTER_MIN_POSITIONS = 5; // proxy for "beds > 4"
+    private static final int WATER_SURFACE_MAX_Y = 63;
 
     public static boolean processBlockEntity(String typeName, BlockPos pos) {
         return processBlockEntity(typeName, pos, true);
@@ -549,6 +550,31 @@ public class PoiManager {
             || poi.evidence.contains("minecraft:tuff_bricks");
     }
 
+    private static boolean isUndergroundLike(Poi poi) {
+        int[] bounds = poi.getBounds();
+        int centerY = poi.center.getY();
+        int maxY = bounds[3];
+        return centerY < UNDERGROUND_MAX_Y || maxY < UNDERGROUND_MAX_Y;
+    }
+
+    private static boolean isLikelyInWater(Poi poi) {
+        int[] bounds = poi.getBounds();
+        int centerY = poi.center.getY();
+
+        boolean explicitWaterEvidence = poi.evidence.contains("minecraft:water")
+            || poi.evidence.contains("minecraft:kelp")
+            || poi.evidence.contains("minecraft:seagrass");
+
+        // If the cluster is near/under sea level and lacks strong village anchors,
+        // treat it as likely water-adjacent for conservative village promotion.
+        boolean nearSeaLevelBand = centerY <= WATER_SURFACE_MAX_Y && bounds[2] <= WATER_SURFACE_MAX_Y;
+        boolean hasStrongVillageAnchor = poi.evidence.contains("minecraft:bell")
+            || poi.evidence.contains("minecraft:iron_golem")
+            || hasAnyVillageWorkstation(poi);
+
+        return explicitWaterEvidence || (nearSeaLevelBand && !hasStrongVillageAnchor);
+    }
+
     private static String classifyPoiType(Poi poi) {
         if (!poi.type.equals("village_candidate")) {
             return poi.type;
@@ -572,13 +598,15 @@ public class PoiManager {
         // New tuning:
         // - underground bed-heavy clusters should not become villages
         // - underground chamber-ish support should push away from village
+        boolean undergroundLike = isUndergroundLike(poi);
+        boolean likelyInWater = isLikelyInWater(poi);
+
         boolean undergroundBedClusterLike =
             hasBed
-            && centerY < UNDERGROUND_MAX_Y
-            && posCount >= UNDERGROUND_BED_CLUSTER_MIN_POSITIONS;
+            && (undergroundLike || likelyInWater);
 
         if (undergroundBedClusterLike) {
-            return "village_candidate";
+            return "unknown";
         }
 
         int score = 0;
@@ -596,7 +624,7 @@ public class PoiManager {
         if (evidenceCount >= 5) score += 2;
         else if (evidenceCount >= 3) score += 1;
 
-        if (centerY < UNDERGROUND_MAX_Y && (hasTrialCore || hasTrialSupport)) {
+        if (undergroundLike && (hasTrialCore || hasTrialSupport)) {
             score -= 4;
         }
 

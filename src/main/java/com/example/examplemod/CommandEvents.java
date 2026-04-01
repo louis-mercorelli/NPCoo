@@ -1358,22 +1358,74 @@ public class CommandEvents {
             return 0;
         }
 
-        double entityRadius = 20.0;
+        BlockPos center = steveAi.blockPosition();
+        int chunkRadius = 5;
 
-        java.util.Map<String, SteveAiCollectors.SeenSummary> entityMap =
-            SteveAiCollectors.collectNearbyEntities(serverLevel, steveAi, entityRadius);
+        long lookSeeStartNs = System.nanoTime();
+        long blocksStartNs = System.nanoTime();
+        Map<String, SteveAiCollectors.SeenSummary> blocks =
+            SteveAiScanManager.scanB(serverLevel, center, chunkRadius, false);
+        long blocksMs = (System.nanoTime() - blocksStartNs) / 1_000_000L;
 
-        Map<String, SteveAiCollectors.SeenSummary> grouped =
-            SteveAiCollectors.collectNearbyBlocks(serverLevel, steveAi, 20, 20, CommandEvents::isInterestingLookSeeBlock);
+        long entitiesStartNs = System.nanoTime();
+        Map<String, SteveAiCollectors.SeenSummary> entities =
+            SteveAiScanManager.scanE(serverLevel, center, chunkRadius, false);
+        long entitiesMs = (System.nanoTime() - entitiesStartNs) / 1_000_000L;
+
+        long blockEntitiesStartNs = System.nanoTime();
+        Map<String, SteveAiCollectors.SeenSummary> blockEntities =
+            SteveAiScanManager.scanBE(serverLevel, center, chunkRadius, false);
+        long blockEntitiesMs = (System.nanoTime() - blockEntitiesStartNs) / 1_000_000L;
+
+        long totalMs = (System.nanoTime() - lookSeeStartNs) / 1_000_000L;
+
+        int blocksTotal = getTotalCount(blocks);
+        int entitiesTotal = getTotalCount(entities);
+        int blockEntitiesTotal = getTotalCount(blockEntities);
+
+        int villagers = getEntryCount(entities, "minecraft:villager");
+        int ironGolems = getEntryCount(entities, "minecraft:iron_golem");
+        int bellsBlocks = getEntryCount(blocks, "minecraft:bell");
+        int bellsBlockEntities = getEntryCount(blockEntities, "minecraft:bell");
+        int beds = getEntryCount(blocks, "minecraft:bed");
 
         source.sendSuccess(() -> Component.literal(
-            "SteveAI lookSee radius=20 at " + steveAi.blockPosition().toShortString()
+            "lookSee center=" + center.toShortString()
+                + " chunkRadius=" + chunkRadius
+                + " groups(B/E/BE)=" + blocks.size() + "/" + entities.size() + "/" + blockEntities.size()
+                + " totals(B/E/BE)=" + blocksTotal + "/" + entitiesTotal + "/" + blockEntitiesTotal
+                + " signals[villager=" + villagers
+                + ", iron_golem=" + ironGolems
+                + ", bell(B/BE)=" + bellsBlocks + "/" + bellsBlockEntities
+                + ", bed=" + beds + "]"
+                + " time=" + totalMs + "ms"
+                + " per(B/E/BE)=" + blocksMs + "/" + entitiesMs + "/" + blockEntitiesMs + "ms"
         ), false);
 
-        sendLookSeeSection(source, "Entities", entityMap, "entity");
-        sendLookSeeSection(source, "Blocks", grouped, "block");
-
         return 1;
+    }
+
+    private static int getTotalCount(Map<String, SteveAiCollectors.SeenSummary> grouped) {
+        if (grouped == null || grouped.isEmpty()) {
+            return 0;
+        }
+
+        int total = 0;
+        for (SteveAiCollectors.SeenSummary summary : grouped.values()) {
+            if (summary != null) {
+                total += summary.count;
+            }
+        }
+        return total;
+    }
+
+    private static int getEntryCount(Map<String, SteveAiCollectors.SeenSummary> grouped, String key) {
+        if (grouped == null || key == null) {
+            return 0;
+        }
+
+        SteveAiCollectors.SeenSummary summary = grouped.get(key);
+        return summary == null ? 0 : summary.count;
     }
 
     private static int handleExplorePoi(CommandContext<CommandSourceStack> context) {
