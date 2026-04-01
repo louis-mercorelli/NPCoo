@@ -426,6 +426,8 @@ public class SteveAiScanManager {
 
         int horizontalRadius = chunkRadius * 16;
         int verticalRadius = chunkRadius * 16;
+    int centerChunkX = center.getX() >> 4;
+    int centerChunkZ = center.getZ() >> 4;
         Map<String, SteveAiCollectors.SeenSummary> grouped = new LinkedHashMap<>();
 
         for (int y = -verticalRadius; y <= verticalRadius; y++) {
@@ -443,24 +445,11 @@ public class SteveAiScanManager {
                         grouped.put(blockName, new SteveAiCollectors.SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
                     } else {
                         summary.increment();
-                        if (summary.allLocations.size() < MAX_STORED_BLOCK_LOCATIONS_PER_TYPE) {
+                        int posChunkX = pos.getX() >> 4;
+                        int posChunkZ = pos.getZ() >> 4;
+                        boolean isInCenterChunk = posChunkX == centerChunkX && posChunkZ == centerChunkZ;
+                        if (isInCenterChunk && summary.allLocations.size() < MAX_STORED_BLOCK_LOCATIONS_PER_TYPE) {
                             summary.allLocations.add(pos.immutable());
-                        } else {
-                            int farthestIndex = -1;
-                            double farthestDistanceSq = -1;
-                            for (int i = 0; i < summary.allLocations.size(); i++) {
-                                BlockPos existingPos = summary.allLocations.get(i);
-                                double existingDistanceSq = existingPos.distSqr(center);
-                                if (existingDistanceSq > farthestDistanceSq) {
-                                    farthestDistanceSq = existingDistanceSq;
-                                    farthestIndex = i;
-                                }
-                            }
-
-                            double newDistanceSq = pos.distSqr(center);
-                            if (farthestIndex >= 0 && newDistanceSq < farthestDistanceSq) {
-                                summary.allLocations.set(farthestIndex, pos.immutable());
-                            }
                         }
                     }
                 }
