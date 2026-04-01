@@ -176,7 +176,7 @@ public class CommandEvents {
                         .executes(ctx -> handleDebugScreenToggle(ctx, false))
                     )
                     .then(Commands.literal("scanSAI")
-                        .executes(ctx -> handleScanSai(ctx, "all", 2))
+                        .executes(ctx -> handleScanSai(ctx, "all", 2, false))
                         .then(Commands.literal("detail")
                             .then(Commands.argument("x", IntegerArgumentType.integer())
                                 .then(Commands.argument("y", IntegerArgumentType.integer())
@@ -218,7 +218,7 @@ public class CommandEvents {
                                     return 0;
                                 }
 
-                                return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius);
+                                return handleScanSai(ctx, parsed.rawScanInput, parsed.chunkRadius, parsed.fastMode);
                             })
                         )
                     )
@@ -1779,7 +1779,8 @@ public class CommandEvents {
     private static int handleScanSai(
         CommandContext<CommandSourceStack> context,
         String rawScanInput,
-        int chunkRadius
+        int chunkRadius,
+        boolean fastMode
     ) {
         CommandSourceStack source = context.getSource();
 
@@ -1796,14 +1797,23 @@ public class CommandEvents {
 
         long scanStartNs = System.nanoTime();
         try {
-            SteveAiScanManager.scanSAI(serverLevel, steveAi, rawScanInput, chunkRadius);
+            if (fastMode) {
+                if (!(source.getEntity() instanceof ServerPlayer player)) {
+                    source.sendFailure(Component.literal("scanSAI fast requires a player command source."));
+                    return 0;
+                }
+                SteveAiScanManager.scanSAIFast(serverLevel, steveAi, player.blockPosition(), rawScanInput, chunkRadius);
+            } else {
+                SteveAiScanManager.scanSAI(serverLevel, steveAi, rawScanInput, chunkRadius);
+            }
         } catch (IllegalArgumentException e) {
             long elapsedMs = (System.nanoTime() - scanStartNs) / 1_000_000L;
             LOGGER.info(
-                "scanSAI failed thread={} input={} chunkRadius={} elapsedMs={} reason={}",
+                "scanSAI failed thread={} input={} chunkRadius={} fastMode={} elapsedMs={} reason={}",
                 Thread.currentThread().getName(),
                 rawScanInput,
                 chunkRadius,
+                fastMode,
                 elapsedMs,
                 e.getMessage()
             );
@@ -1821,11 +1831,12 @@ public class CommandEvents {
         long elapsedMs = (System.nanoTime() - scanStartNs) / 1_000_000L;
 
         LOGGER.info(
-            "scanSAI complete thread={} input={} normalizedInput={} chunkRadius={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
+            "scanSAI complete thread={} input={} normalizedInput={} chunkRadius={} fastMode={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
             Thread.currentThread().getName(),
             rawScanInput,
             normalizedInput,
             chunkRadius,
+            fastMode,
             SteveAiScanManager.getScannedBlocks().size(),
             SteveAiScanManager.getScannedEntities().size(),
             SteveAiScanManager.getScannedBlockEntities().size(),
@@ -1836,6 +1847,11 @@ public class CommandEvents {
         source.sendSuccess(() -> Component.literal(
             "SteveAI scan complete: input=" + normalizedInput +
             " chunkRadius=" + chunkRadius +
+            " fastMode=" + fastMode +
+            (fastMode
+                ? " detailedChunks=" + SteveAiScanManager.getLastFastDetailedChunkCount()
+                    + " quickChunks=" + SteveAiScanManager.getLastFastQuickChunkCount()
+                : "") +
             " groupedCount=" + finalCount +
             " (run /testmod poiStage1 to ingest into POI map)"
         ), false);
@@ -2171,10 +2187,12 @@ public class CommandEvents {
     private static class ParsedScanSaiArgs {
         final String rawScanInput;
         final int chunkRadius;
+        final boolean fastMode;
 
-        ParsedScanSaiArgs(String rawScanInput, int chunkRadius) {
+        ParsedScanSaiArgs(String rawScanInput, int chunkRadius, boolean fastMode) {
             this.rawScanInput = rawScanInput;
             this.chunkRadius = chunkRadius;
+            this.fastMode = fastMode;
         }
     }
 
@@ -2242,10 +2260,21 @@ public class CommandEvents {
 
     private static ParsedScanSaiArgs parseScanSaiArgs(String tail, int defaultChunkRadius) {
         if (tail == null || tail.isBlank()) {
-            return new ParsedScanSaiArgs("all", defaultChunkRadius);
+            return new ParsedScanSaiArgs("all", defaultChunkRadius, false);
         }
 
         String s = tail.trim();
+        boolean fastMode = false;
+
+        if (s.equalsIgnoreCase("fast")) {
+            return new ParsedScanSaiArgs("all", defaultChunkRadius, true);
+        }
+
+        int fastTokenStart = s.toLowerCase(java.util.Locale.ROOT).lastIndexOf(" fast");
+        if (fastTokenStart >= 0 && fastTokenStart + 5 == s.length()) {
+            fastMode = true;
+            s = s.substring(0, fastTokenStart).trim();
+        }
 
         if (s.startsWith("[")) {
             int close = s.lastIndexOf(']');
@@ -2265,7 +2294,7 @@ public class CommandEvents {
                 }
             }
 
-            return new ParsedScanSaiArgs(rawScanInput, chunkRadius);
+            return new ParsedScanSaiArgs(rawScanInput, chunkRadius, fastMode);
         }
 
         int lastSpace = s.lastIndexOf(' ');
@@ -2277,12 +2306,12 @@ public class CommandEvents {
                 if (rawScanInput.isEmpty()) {
                     throw new IllegalArgumentException("Missing scanSAI type or targets.");
                 }
-                return new ParsedScanSaiArgs(rawScanInput, radius);
+                return new ParsedScanSaiArgs(rawScanInput, radius, fastMode);
             } catch (NumberFormatException ignored) {
             }
         }
 
-        return new ParsedScanSaiArgs(s, defaultChunkRadius);
+        return new ParsedScanSaiArgs(s, defaultChunkRadius, fastMode);
     }
 
     public static Villager findSteveAi(ServerLevel serverLevel) {

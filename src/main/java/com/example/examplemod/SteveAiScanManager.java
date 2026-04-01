@@ -32,6 +32,8 @@ public class SteveAiScanManager {
     private static int lastDetailRadius = 0;
     private static BlockPos lastDetailCenter = null;
     private static long lastDetailGameTime = 0L;
+    private static int lastFastDetailedChunkCount = 0;
+    private static int lastFastQuickChunkCount = 0;
 
     private static final Map<Long, ChunkScanResult> chunkScanResults = new LinkedHashMap<>();
 
@@ -91,6 +93,8 @@ public class SteveAiScanManager {
         lastDetailRadius = 0;
         lastDetailCenter = null;
         lastDetailGameTime = 0L;
+        lastFastDetailedChunkCount = 0;
+        lastFastQuickChunkCount = 0;
         chunkScanResults.clear();
     }
 
@@ -126,6 +130,8 @@ public class SteveAiScanManager {
         lastScanChunkRadius = chunkRadius;
         lastScanCenter = steveAiEntity.blockPosition().immutable();
         lastScanGameTime = serverLevel.getGameTime();
+        lastFastDetailedChunkCount = 0;
+        lastFastQuickChunkCount = 0;
 
         clearScannedMapsOnly();
 
@@ -249,6 +255,122 @@ public class SteveAiScanManager {
 
         chunkScanResults.put(chunkKey(chunkX, chunkZ), result);
         return result;
+    }
+
+    public static void scanSAIFast(
+        ServerLevel serverLevel,
+        Entity steveAiEntity,
+        BlockPos playerPos,
+        String rawScanInput,
+        int chunkRadius
+    ) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (steveAiEntity == null) {
+            throw new IllegalArgumentException("steveAiEntity is null");
+        }
+        if (playerPos == null) {
+            throw new IllegalArgumentException("playerPos is null");
+        }
+        if (rawScanInput == null || rawScanInput.isBlank()) {
+            throw new IllegalArgumentException("scan input is blank");
+        }
+        if (chunkRadius < 1) {
+            throw new IllegalArgumentException("chunkRadius must be >= 1");
+        }
+
+        String normalized = rawScanInput.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!normalized.equals("all")) {
+            throw new IllegalArgumentException("scanSAI fast currently supports only 'all'.");
+        }
+
+        BlockPos stevePos = steveAiEntity.blockPosition();
+        int centerChunkX = stevePos.getX() >> 4;
+        int centerChunkZ = stevePos.getZ() >> 4;
+        int playerChunkX = playerPos.getX() >> 4;
+        int playerChunkZ = playerPos.getZ() >> 4;
+
+        java.util.Set<Long> detailedChunks = new java.util.LinkedHashSet<>();
+        detailedChunks.add(chunkKey(centerChunkX, centerChunkZ));
+        detailedChunks.add(chunkKey(playerChunkX, playerChunkZ));
+
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlocks = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
+        java.util.Set<Long> processedDetailedChunks = new java.util.HashSet<>();
+
+        int yMin = serverLevel.getMinY();
+        int yMax = serverLevel.getMaxY();
+        int yCenter = (yMin + yMax) / 2;
+        int yRadius = Math.max(yCenter - yMin, yMax - yCenter);
+        int quickChunkCount = 0;
+
+        for (int chunkX = centerChunkX - chunkRadius; chunkX <= centerChunkX + chunkRadius; chunkX++) {
+            for (int chunkZ = centerChunkZ - chunkRadius; chunkZ <= centerChunkZ + chunkRadius; chunkZ++) {
+                long key = chunkKey(chunkX, chunkZ);
+                if (detailedChunks.contains(key)) {
+                    ChunkScanResult detail = scanSAI2(
+                        serverLevel,
+                        new BlockPos((chunkX << 4) + 8, stevePos.getY(), (chunkZ << 4) + 8),
+                        false
+                    );
+                    SteveAiCollectors.mergeInto(groupedBlocks, detail.blocks);
+                    SteveAiCollectors.mergeInto(groupedEntities, detail.entities);
+                    SteveAiCollectors.mergeInto(groupedBlockEntities, detail.blockEntities);
+                    processedDetailedChunks.add(key);
+                    continue;
+                }
+
+                if (serverLevel.getChunkSource().getChunkNow(chunkX, chunkZ) == null) {
+                    continue;
+                }
+
+                int minX = chunkX << 4;
+                int minZ = chunkZ << 4;
+                int maxX = minX + 15;
+                int maxZ = minZ + 15;
+
+                SteveAiCollectors.mergeInto(
+                    groupedEntities,
+                    SteveAiCollectors.collectEntitiesInTile(serverLevel, minX, minZ, maxX, maxZ, yCenter, yRadius)
+                );
+                SteveAiCollectors.mergeInto(
+                    groupedBlockEntities,
+                    SteveAiCollectors.collectBlockEntitiesInTile(serverLevel, minX, minZ, maxX, maxZ, yMin, yMax)
+                );
+                quickChunkCount++;
+            }
+        }
+
+        for (Long key : detailedChunks) {
+            if (processedDetailedChunks.contains(key)) {
+                continue;
+            }
+
+            int chunkX = (int) (key >> 32);
+            int chunkZ = (int) (long) key;
+            ChunkScanResult detail = scanSAI2(
+                serverLevel,
+                new BlockPos((chunkX << 4) + 8, stevePos.getY(), (chunkZ << 4) + 8),
+                false
+            );
+            SteveAiCollectors.mergeInto(groupedBlocks, detail.blocks);
+            SteveAiCollectors.mergeInto(groupedEntities, detail.entities);
+            SteveAiCollectors.mergeInto(groupedBlockEntities, detail.blockEntities);
+        }
+
+        replaceScanResults(
+            "all_fast",
+            chunkRadius,
+            stevePos,
+            serverLevel.getGameTime(),
+            groupedBlocks,
+            groupedEntities,
+            groupedBlockEntities
+        );
+        lastFastDetailedChunkCount = detailedChunks.size();
+        lastFastQuickChunkCount = quickChunkCount;
     }
 
     private static boolean looksLikeTargetList(String rawInput) {
@@ -641,6 +763,14 @@ public class SteveAiScanManager {
         return lastDetailGameTime;
     }
 
+    public static int getLastFastDetailedChunkCount() {
+        return lastFastDetailedChunkCount;
+    }
+
+    public static int getLastFastQuickChunkCount() {
+        return lastFastQuickChunkCount;
+    }
+
     public static String getStatusText() {
         String centerText = (lastScanCenter == null)
             ? "null"
@@ -655,6 +785,8 @@ public class SteveAiScanManager {
             + "lastScanChunkRadius=" + lastScanChunkRadius + "\n"
             + "lastScanCenter=" + centerText + "\n"
             + "lastScanGameTime=" + lastScanGameTime + "\n"
+            + "lastFastDetailedChunkCount=" + lastFastDetailedChunkCount + "\n"
+            + "lastFastQuickChunkCount=" + lastFastQuickChunkCount + "\n"
             + "scannedBlocks.count=" + scannedBlocks.size() + "\n"
             + "scannedEntities.count=" + scannedEntities.size() + "\n"
             + "scannedBlockEntities.count=" + scannedBlockEntities.size() + "\n"
