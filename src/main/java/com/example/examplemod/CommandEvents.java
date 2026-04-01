@@ -1,6 +1,7 @@
 package com.example.examplemod;
 
 import com.example.examplemod.SteveAiCollectors.SeenSummary;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -107,6 +108,22 @@ public class CommandEvents {
     private static long periodicScanCycleStartNs = 0L;
     private static String periodicScanCycleStartTs = "";
     private static int periodicScanCycleCount = 0;
+    private static final double SERVER_TICK_BUDGET_MS = 50.0;
+    private static final double LOAD_EMA_ALPHA_DEFAULT = 0.08;
+    private static final double IDLE_MAX_MSPT_DEFAULT = 6.0;
+    private static final double BUSY_MAX_MSPT_DEFAULT = 40.0;
+    private static final double BEHIND_LAG_DEBT_MS_DEFAULT = 150.0;
+    private static final long SERVER_LOAD_NOTIFY_INTERVAL_TICKS = 1200L;
+    private static double loadEmaAlpha = LOAD_EMA_ALPHA_DEFAULT;
+    private static double idleMaxMspt = IDLE_MAX_MSPT_DEFAULT;
+    private static double busyMaxMspt = BUSY_MAX_MSPT_DEFAULT;
+    private static double behindLagDebtMs = BEHIND_LAG_DEBT_MS_DEFAULT;
+    private static long serverTickStartNs = 0L;
+    private static long lastMeasuredTickNs = 0L;
+    private static long measuredTickSamples = 0L;
+    private static double rollingMspt = 0.0;
+    private static double lagDebtMs = 0.0;
+    private static long nextServerLoadNotifyGameTime = 0L;
 
     private enum PeriodicScanPhase {
         LOCATION_AND_WORLD,
@@ -332,6 +349,24 @@ public class CommandEvents {
                             );
                             return 1;
                         })
+                    )
+                    .then(Commands.literal("serverLoad")
+                        .executes(CommandEvents::handleServerLoadStatus)
+                        .then(Commands.literal("set")
+                            .then(Commands.argument("idleMspt", DoubleArgumentType.doubleArg(0.1, SERVER_TICK_BUDGET_MS))
+                                .then(Commands.argument("busyMspt", DoubleArgumentType.doubleArg(0.1, SERVER_TICK_BUDGET_MS))
+                                    .then(Commands.argument("behindDebtMs", DoubleArgumentType.doubleArg(1.0, 5000.0))
+                                        .executes(CommandEvents::handleServerLoadTune)
+                                        .then(Commands.argument("emaAlpha", DoubleArgumentType.doubleArg(0.01, 1.0))
+                                            .executes(CommandEvents::handleServerLoadTune)
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                        .then(Commands.literal("reset")
+                            .executes(CommandEvents::handleServerLoadReset)
+                        )
                     )
                     .then(Commands.literal("poiStage1")
                         .executes(CommandEvents::handlePoiUpdate)
@@ -802,11 +837,20 @@ public class CommandEvents {
     }
 
     @SubscribeEvent
+    public static void onServerTick(net.minecraftforge.event.TickEvent.ServerTickEvent.Pre event) {
+        serverTickStartNs = System.nanoTime();
+    }
+
+    @SubscribeEvent
     public static void onServerTick(net.minecraftforge.event.TickEvent.ServerTickEvent.Post event) {
+        updateServerLoadMetrics();
+
         var server = event.server();
         if (server.overworld() == null) {
             return;
         }
+
+        maybeSendServerLoadStatus(server);
 
         if (steveAiFollowMode && steveAiFollowPlayerUuid != null) {
             long now = server.overworld().getGameTime();
@@ -838,6 +882,179 @@ public class CommandEvents {
         // Temporarily disable automatic periodic scan loop from server tick.
         // maybeStartPeriodicScan(server);
         // processPeriodicScanQueue();
+    }
+
+    private static void updateServerLoadMetrics() {
+        if (serverTickStartNs == 0L) {
+            return;
+        }
+
+        long elapsedNs = System.nanoTime() - serverTickStartNs;
+        if (elapsedNs <= 0L) {
+            return;
+        }
+
+        serverTickStartNs = 0L;
+        lastMeasuredTickNs = elapsedNs;
+        measuredTickSamples++;
+
+        double tickMs = elapsedNs / 1_000_000.0;
+        if (measuredTickSamples == 1L) {
+            rollingMspt = tickMs;
+        } else {
+            rollingMspt += (tickMs - rollingMspt) * loadEmaAlpha;
+        }
+
+        lagDebtMs += (tickMs - SERVER_TICK_BUDGET_MS);
+        if (lagDebtMs < 0.0) {
+            lagDebtMs = 0.0;
+        }
+    }
+
+    private static int handleServerLoadStatus(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        ServerLevel level = source.getLevel();
+
+        if (measuredTickSamples == 0L) {
+            source.sendSuccess(() -> Component.literal("§e[serverLoad] warming up: waiting for first tick samples§r"), false);
+            return 1;
+        }
+
+        source.sendSuccess(() -> Component.literal(buildServerLoadMessage(level, true)), false);
+        return 1;
+    }
+
+    private static void maybeSendServerLoadStatus(net.minecraft.server.MinecraftServer server) {
+        if (!screenDebugEnabled || lastPlayerUuid == null || measuredTickSamples == 0L) {
+            return;
+        }
+
+        ServerLevel level = server.overworld();
+        if (level == null) {
+            return;
+        }
+
+        long now = level.getGameTime();
+        if (now < nextServerLoadNotifyGameTime) {
+            return;
+        }
+        nextServerLoadNotifyGameTime = now + SERVER_LOAD_NOTIFY_INTERVAL_TICKS;
+
+        sendScanProgressBar(buildServerLoadMessage(level, false));
+    }
+
+    private static String buildServerLoadMessage(ServerLevel level, boolean includeTune) {
+        int playerCount = level.getServer().getPlayerCount();
+
+        double mspt = rollingMspt;
+        double loadPct = Math.min(999.0, (mspt / SERVER_TICK_BUDGET_MS) * 100.0);
+        boolean behind = mspt >= SERVER_TICK_BUDGET_MS || lagDebtMs >= behindLagDebtMs;
+        boolean idle = !behind && playerCount == 0 && mspt <= idleMaxMspt;
+
+        String state;
+        if (behind) {
+            state = "BEHIND";
+        } else if (idle) {
+            state = "IDLE";
+        } else if (mspt <= busyMaxMspt) {
+            state = "BUSY";
+        } else {
+            state = "VERY_BUSY";
+        }
+
+        String color = switch (state) {
+            case "IDLE" -> "§a";
+            case "BUSY" -> "§e";
+            case "VERY_BUSY" -> "§6";
+            default -> "§c";
+        };
+
+        String behindPart;
+        if (!behind && lagDebtMs <= 1.0) {
+            behindPart = "behindEst=0ms";
+        } else {
+            double sparePerSecond = Math.max(0.0, (SERVER_TICK_BUDGET_MS - mspt) * 20.0);
+            if (sparePerSecond > 0.0 && lagDebtMs > 0.0) {
+                double catchupSec = lagDebtMs / sparePerSecond;
+                behindPart = String.format(Locale.ROOT, "behindEst=%.0fms catchUp~=%.1fs", lagDebtMs, catchupSec);
+            } else {
+                behindPart = String.format(Locale.ROOT, "behindEst=%.0fms catchUp~=not_while_over_budget", lagDebtMs);
+            }
+        }
+
+        if (includeTune) {
+            return String.format(
+                Locale.ROOT,
+                "%s[serverLoad] state=%s mspt=%.2f load=%.0f%% players=%d tick=%.2fms samples=%d %s tune(idle<=%.1f busy<=%.1f debt>=%.0f alpha=%.2f)§r",
+                color,
+                state,
+                mspt,
+                loadPct,
+                playerCount,
+                lastMeasuredTickNs / 1_000_000.0,
+                measuredTickSamples,
+                behindPart,
+                idleMaxMspt,
+                busyMaxMspt,
+                behindLagDebtMs,
+                loadEmaAlpha
+            );
+        }
+
+        return String.format(
+            Locale.ROOT,
+            "%s[serverLoad] %s mspt=%.2f load=%.0f%% players=%d %s§r",
+            color,
+            state,
+            mspt,
+            loadPct,
+            playerCount,
+            behindPart
+        );
+    }
+
+    private static int handleServerLoadTune(CommandContext<CommandSourceStack> context) {
+        double newIdle = DoubleArgumentType.getDouble(context, "idleMspt");
+        double newBusy = DoubleArgumentType.getDouble(context, "busyMspt");
+        double newBehindDebt = DoubleArgumentType.getDouble(context, "behindDebtMs");
+        double newAlpha = context.getNodes().stream().anyMatch(n -> "emaAlpha".equals(n.getNode().getName()))
+            ? DoubleArgumentType.getDouble(context, "emaAlpha")
+            : loadEmaAlpha;
+
+        if (newIdle > newBusy) {
+            context.getSource().sendFailure(Component.literal("idleMspt must be <= busyMspt"));
+            return 0;
+        }
+
+        idleMaxMspt = newIdle;
+        busyMaxMspt = newBusy;
+        behindLagDebtMs = newBehindDebt;
+        loadEmaAlpha = newAlpha;
+
+        context.getSource().sendSuccess(
+            () -> Component.literal(String.format(
+                Locale.ROOT,
+                "§b[serverLoad] tuned idle<=%.1f busy<=%.1f debt>=%.0f alpha=%.2f§r",
+                idleMaxMspt,
+                busyMaxMspt,
+                behindLagDebtMs,
+                loadEmaAlpha
+            )),
+            false
+        );
+        return 1;
+    }
+
+    private static int handleServerLoadReset(CommandContext<CommandSourceStack> context) {
+        idleMaxMspt = IDLE_MAX_MSPT_DEFAULT;
+        busyMaxMspt = BUSY_MAX_MSPT_DEFAULT;
+        behindLagDebtMs = BEHIND_LAG_DEBT_MS_DEFAULT;
+        loadEmaAlpha = LOAD_EMA_ALPHA_DEFAULT;
+        context.getSource().sendSuccess(
+            () -> Component.literal("§b[serverLoad] tuning reset to defaults§r"),
+            false
+        );
+        return 1;
     }
 
     private static void maybeStartPeriodicScan(net.minecraft.server.MinecraftServer server) {
