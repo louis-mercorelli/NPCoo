@@ -16,6 +16,9 @@ import java.util.Map;
 
 public class SteveAiScanManager {
 
+    private static final int MAX_STORED_BLOCK_LOCATIONS_PER_TYPE = 20;
+    private static final int FORCE_LOAD_MAX_CHUNK_RADIUS = 4;
+
     private static Map<String, SteveAiCollectors.SeenSummary> scannedBlocks = new LinkedHashMap<>();
     private static Map<String, SteveAiCollectors.SeenSummary> scannedEntities = new LinkedHashMap<>();
     private static Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities = new LinkedHashMap<>();
@@ -142,6 +145,10 @@ public class SteveAiScanManager {
             lastScanType = trimmedInput.toLowerCase(java.util.Locale.ROOT);
             runLegacyScan(serverLevel, steveAiEntity, trimmedInput, blockRadius);
         }
+
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, lastScanCenter);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, lastScanCenter);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, lastScanCenter);
     }
 
     public static void detailSAI(ServerLevel serverLevel, BlockPos center, int radiusBlocks) {
@@ -253,8 +260,216 @@ public class SteveAiScanManager {
         lastScanCenter = blockPos.immutable();
         lastScanGameTime = scanGameTime;
 
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, lastScanCenter);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, lastScanCenter);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, lastScanCenter);
+
         chunkScanResults.put(chunkKey(chunkX, chunkZ), result);
         return result;
+    }
+
+    private static void validateScanRadius(int chunkRadius, boolean forceLoad) {
+        if (chunkRadius < 1) {
+            throw new IllegalArgumentException("chunkRadius must be >= 1");
+        }
+        if (forceLoad && chunkRadius > FORCE_LOAD_MAX_CHUNK_RADIUS) {
+            throw new IllegalArgumentException(
+                "ForceLoad supports max chunkRadius=" + FORCE_LOAD_MAX_CHUNK_RADIUS
+            );
+        }
+    }
+
+    private static void forceLoadChunks(ServerLevel serverLevel, BlockPos center, int chunkRadius) {
+        int centerChunkX = center.getX() >> 4;
+        int centerChunkZ = center.getZ() >> 4;
+
+        for (int chunkX = centerChunkX - chunkRadius; chunkX <= centerChunkX + chunkRadius; chunkX++) {
+            for (int chunkZ = centerChunkZ - chunkRadius; chunkZ <= centerChunkZ + chunkRadius; chunkZ++) {
+                serverLevel.getChunk(chunkX, chunkZ);
+            }
+        }
+    }
+
+    public static Map<String, SteveAiCollectors.SeenSummary> scanE(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (center == null) {
+            throw new IllegalArgumentException("center is null");
+        }
+
+        validateScanRadius(chunkRadius, forceLoad);
+        if (forceLoad) {
+            forceLoadChunks(serverLevel, center, chunkRadius);
+        }
+
+        int blockRadius = chunkRadius * 16;
+        net.minecraft.world.phys.AABB box = new net.minecraft.world.phys.AABB(
+            center.getX() - blockRadius,
+            center.getY() - blockRadius,
+            center.getZ() - blockRadius,
+            center.getX() + blockRadius + 1,
+            center.getY() + blockRadius + 1,
+            center.getZ() + blockRadius + 1
+        );
+
+        Map<String, SteveAiCollectors.SeenSummary> grouped = new LinkedHashMap<>();
+        var entities = serverLevel.getEntities((Entity) null, box, e -> e != null && e.isAlive());
+        for (Entity nearby : entities) {
+            String typeName = BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
+            BlockPos pos = nearby.blockPosition();
+            SteveAiCollectors.SeenSummary summary = grouped.get(typeName);
+            if (summary == null) {
+                grouped.put(typeName, new SteveAiCollectors.SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+            } else {
+                summary.addLocation(pos);
+            }
+        }
+
+        SteveAiCollectors.annotateDistanceFromCenter(grouped, center);
+        return grouped;
+    }
+
+    public static Map<String, SteveAiCollectors.SeenSummary> scanBE(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (center == null) {
+            throw new IllegalArgumentException("center is null");
+        }
+
+        validateScanRadius(chunkRadius, forceLoad);
+        if (forceLoad) {
+            forceLoadChunks(serverLevel, center, chunkRadius);
+        }
+
+        int blockRadius = chunkRadius * 16;
+        Map<String, SteveAiCollectors.SeenSummary> grouped = new LinkedHashMap<>();
+        BlockPos min = center.offset(-blockRadius, -blockRadius, -blockRadius);
+        BlockPos max = center.offset(blockRadius, blockRadius, blockRadius);
+
+        for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+            net.minecraft.world.level.block.entity.BlockEntity be = serverLevel.getBlockEntity(pos);
+            if (be == null) {
+                continue;
+            }
+
+            Identifier key = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (key == null) {
+                continue;
+            }
+
+            String typeName = key.toString();
+            SteveAiCollectors.SeenSummary summary = grouped.get(typeName);
+            if (summary == null) {
+                grouped.put(typeName, new SteveAiCollectors.SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+            } else {
+                summary.addLocation(pos.immutable());
+            }
+        }
+
+        SteveAiCollectors.annotateDistanceFromCenter(grouped, center);
+        return grouped;
+    }
+
+    private static Map<String, SteveAiCollectors.SeenSummary> scanEInTile(
+        ServerLevel serverLevel,
+        int minX,
+        int minZ,
+        int maxX,
+        int maxZ,
+        int yCenter,
+        int yRadius
+    ) {
+        return SteveAiCollectors.collectEntitiesInTile(serverLevel, minX, minZ, maxX, maxZ, yCenter, yRadius);
+    }
+
+    private static Map<String, SteveAiCollectors.SeenSummary> scanBEInTile(
+        ServerLevel serverLevel,
+        int minX,
+        int minZ,
+        int maxX,
+        int maxZ,
+        int yMin,
+        int yMax
+    ) {
+        return SteveAiCollectors.collectBlockEntitiesInTile(serverLevel, minX, minZ, maxX, maxZ, yMin, yMax);
+    }
+
+    public static Map<String, SteveAiCollectors.SeenSummary> scanB(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (center == null) {
+            throw new IllegalArgumentException("center is null");
+        }
+
+        validateScanRadius(chunkRadius, forceLoad);
+        if (forceLoad) {
+            forceLoadChunks(serverLevel, center, chunkRadius);
+        }
+
+        int horizontalRadius = chunkRadius * 16;
+        int verticalRadius = chunkRadius * 16;
+        Map<String, SteveAiCollectors.SeenSummary> grouped = new LinkedHashMap<>();
+
+        for (int y = -verticalRadius; y <= verticalRadius; y++) {
+            for (int x = -horizontalRadius; x <= horizontalRadius; x++) {
+                for (int z = -horizontalRadius; z <= horizontalRadius; z++) {
+                    BlockPos pos = center.offset(x, y, z);
+                    net.minecraft.world.level.block.state.BlockState state = serverLevel.getBlockState(pos);
+                    if (state.isAir()) {
+                        continue;
+                    }
+
+                    String blockName = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+                    SteveAiCollectors.SeenSummary summary = grouped.get(blockName);
+                    if (summary == null) {
+                        grouped.put(blockName, new SteveAiCollectors.SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+                    } else {
+                        summary.increment();
+                        if (summary.allLocations.size() < MAX_STORED_BLOCK_LOCATIONS_PER_TYPE) {
+                            summary.allLocations.add(pos.immutable());
+                        } else {
+                            int farthestIndex = -1;
+                            double farthestDistanceSq = -1;
+                            for (int i = 0; i < summary.allLocations.size(); i++) {
+                                BlockPos existingPos = summary.allLocations.get(i);
+                                double existingDistanceSq = existingPos.distSqr(center);
+                                if (existingDistanceSq > farthestDistanceSq) {
+                                    farthestDistanceSq = existingDistanceSq;
+                                    farthestIndex = i;
+                                }
+                            }
+
+                            double newDistanceSq = pos.distSqr(center);
+                            if (farthestIndex >= 0 && newDistanceSq < farthestDistanceSq) {
+                                summary.allLocations.set(farthestIndex, pos.immutable());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        SteveAiCollectors.annotateDistanceFromCenter(grouped, center);
+
+        return grouped;
     }
 
     public static void scanSAIFast(
@@ -333,11 +548,11 @@ public class SteveAiScanManager {
 
                 SteveAiCollectors.mergeInto(
                     groupedEntities,
-                    SteveAiCollectors.collectEntitiesInTile(serverLevel, minX, minZ, maxX, maxZ, yCenter, yRadius)
+                    scanEInTile(serverLevel, minX, minZ, maxX, maxZ, yCenter, yRadius)
                 );
                 SteveAiCollectors.mergeInto(
                     groupedBlockEntities,
-                    SteveAiCollectors.collectBlockEntitiesInTile(serverLevel, minX, minZ, maxX, maxZ, yMin, yMax)
+                    scanBEInTile(serverLevel, minX, minZ, maxX, maxZ, yMin, yMax)
                 );
                 quickChunkCount++;
             }
@@ -369,6 +584,9 @@ public class SteveAiScanManager {
             groupedEntities,
             groupedBlockEntities
         );
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, stevePos);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, stevePos);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, stevePos);
         lastFastDetailedChunkCount = detailedChunks.size();
         lastFastQuickChunkCount = quickChunkCount;
     }
@@ -396,30 +614,20 @@ public class SteveAiScanManager {
 
     private static void runLegacyScan(ServerLevel serverLevel, Entity steveAiEntity, String scanType, int blockRadius) {
         String normalized = scanType.toLowerCase(java.util.Locale.ROOT).trim();
+        BlockPos center = steveAiEntity.blockPosition();
+        int chunkRadius = Math.max(1, blockRadius / 16);
 
         switch (normalized) {
-            case "blocks" -> scannedBlocks = new LinkedHashMap<>(
-                SteveAiCollectors.collectNearbyBlocks(serverLevel, steveAiEntity, blockRadius, blockRadius)
-            );
+            case "blocks" -> scannedBlocks = scanB(serverLevel, center, chunkRadius, false);
 
-            case "entities" -> scannedEntities = new LinkedHashMap<>(
-                SteveAiCollectors.collectNearbyEntities(serverLevel, steveAiEntity, blockRadius)
-            );
+            case "entities" -> scannedEntities = scanE(serverLevel, center, chunkRadius, false);
 
-            case "blockentities" -> scannedBlockEntities = new LinkedHashMap<>(
-                SteveAiCollectors.collectNearbyBlockEntities(serverLevel, steveAiEntity, blockRadius)
-            );
+            case "blockentities" -> scannedBlockEntities = scanBE(serverLevel, center, chunkRadius, false);
 
             case "all" -> {
-                scannedBlocks = new LinkedHashMap<>(
-                    SteveAiCollectors.collectNearbyBlocks(serverLevel, steveAiEntity, blockRadius, blockRadius)
-                );
-                scannedEntities = new LinkedHashMap<>(
-                    SteveAiCollectors.collectNearbyEntities(serverLevel, steveAiEntity, blockRadius)
-                );
-                scannedBlockEntities = new LinkedHashMap<>(
-                    SteveAiCollectors.collectNearbyBlockEntities(serverLevel, steveAiEntity, blockRadius)
-                );
+                scannedBlocks = scanB(serverLevel, center, chunkRadius, false);
+                scannedEntities = scanE(serverLevel, center, chunkRadius, false);
+                scannedBlockEntities = scanBE(serverLevel, center, chunkRadius, false);
             }
 
             default -> throw new IllegalArgumentException(

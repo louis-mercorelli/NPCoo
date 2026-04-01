@@ -24,6 +24,7 @@ public class SteveAiCollectors {
         public final int y;
         public final int z;
         public int count;
+        public double minDistanceFromCenter = -1.0;
 
         public final java.util.List<BlockPos> allLocations = new java.util.ArrayList<>();
         private final boolean storeAllLocations;
@@ -55,6 +56,15 @@ public class SteveAiCollectors {
             }
         }
 
+        public void setMinDistanceFromCenter(double distance) {
+            if (distance < 0) {
+                return;
+            }
+            if (this.minDistanceFromCenter < 0 || distance < this.minDistanceFromCenter) {
+                this.minDistanceFromCenter = distance;
+            }
+        }
+
         public boolean storesAllLocations() {
             return storeAllLocations;
         }
@@ -64,6 +74,10 @@ public class SteveAiCollectors {
             StringBuilder sb = new StringBuilder();
             sb.append("firstLoc=(").append(x).append(",").append(y).append(",").append(z).append(")");
             sb.append(", count=").append(count);
+            if (minDistanceFromCenter >= 0) {
+                sb.append(", minDist=")
+                    .append(String.format(java.util.Locale.ROOT, "%.2f", minDistanceFromCenter));
+            }
 
             if (storeAllLocations && !allLocations.isEmpty()) {
                 sb.append(", allLocs=(");
@@ -428,11 +442,56 @@ public class SteveAiCollectors {
                     for (BlockPos loc : src.allLocations) {
                         tgt.addLocation(loc);
                     }
+
+                    int missingCount = src.count - src.allLocations.size();
+                    for (int i = 0; i < missingCount; i++) {
+                        tgt.increment();
+                    }
                 } else {
                     for (int i = 0; i < src.count; i++) {
                         tgt.increment();
                     }
                 }
+
+                if (src.minDistanceFromCenter >= 0) {
+                    tgt.setMinDistanceFromCenter(src.minDistanceFromCenter);
+                }
+            }
+        }
+    }
+
+    public static void annotateDistanceFromCenter(
+        Map<String, SeenSummary> grouped,
+        BlockPos center
+    ) {
+        if (grouped == null || center == null) {
+            return;
+        }
+
+        for (SeenSummary summary : grouped.values()) {
+            if (summary == null) {
+                continue;
+            }
+
+            double bestDistance = Double.MAX_VALUE;
+            boolean found = false;
+
+            if (summary.storesAllLocations() && summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                for (BlockPos pos : summary.allLocations) {
+                    double distance = Math.sqrt(pos.distSqr(center));
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                    }
+                    found = true;
+                }
+            } else {
+                BlockPos pos = new BlockPos(summary.x, summary.y, summary.z);
+                bestDistance = Math.sqrt(pos.distSqr(center));
+                found = true;
+            }
+
+            if (found) {
+                summary.setMinDistanceFromCenter(bestDistance);
             }
         }
     }

@@ -222,6 +222,108 @@ public class CommandEvents {
                             })
                         )
                     )
+                    .then(Commands.literal("scanB")
+                        .then(Commands.argument("x", IntegerArgumentType.integer())
+                            .then(Commands.argument("y", IntegerArgumentType.integer())
+                                .then(Commands.argument("z", IntegerArgumentType.integer())
+                                    .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> handleDirectCenteredScan(
+                                            ctx,
+                                            "scanB",
+                                            new BlockPos(
+                                                IntegerArgumentType.getInteger(ctx, "x"),
+                                                IntegerArgumentType.getInteger(ctx, "y"),
+                                                IntegerArgumentType.getInteger(ctx, "z")
+                                            ),
+                                            IntegerArgumentType.getInteger(ctx, "chunkRadius"),
+                                            false
+                                        ))
+                                        .then(Commands.literal("ForceLoad")
+                                            .executes(ctx -> handleDirectCenteredScan(
+                                                ctx,
+                                                "scanB",
+                                                new BlockPos(
+                                                    IntegerArgumentType.getInteger(ctx, "x"),
+                                                    IntegerArgumentType.getInteger(ctx, "y"),
+                                                    IntegerArgumentType.getInteger(ctx, "z")
+                                                ),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"),
+                                                true
+                                            ))
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                    .then(Commands.literal("scanE")
+                        .then(Commands.argument("x", IntegerArgumentType.integer())
+                            .then(Commands.argument("y", IntegerArgumentType.integer())
+                                .then(Commands.argument("z", IntegerArgumentType.integer())
+                                    .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> handleDirectCenteredScan(
+                                            ctx,
+                                            "scanE",
+                                            new BlockPos(
+                                                IntegerArgumentType.getInteger(ctx, "x"),
+                                                IntegerArgumentType.getInteger(ctx, "y"),
+                                                IntegerArgumentType.getInteger(ctx, "z")
+                                            ),
+                                            IntegerArgumentType.getInteger(ctx, "chunkRadius"),
+                                            false
+                                        ))
+                                        .then(Commands.literal("ForceLoad")
+                                            .executes(ctx -> handleDirectCenteredScan(
+                                                ctx,
+                                                "scanE",
+                                                new BlockPos(
+                                                    IntegerArgumentType.getInteger(ctx, "x"),
+                                                    IntegerArgumentType.getInteger(ctx, "y"),
+                                                    IntegerArgumentType.getInteger(ctx, "z")
+                                                ),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"),
+                                                true
+                                            ))
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                    .then(Commands.literal("scanBE")
+                        .then(Commands.argument("x", IntegerArgumentType.integer())
+                            .then(Commands.argument("y", IntegerArgumentType.integer())
+                                .then(Commands.argument("z", IntegerArgumentType.integer())
+                                    .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> handleDirectCenteredScan(
+                                            ctx,
+                                            "scanBE",
+                                            new BlockPos(
+                                                IntegerArgumentType.getInteger(ctx, "x"),
+                                                IntegerArgumentType.getInteger(ctx, "y"),
+                                                IntegerArgumentType.getInteger(ctx, "z")
+                                            ),
+                                            IntegerArgumentType.getInteger(ctx, "chunkRadius"),
+                                            false
+                                        ))
+                                        .then(Commands.literal("ForceLoad")
+                                            .executes(ctx -> handleDirectCenteredScan(
+                                                ctx,
+                                                "scanBE",
+                                                new BlockPos(
+                                                    IntegerArgumentType.getInteger(ctx, "x"),
+                                                    IntegerArgumentType.getInteger(ctx, "y"),
+                                                    IntegerArgumentType.getInteger(ctx, "z")
+                                                ),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"),
+                                                true
+                                            ))
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
                     .then(Commands.literal("scanStatus")
                         .executes(context -> {
                             context.getSource().sendSuccess(
@@ -1855,6 +1957,60 @@ public class CommandEvents {
                 : "") +
             " groupedCount=" + finalCount +
             " (run /testmod poiStage1 to ingest into POI map)"
+        ), false);
+
+        return 1;
+    }
+
+    private static int handleDirectCenteredScan(
+        CommandContext<CommandSourceStack> context,
+        String mode,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        Map<String, SteveAiCollectors.SeenSummary> blocks = Map.of();
+        Map<String, SteveAiCollectors.SeenSummary> entities = Map.of();
+        Map<String, SteveAiCollectors.SeenSummary> blockEntities = Map.of();
+
+        try {
+            switch (mode) {
+                case "scanB" -> blocks = SteveAiScanManager.scanB(serverLevel, center, chunkRadius, forceLoad);
+                case "scanE" -> entities = SteveAiScanManager.scanE(serverLevel, center, chunkRadius, forceLoad);
+                case "scanBE" -> blockEntities = SteveAiScanManager.scanBE(serverLevel, center, chunkRadius, forceLoad);
+                default -> {
+                    source.sendFailure(Component.literal("Unknown direct scan mode: " + mode));
+                    return 0;
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        SteveAiScanManager.replaceScanResults(
+            mode.toLowerCase(Locale.ROOT),
+            chunkRadius,
+            center,
+            serverLevel.getGameTime(),
+            blocks,
+            entities,
+            blockEntities
+        );
+
+        int groupedCount = blocks.size() + entities.size() + blockEntities.size();
+        source.sendSuccess(() -> Component.literal(
+            mode + " complete: center=" + center.toShortString()
+                + " chunkRadius=" + chunkRadius
+                + " forceLoad=" + forceLoad
+                + " groupedCount=" + groupedCount
         ), false);
 
         return 1;
