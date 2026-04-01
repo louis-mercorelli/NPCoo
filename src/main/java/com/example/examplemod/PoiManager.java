@@ -67,6 +67,18 @@ public class PoiManager {
             return hasBlockEvidence;
         }
 
+        public void mergeFrom(Poi other) {
+            if (other == null) {
+                return;
+            }
+
+            this.evidence.addAll(other.evidence);
+            this.seenPositions.addAll(other.seenPositions);
+            this.hasBlockEvidence = this.hasBlockEvidence || other.hasBlockEvidence;
+            this.count = this.seenPositions.size();
+            recomputeCenter();
+        }
+
         private void recomputeCenter() {
             long sumX = 0;
             long sumY = 0;
@@ -122,7 +134,7 @@ public class PoiManager {
 
     private static final List<Poi> pois = new ArrayList<>();
 
-    // Village personality options — assigned when a village reaches high/very_high confidence.
+    // Village personality options — assigned only after stage2 confirmation.
     // Persists across PoiManager.clear() calls and is saved/loaded from disk.
     private static final String[] PERSONALITY_OPTIONS = {
         "scooby_doo",
@@ -152,34 +164,88 @@ public class PoiManager {
     private static final int UNDERGROUND_BED_CLUSTER_MIN_POSITIONS = 5; // proxy for "beds > 4"
 
     public static boolean processBlockEntity(String typeName, BlockPos pos) {
+        return processBlockEntity(typeName, pos, true);
+    }
+
+    public static boolean processBlockEntity(String typeName, BlockPos pos, boolean allowMerge) {
         String normalized = normalizeEvidence(typeName);
         String poiType = mapToPoi(normalized);
         if (poiType == null) return false;
 
-        return addOrMerge(poiType, pos, normalized, false);
+        return addOrMerge(poiType, pos, normalized, false, allowMerge);
     }
 
     public static boolean processEntity(String typeName, BlockPos pos) {
+        return processEntity(typeName, pos, true);
+    }
+
+    public static boolean processEntity(String typeName, BlockPos pos, boolean allowMerge) {
         String normalized = normalizeEvidence(typeName);
         String poiType = mapToPoi(normalized);
         if (poiType == null) return false;
 
-        return addOrMerge(poiType, pos, normalized, false);
+        return addOrMerge(poiType, pos, normalized, false, allowMerge);
     }
 
     public static boolean processBlock(String typeName, BlockPos pos) {
+        return processBlock(typeName, pos, true);
+    }
+
+    public static boolean processBlock(String typeName, BlockPos pos, boolean allowMerge) {
         String normalized = normalizeEvidence(typeName);
         String poiType = mapToPoi(normalized);
         if (poiType == null) return false;
 
-        return addOrMerge(poiType, pos, normalized, true);
+        return addOrMerge(poiType, pos, normalized, true, allowMerge);
     }
 
     public static int ingestFastScanSummaries(
         Map<String, SteveAiCollectors.SeenSummary> scannedEntities,
         Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities
     ) {
-        return ingestScanSummaries(Map.of(), scannedEntities, scannedBlockEntities);
+        int updates = 0;
+
+        if (scannedBlockEntities != null) {
+            for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedBlockEntities.entrySet()) {
+                String typeName = entry.getKey();
+                SteveAiCollectors.SeenSummary summary = entry.getValue();
+                if (summary == null) continue;
+
+                if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                    for (BlockPos pos : summary.allLocations) {
+                        if (processBlockEntity(typeName, pos, false)) {
+                            updates++;
+                        }
+                    }
+                } else {
+                    if (processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z), false)) {
+                        updates++;
+                    }
+                }
+            }
+        }
+
+        if (scannedEntities != null) {
+            for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedEntities.entrySet()) {
+                String typeName = entry.getKey();
+                SteveAiCollectors.SeenSummary summary = entry.getValue();
+                if (summary == null) continue;
+
+                if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                    for (BlockPos pos : summary.allLocations) {
+                        if (processEntity(typeName, pos, false)) {
+                            updates++;
+                        }
+                    }
+                } else {
+                    if (processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z), false)) {
+                        updates++;
+                    }
+                }
+            }
+        }
+
+        return updates;
     }
 
     public static int ingestScanSummaries(
@@ -197,12 +263,12 @@ public class PoiManager {
 
                 if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
                     for (BlockPos pos : summary.allLocations) {
-                        if (processBlock(typeName, pos)) {
+                        if (processBlock(typeName, pos, true)) {
                             updates++;
                         }
                     }
                 } else {
-                    if (processBlock(typeName, new BlockPos(summary.x, summary.y, summary.z))) {
+                    if (processBlock(typeName, new BlockPos(summary.x, summary.y, summary.z), true)) {
                         updates++;
                     }
                 }
@@ -217,12 +283,12 @@ public class PoiManager {
 
                 if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
                     for (BlockPos pos : summary.allLocations) {
-                        if (processBlockEntity(typeName, pos)) {
+                        if (processBlockEntity(typeName, pos, true)) {
                             updates++;
                         }
                     }
                 } else {
-                    if (processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z))) {
+                    if (processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z), true)) {
                         updates++;
                     }
                 }
@@ -237,17 +303,19 @@ public class PoiManager {
 
                 if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
                     for (BlockPos pos : summary.allLocations) {
-                        if (processEntity(typeName, pos)) {
+                        if (processEntity(typeName, pos, true)) {
                             updates++;
                         }
                     }
                 } else {
-                    if (processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z))) {
+                    if (processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z), true)) {
                         updates++;
                     }
                 }
             }
         }
+
+        updates += consolidateStage2Duplicates();
 
         return updates;
     }
@@ -383,7 +451,12 @@ public class PoiManager {
         };
     }
 
-    private static boolean addOrMerge(String type, BlockPos pos, String evidence, boolean isBlockEvidence) {
+    private static boolean addOrMerge(String type, BlockPos pos, String evidence, boolean isBlockEvidence, boolean allowMerge) {
+        if (!allowMerge) {
+            pois.add(new Poi(type, pos, evidence, isBlockEvidence));
+            return true;
+        }
+
         Poi best = null;
         double bestDist = Double.MAX_VALUE;
 
@@ -404,6 +477,50 @@ public class PoiManager {
 
         pois.add(new Poi(type, pos, evidence, isBlockEvidence));
         return true;
+    }
+
+    private static int consolidateStage2Duplicates() {
+        int removed = 0;
+        boolean merged;
+
+        do {
+            merged = false;
+
+            for (int i = 0; i < pois.size(); i++) {
+                Poi a = pois.get(i);
+                for (int j = i + 1; j < pois.size(); j++) {
+                    Poi b = pois.get(j);
+                    if (!a.type.equals(b.type)) continue;
+
+                    int mergeDistance = Math.max(getPoiMergeDistance(a), getPoiMergeDistance(b));
+                    double dist = a.center.distSqr(b.center);
+                    if (dist <= (double) mergeDistance * mergeDistance) {
+                        a.mergeFrom(b);
+                        pois.remove(j);
+                        removed++;
+                        merged = true;
+                        break;
+                    }
+                }
+
+                if (merged) {
+                    break;
+                }
+            }
+        } while (merged);
+
+        return removed;
+    }
+
+    private static int getPoiMergeDistance(Poi poi) {
+        int maxDistance = 20;
+        for (String evidence : poi.evidence) {
+            int candidate = getMergeDistance(poi.type, evidence);
+            if (candidate > maxDistance) {
+                maxDistance = candidate;
+            }
+        }
+        return maxDistance;
     }
 
     private static boolean hasAnyVillageWorkstation(Poi poi) {
@@ -505,7 +622,8 @@ public class PoiManager {
             String stage = poi.isConfirmed() ? "confirmed" : "candidate";
 
             String personalityPart = "";
-            if ("village".equals(finalType)
+            if (poi.isConfirmed()
+                    && "village".equals(finalType)
                     && ("high".equals(confidence) || "very_high".equals(confidence))) {
                 VillageAssignment assignment = getOrAssignVillageAssignment(poi);
                 // Keep personality locked, but pick a fresh scene each summary rebuild.

@@ -733,8 +733,9 @@ public class CommandEvents {
             return;
         }
 
-        maybeStartPeriodicScan(server);
-        processPeriodicScanQueue();
+        // Temporarily disable automatic periodic scan loop from server tick.
+        // maybeStartPeriodicScan(server);
+        // processPeriodicScanQueue();
     }
 
     private static void maybeStartPeriodicScan(net.minecraft.server.MinecraftServer server) {
@@ -1878,27 +1879,42 @@ public class CommandEvents {
             return 0;
         }
 
-        java.util.List<BlockPos> candidates = PoiManager.getCandidateCenters(limit);
+        java.util.List<BlockPos> candidates = PoiManager.getCandidateCenters(0);
         if (candidates.isEmpty()) {
             source.sendSuccess(() -> Component.literal("No POI candidates to confirm."), false);
             return 1;
         }
 
+        Map<Long, BlockPos> candidateChunks = new LinkedHashMap<>();
+        for (BlockPos candidate : candidates) {
+            int chunkX = candidate.getX() >> 4;
+            int chunkZ = candidate.getZ() >> 4;
+            long chunkKey = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
+            candidateChunks.putIfAbsent(chunkKey, candidate);
+            if (candidateChunks.size() >= limit) {
+                break;
+            }
+        }
+
         int scannedChunks = 0;
         int poiUpdates = 0;
 
-        for (BlockPos candidate : candidates) {
-            SteveAiScanManager.scanSAI2(serverLevel, candidate, false);
+        for (BlockPos candidateChunkCenter : candidateChunks.values()) {
+            SteveAiScanManager.scanSAI2(serverLevel, candidateChunkCenter, false);
             poiUpdates += SteveAiScanManager.updatePoiMapFromCurrentScan();
             scannedChunks++;
         }
 
         int poiCount = PoiManager.getPoiCount();
+        int candidateCount = candidates.size();
+        int uniqueChunkCount = candidateChunks.size();
         int scannedChunksFinal = scannedChunks;
         int poiUpdatesFinal = poiUpdates;
         int poiCountFinal = poiCount;
         source.sendSuccess(() -> Component.literal(
-            "POI stage2 confirmation complete: candidatesScanned=" + scannedChunksFinal
+            "POI stage2 confirmation complete: candidates=" + candidateCount
+                + " candidateChunks=" + uniqueChunkCount
+                + " chunksScanned=" + scannedChunksFinal
                 + " updates=" + poiUpdatesFinal
                 + " totalPois=" + poiCountFinal
         ), false);
