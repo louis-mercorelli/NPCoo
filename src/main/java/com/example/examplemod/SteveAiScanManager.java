@@ -33,6 +33,39 @@ public class SteveAiScanManager {
     private static BlockPos lastDetailCenter = null;
     private static long lastDetailGameTime = 0L;
 
+    private static final Map<Long, ChunkScanResult> chunkScanResults = new LinkedHashMap<>();
+
+    public static final class ChunkScanResult {
+        public final BlockPos requestedPos;
+        public final int chunkX;
+        public final int chunkZ;
+        public final boolean chunkWasLoaded;
+        public final long scanGameTime;
+        public final Map<String, SteveAiCollectors.SeenSummary> blocks;
+        public final Map<String, SteveAiCollectors.SeenSummary> entities;
+        public final Map<String, SteveAiCollectors.SeenSummary> blockEntities;
+
+        public ChunkScanResult(
+            BlockPos requestedPos,
+            int chunkX,
+            int chunkZ,
+            boolean chunkWasLoaded,
+            long scanGameTime,
+            Map<String, SteveAiCollectors.SeenSummary> blocks,
+            Map<String, SteveAiCollectors.SeenSummary> entities,
+            Map<String, SteveAiCollectors.SeenSummary> blockEntities
+        ) {
+            this.requestedPos = requestedPos == null ? null : requestedPos.immutable();
+            this.chunkX = chunkX;
+            this.chunkZ = chunkZ;
+            this.chunkWasLoaded = chunkWasLoaded;
+            this.scanGameTime = scanGameTime;
+            this.blocks = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(blocks == null ? Map.of() : blocks));
+            this.entities = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(entities == null ? Map.of() : entities));
+            this.blockEntities = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(blockEntities == null ? Map.of() : blockEntities));
+        }
+    }
+
     public static class ScanFilterTargets {
         public final java.util.Set<String> blockIds = new java.util.LinkedHashSet<>();
         public final java.util.Set<String> entityIds = new java.util.LinkedHashSet<>();
@@ -58,6 +91,7 @@ public class SteveAiScanManager {
         lastDetailRadius = 0;
         lastDetailCenter = null;
         lastDetailGameTime = 0L;
+        chunkScanResults.clear();
     }
 
     private static void clearScannedMapsOnly() {
@@ -102,8 +136,6 @@ public class SteveAiScanManager {
             lastScanType = trimmedInput.toLowerCase(java.util.Locale.ROOT);
             runLegacyScan(serverLevel, steveAiEntity, trimmedInput, blockRadius);
         }
-
-        rebuildPoisFromCurrentScan();
     }
 
     public static void detailSAI(ServerLevel serverLevel, BlockPos center, int radiusBlocks) {
@@ -132,6 +164,91 @@ public class SteveAiScanManager {
         lastDetailCenter = center.immutable();
         lastDetailRadius = radiusBlocks;
         lastDetailGameTime = serverLevel.getGameTime();
+    }
+
+    public static ChunkScanResult scanSAI2(ServerLevel serverLevel, BlockPos blockPos, boolean useCache) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (blockPos == null) {
+            throw new IllegalArgumentException("blockPos is null");
+        }
+
+        int chunkX = blockPos.getX() >> 4;
+        int chunkZ = blockPos.getZ() >> 4;
+
+        if (useCache) {
+            ChunkScanResult cached = chunkScanResults.get(chunkKey(chunkX, chunkZ));
+            if (cached != null) {
+                return cached;
+            }
+        }
+
+        boolean chunkWasLoaded = serverLevel.getChunkSource().getChunkNow(chunkX, chunkZ) != null;
+        serverLevel.getChunk(chunkX, chunkZ);
+
+        int minX = chunkX << 4;
+        int minZ = chunkZ << 4;
+        int maxX = minX + 15;
+        int maxZ = minZ + 15;
+        int yMin = serverLevel.getMinY();
+        int yMax = serverLevel.getMaxY();
+        int yCenter = (yMin + yMax) / 2;
+        int yRadius = Math.max(yCenter - yMin, yMax - yCenter);
+
+        Map<String, SteveAiCollectors.SeenSummary> blocks = SteveAiCollectors.collectBlocksInTile(
+            serverLevel,
+            minX,
+            minZ,
+            maxX,
+            maxZ,
+            yMin,
+            yMax,
+            null
+        );
+
+        Map<String, SteveAiCollectors.SeenSummary> entities = SteveAiCollectors.collectEntitiesInTile(
+            serverLevel,
+            minX,
+            minZ,
+            maxX,
+            maxZ,
+            yCenter,
+            yRadius
+        );
+
+        Map<String, SteveAiCollectors.SeenSummary> blockEntities = SteveAiCollectors.collectBlockEntitiesInTile(
+            serverLevel,
+            minX,
+            minZ,
+            maxX,
+            maxZ,
+            yMin,
+            yMax
+        );
+
+        long scanGameTime = serverLevel.getGameTime();
+        ChunkScanResult result = new ChunkScanResult(
+            blockPos,
+            chunkX,
+            chunkZ,
+            chunkWasLoaded,
+            scanGameTime,
+            blocks,
+            entities,
+            blockEntities
+        );
+
+        scannedBlocks = new LinkedHashMap<>(blocks);
+        scannedEntities = new LinkedHashMap<>(entities);
+        scannedBlockEntities = new LinkedHashMap<>(blockEntities);
+        lastScanType = "chunk";
+        lastScanChunkRadius = 1;
+        lastScanCenter = blockPos.immutable();
+        lastScanGameTime = scanGameTime;
+
+        chunkScanResults.put(chunkKey(chunkX, chunkZ), result);
+        return result;
     }
 
     private static boolean looksLikeTargetList(String rawInput) {
@@ -438,34 +555,12 @@ public class SteveAiScanManager {
         );
     }
 
-    private static void rebuildPoisFromCurrentScan() {
-        PoiManager.clear();
+    public static int updatePoiMapFromCurrentScan() {
+        return PoiManager.ingestScanSummaries(scannedBlocks, scannedEntities, scannedBlockEntities);
+    }
 
-        for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedBlockEntities.entrySet()) {
-            String typeName = entry.getKey();
-            SteveAiCollectors.SeenSummary summary = entry.getValue();
-
-            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
-                for (BlockPos pos : summary.allLocations) {
-                    PoiManager.processBlockEntity(typeName, pos);
-                }
-            } else {
-                PoiManager.processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
-            }
-        }
-
-        for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedEntities.entrySet()) {
-            String typeName = entry.getKey();
-            SteveAiCollectors.SeenSummary summary = entry.getValue();
-
-            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
-                for (BlockPos pos : summary.allLocations) {
-                    PoiManager.processEntity(typeName, pos);
-                }
-            } else {
-                PoiManager.processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
-            }
-        }
+    public static int updatePoiMapFromCurrentScanFast() {
+        return PoiManager.ingestFastScanSummaries(scannedEntities, scannedBlockEntities);
     }
 
     public static void replaceScanResults(
@@ -484,11 +579,18 @@ public class SteveAiScanManager {
         scannedBlocks = new LinkedHashMap<>(blocks == null ? Map.of() : blocks);
         scannedEntities = new LinkedHashMap<>(entities == null ? Map.of() : entities);
         scannedBlockEntities = new LinkedHashMap<>(blockEntities == null ? Map.of() : blockEntities);
-        rebuildPoisFromCurrentScan();
     }
 
     public static Map<String, SteveAiCollectors.SeenSummary> getScannedBlocks() {
         return scannedBlocks;
+    }
+
+    public static ChunkScanResult getChunkScanResult(int chunkX, int chunkZ) {
+        return chunkScanResults.get(chunkKey(chunkX, chunkZ));
+    }
+
+    public static Map<Long, ChunkScanResult> getChunkScanResults() {
+        return java.util.Collections.unmodifiableMap(chunkScanResults);
     }
 
     public static Map<String, SteveAiCollectors.SeenSummary> getScannedEntities() {
@@ -676,5 +778,9 @@ public class SteveAiScanManager {
 
     private static String blankIfNeeded(String value) {
         return (value == null || value.isBlank()) ? "(blank)" : value;
+    }
+
+    private static long chunkKey(int chunkX, int chunkZ) {
+        return ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
     }
 }

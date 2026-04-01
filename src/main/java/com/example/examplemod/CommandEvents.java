@@ -231,6 +231,33 @@ public class CommandEvents {
                             return 1;
                         })
                     )
+                    .then(Commands.literal("poiStage1")
+                        .executes(CommandEvents::handlePoiUpdate)
+                    )
+                    .then(Commands.literal("poiUpdate")
+                        .executes(CommandEvents::handlePoiUpdate)
+                    )
+                    .then(Commands.literal("poiStage2")
+                        .executes(ctx -> handlePoiConfirmCandidates(ctx, 10))
+                        .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                            .executes(ctx -> handlePoiConfirmCandidates(
+                                ctx,
+                                IntegerArgumentType.getInteger(ctx, "limit")
+                            ))
+                        )
+                    )
+                    .then(Commands.literal("poiConfirmCandidates")
+                        .executes(ctx -> handlePoiConfirmCandidates(ctx, 10))
+                        .then(Commands.argument("limit", IntegerArgumentType.integer(1))
+                            .executes(ctx -> handlePoiConfirmCandidates(
+                                ctx,
+                                IntegerArgumentType.getInteger(ctx, "limit")
+                            ))
+                        )
+                    )
+                    .then(Commands.literal("poiReset")
+                        .executes(CommandEvents::handlePoiReset)
+                    )
                     .then(Commands.literal("writeT")
                         .executes(context -> {
                             try {
@@ -1069,7 +1096,7 @@ public class CommandEvents {
             }
             case SUMMARY -> {
                 sendScanStatusToTrackedPlayer(String.format(
-                    "[SAI] scan#%d 5/5 SUMMARY: rebuilding POI + writing full %d-chunk files",
+                    "[SAI] scan#%d 5/5 SUMMARY: ingesting POI + writing full %d-chunk files",
                     periodicScanCycleCount,
                     PERIODIC_SCAN_CHUNK_RADIUS
                 ));
@@ -1337,7 +1364,7 @@ public class CommandEvents {
             " center=" + exploreCenter.getX() + "," + exploreCenter.getY() + "," + exploreCenter.getZ() +
             " radius=" + exploreRadius +
             " target=" + (currentExploreTarget == null ? "none" : currentExploreTarget.toShortString())
-        ), false);
+        ), false); 
 
         return 1;
     }
@@ -1510,33 +1537,7 @@ public class CommandEvents {
             LOGGER.warn("[WRITE DEBUG] Could not load village personalities file", ex);
         }
 
-        PoiManager.clear();
-
-        for (var entry : groupedBlockEntities.entrySet()) {
-            String typeName = entry.getKey();
-            SteveAiCollectors.SeenSummary summary = entry.getValue();
-
-            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
-                for (BlockPos pos : summary.allLocations) {
-                    PoiManager.processBlockEntity(typeName, pos);
-                }
-            } else {
-                PoiManager.processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
-            }
-        }
-
-        for (var entry : groupedEntities.entrySet()) {
-            String typeName = entry.getKey();
-            SteveAiCollectors.SeenSummary summary = entry.getValue();
-
-            if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
-                for (BlockPos pos : summary.allLocations) {
-                    PoiManager.processEntity(typeName, pos);
-                }
-            } else {
-                PoiManager.processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z));
-            }
-        }
+        PoiManager.ingestScanSummaries(Map.of(), groupedEntities, groupedBlockEntities);
 
         BlockPos center = steveAi.blockPosition();
         java.util.List<String> summaryLines = new java.util.ArrayList<>();
@@ -1675,16 +1676,19 @@ public class CommandEvents {
                 groupedBlockEntities
             );
 
+            int poiUpdates = SteveAiScanManager.updatePoiMapFromCurrentScanFast();
+
             Path playerDataDir = SteveAiScanManager.writeTextFiles(serverLevel, playerUuid.toString());
             PoiManager.savePersonalitiesToFile(playerDataDir.resolve("village_personalities.txt"));
 
             String writeMsg = String.format(
-                "[testmod] SteveAI full %d-chunk files written %s blocks=%d entities=%d blockEntities=%d",
+                "[testmod] SteveAI full %d-chunk files written %s blocks=%d entities=%d blockEntities=%d poiUpdates=%d",
                 PERIODIC_SCAN_CHUNK_RADIUS,
                 scanTs(),
                 groupedBlocks.size(),
                 groupedEntities.size(),
-                groupedBlockEntities.size()
+                groupedBlockEntities.size(),
+                poiUpdates
             );
             sendStatusToPlayer(playerUuid, writeMsg);
         } catch (IOException e) {
@@ -1832,9 +1836,63 @@ public class CommandEvents {
         source.sendSuccess(() -> Component.literal(
             "SteveAI scan complete: input=" + normalizedInput +
             " chunkRadius=" + chunkRadius +
-            " groupedCount=" + finalCount
+            " groupedCount=" + finalCount +
+            " (run /testmod poiStage1 to ingest into POI map)"
         ), false);
 
+        return 1;
+    }
+
+    private static int handlePoiUpdate(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        int updates = SteveAiScanManager.updatePoiMapFromCurrentScanFast();
+        int poiCount = PoiManager.getPoiCount();
+
+        source.sendSuccess(() -> Component.literal(
+            "POI map updated from current scan (fast E+BE stage): updates=" + updates + " totalPois=" + poiCount
+        ), false);
+        return 1;
+    }
+
+    private static int handlePoiConfirmCandidates(CommandContext<CommandSourceStack> context, int limit) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        java.util.List<BlockPos> candidates = PoiManager.getCandidateCenters(limit);
+        if (candidates.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("No POI candidates to confirm."), false);
+            return 1;
+        }
+
+        int scannedChunks = 0;
+        int poiUpdates = 0;
+
+        for (BlockPos candidate : candidates) {
+            SteveAiScanManager.scanSAI2(serverLevel, candidate, false);
+            poiUpdates += SteveAiScanManager.updatePoiMapFromCurrentScan();
+            scannedChunks++;
+        }
+
+        int poiCount = PoiManager.getPoiCount();
+        int scannedChunksFinal = scannedChunks;
+        int poiUpdatesFinal = poiUpdates;
+        int poiCountFinal = poiCount;
+        source.sendSuccess(() -> Component.literal(
+            "POI stage2 confirmation complete: candidatesScanned=" + scannedChunksFinal
+                + " updates=" + poiUpdatesFinal
+                + " totalPois=" + poiCountFinal
+        ), false);
+        return 1;
+    }
+
+    private static int handlePoiReset(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+        PoiManager.clear();
+        source.sendSuccess(() -> Component.literal("POI map reset: totalPois=0"), false);
         return 1;
     }
 

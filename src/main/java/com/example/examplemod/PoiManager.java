@@ -22,20 +22,36 @@ public class PoiManager {
         public Set<String> evidence = new HashSet<>();
         public int count = 0;
         public Set<BlockPos> seenPositions = new HashSet<>();
+        public boolean hasBlockEvidence = false;
 
         public Poi(String type, BlockPos pos, String evidenceType) {
+            this(type, pos, evidenceType, false);
+        }
+
+        public Poi(String type, BlockPos pos, String evidenceType, boolean isBlockEvidence) {
             this.type = type;
             this.center = pos.immutable();
             this.evidence.add(evidenceType);
             this.count = 1;
             this.seenPositions.add(pos.immutable());
+            this.hasBlockEvidence = isBlockEvidence;
         }
 
         public boolean add(BlockPos pos, String evidenceType) {
+            return add(pos, evidenceType, false);
+        }
+
+        public boolean add(BlockPos pos, String evidenceType, boolean isBlockEvidence) {
             boolean newEvidence = this.evidence.add(evidenceType);
             boolean newPosition = this.seenPositions.add(pos.immutable());
+            boolean confirmationChanged = false;
 
-            if (!newEvidence && !newPosition) {
+            if (isBlockEvidence && !this.hasBlockEvidence) {
+                this.hasBlockEvidence = true;
+                confirmationChanged = true;
+            }
+
+            if (!newEvidence && !newPosition && !confirmationChanged) {
                 return false;
             }
 
@@ -45,6 +61,10 @@ public class PoiManager {
             }
 
             return true;
+        }
+
+        public boolean isConfirmed() {
+            return hasBlockEvidence;
         }
 
         private void recomputeCenter() {
@@ -64,6 +84,39 @@ public class PoiManager {
                 (int) Math.round((double) sumY / n),
                 (int) Math.round((double) sumZ / n)
             );
+        }
+
+        public int[] getBounds() {
+            int minX = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            int maxZ = Integer.MIN_VALUE;
+
+            for (BlockPos p : seenPositions) {
+                int x = p.getX();
+                int y = p.getY();
+                int z = p.getZ();
+
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+                if (z < minZ) minZ = z;
+                if (z > maxZ) maxZ = z;
+            }
+
+            if (seenPositions.isEmpty()) {
+                minX = center.getX();
+                maxX = center.getX();
+                minY = center.getY();
+                maxY = center.getY();
+                minZ = center.getZ();
+                maxZ = center.getZ();
+            }
+
+            return new int[] {minX, maxX, minY, maxY, minZ, maxZ};
         }
     }
 
@@ -103,7 +156,7 @@ public class PoiManager {
         String poiType = mapToPoi(normalized);
         if (poiType == null) return false;
 
-        return addOrMerge(poiType, pos, normalized);
+        return addOrMerge(poiType, pos, normalized, false);
     }
 
     public static boolean processEntity(String typeName, BlockPos pos) {
@@ -111,27 +164,108 @@ public class PoiManager {
         String poiType = mapToPoi(normalized);
         if (poiType == null) return false;
 
-        return addOrMerge(poiType, pos, normalized);
+        return addOrMerge(poiType, pos, normalized, false);
+    }
+
+    public static boolean processBlock(String typeName, BlockPos pos) {
+        String normalized = normalizeEvidence(typeName);
+        String poiType = mapToPoi(normalized);
+        if (poiType == null) return false;
+
+        return addOrMerge(poiType, pos, normalized, true);
+    }
+
+    public static int ingestFastScanSummaries(
+        Map<String, SteveAiCollectors.SeenSummary> scannedEntities,
+        Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities
+    ) {
+        return ingestScanSummaries(Map.of(), scannedEntities, scannedBlockEntities);
+    }
+
+    public static int ingestScanSummaries(
+        Map<String, SteveAiCollectors.SeenSummary> scannedBlocks,
+        Map<String, SteveAiCollectors.SeenSummary> scannedEntities,
+        Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities
+    ) {
+        int updates = 0;
+
+        if (scannedBlocks != null) {
+            for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedBlocks.entrySet()) {
+                String typeName = entry.getKey();
+                SteveAiCollectors.SeenSummary summary = entry.getValue();
+                if (summary == null) continue;
+
+                if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                    for (BlockPos pos : summary.allLocations) {
+                        if (processBlock(typeName, pos)) {
+                            updates++;
+                        }
+                    }
+                } else {
+                    if (processBlock(typeName, new BlockPos(summary.x, summary.y, summary.z))) {
+                        updates++;
+                    }
+                }
+            }
+        }
+
+        if (scannedBlockEntities != null) {
+            for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedBlockEntities.entrySet()) {
+                String typeName = entry.getKey();
+                SteveAiCollectors.SeenSummary summary = entry.getValue();
+                if (summary == null) continue;
+
+                if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                    for (BlockPos pos : summary.allLocations) {
+                        if (processBlockEntity(typeName, pos)) {
+                            updates++;
+                        }
+                    }
+                } else {
+                    if (processBlockEntity(typeName, new BlockPos(summary.x, summary.y, summary.z))) {
+                        updates++;
+                    }
+                }
+            }
+        }
+
+        if (scannedEntities != null) {
+            for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : scannedEntities.entrySet()) {
+                String typeName = entry.getKey();
+                SteveAiCollectors.SeenSummary summary = entry.getValue();
+                if (summary == null) continue;
+
+                if (summary.allLocations != null && !summary.allLocations.isEmpty()) {
+                    for (BlockPos pos : summary.allLocations) {
+                        if (processEntity(typeName, pos)) {
+                            updates++;
+                        }
+                    }
+                } else {
+                    if (processEntity(typeName, new BlockPos(summary.x, summary.y, summary.z))) {
+                        updates++;
+                    }
+                }
+            }
+        }
+
+        return updates;
     }
 
     private static String normalizeEvidence(String type) {
         if (type == null) return "";
 
-        return switch (type) {
-            case "entity.minecraft.villager" -> "minecraft:villager";
-            case "entity.minecraft.iron_golem" -> "minecraft:iron_golem";
-            case "entity.minecraft.cat" -> "minecraft:cat";
-            case "entity.minecraft.blaze" -> "minecraft:blaze";
-            case "entity.minecraft.wither_skeleton" -> "minecraft:wither_skeleton";
-            case "entity.minecraft.piglin" -> "minecraft:piglin";
-            case "entity.minecraft.piglin_brute" -> "minecraft:piglin_brute";
-            case "entity.minecraft.silverfish" -> "minecraft:silverfish";
-            case "entity.minecraft.shulker" -> "minecraft:shulker";
-            case "entity.minecraft.witch" -> "minecraft:witch";
-            case "entity.minecraft.warden" -> "minecraft:warden";
-            case "entity.minecraft.drowned" -> "minecraft:drowned";
-            default -> type;
-        };
+        if (type.startsWith("entity.minecraft.")) {
+            return "minecraft:" + type.substring("entity.minecraft.".length());
+        }
+        if (type.startsWith("block.minecraft.")) {
+            return "minecraft:" + type.substring("block.minecraft.".length());
+        }
+        if (type.startsWith("block_entity.minecraft.")) {
+            return "minecraft:" + type.substring("block_entity.minecraft.".length());
+        }
+
+        return type;
     }
 
     private static String mapToPoi(String type) {
@@ -249,7 +383,7 @@ public class PoiManager {
         };
     }
 
-    private static boolean addOrMerge(String type, BlockPos pos, String evidence) {
+    private static boolean addOrMerge(String type, BlockPos pos, String evidence, boolean isBlockEvidence) {
         Poi best = null;
         double bestDist = Double.MAX_VALUE;
 
@@ -265,10 +399,10 @@ public class PoiManager {
         }
 
         if (best != null) {
-            return best.add(pos, evidence);
+            return best.add(pos, evidence, isBlockEvidence);
         }
 
-        pois.add(new Poi(type, pos, evidence));
+        pois.add(new Poi(type, pos, evidence, isBlockEvidence));
         return true;
     }
 
@@ -367,6 +501,8 @@ public class PoiManager {
         for (Poi poi : pois) {
             String finalType = classifyPoiType(poi);
             String confidence = getConfidence(poi, finalType);
+            int[] bounds = poi.getBounds();
+            String stage = poi.isConfirmed() ? "confirmed" : "candidate";
 
             String personalityPart = "";
             if ("village".equals(finalType)
@@ -381,11 +517,18 @@ public class PoiManager {
             }
 
             lines.add(String.format(
-                "%s loc=(%d,%d,%d) evidence=%s count=%d confidence=%s%s",
+                "%s status=%s loc=(%d,%d,%d) bounds=(xmin=%d,xmax=%d,ymin=%d,ymax=%d,zmin=%d,zmax=%d) evidence=%s count=%d confidence=%s%s",
                 finalType,
+                stage,
                 poi.center.getX(),
                 poi.center.getY(),
                 poi.center.getZ(),
+                bounds[0],
+                bounds[1],
+                bounds[2],
+                bounds[3],
+                bounds[4],
+                bounds[5],
                 String.join(",", new java.util.TreeSet<>(poi.evidence)),
                 poi.count,
                 confidence,
@@ -790,6 +933,27 @@ public class PoiManager {
 
     public static void clear() {
         pois.clear();
+    }
+
+    public static int getPoiCount() {
+        return pois.size();
+    }
+
+    public static List<BlockPos> getCandidateCenters(int maxCount) {
+        List<BlockPos> out = new ArrayList<>();
+        int limit = maxCount <= 0 ? Integer.MAX_VALUE : maxCount;
+
+        for (Poi poi : pois) {
+            if (poi.isConfirmed()) {
+                continue;
+            }
+            out.add(poi.center.immutable());
+            if (out.size() >= limit) {
+                break;
+            }
+        }
+
+        return out;
     }
 
     public static BlockPos findNearestPoiCenter(String type, BlockPos fromPos) {
