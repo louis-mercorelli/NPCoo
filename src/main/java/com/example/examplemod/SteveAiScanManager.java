@@ -6,219 +6,219 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code ChunkScanResult(...)}:
- *    Purpose: Constructs ChunkScanResult.
+ *    Purpose: Captures the results and metadata for a single chunk-centered scan request.
  *    Input: BlockPos requestedPos, int chunkX, int chunkZ, boolean chunkWasLoaded, long scanGameTime, Map<String, SteveAiCollectors.SeenSummary> blocks, Map<String, SteveAiCollectors.SeenSummary> entities, Map<String, SteveAiCollectors.SeenSummary> blockEntities.
  *    Output: none (constructor).
  * 2) {@code isEmpty(...)}:
- *    Purpose: Checks whether is empty.
+ *    Purpose: Reports whether a filter target set contains no requested block, entity, or block-entity ids.
  *    Input: none.
  *    Output: boolean.
  * 3) {@code clear(...)}:
- *    Purpose: Performs clear.
+ *    Purpose: Resets all stored scan results, detail results, metadata, and cached chunk scan entries.
  *    Input: none.
  *    Output: void.
  * 4) {@code clearScannedMapsOnly(...)}:
- *    Purpose: Clears clear scanned maps only.
+ *    Purpose: Clears the grouped scan result maps and chunk cache while leaving detail scan state untouched.
  *    Input: none.
  *    Output: void.
  * 5) {@code clearDetailOnly(...)}:
- *    Purpose: Clears clear detail only.
+ *    Purpose: Clears detailed scan lists and their associated last-detail metadata.
  *    Input: none.
  *    Output: void.
  * 6) {@code scanSAI(...)}:
- *    Purpose: Scans scan sai.
+ *    Purpose: Runs the main SteveAI grouped scan flow based on the requested scan mode and radius.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, String rawInput, int chunkRadius.
  *    Output: void.
  * 7) {@code detailSAI(...)}:
- *    Purpose: Details detail sai.
+ *    Purpose: Performs a detailed block/entity/block-entity scan around a center point using block radius.
  *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
  *    Output: void.
  * 8) {@code scanSAI2(...)}:
- *    Purpose: Scans scan sai2.
+ *    Purpose: Scans one chunk region into a reusable chunk-level result object, optionally using cached data.
  *    Input: ServerLevel serverLevel, BlockPos blockPos, boolean useCache.
  *    Output: ChunkScanResult.
  * 9) {@code validateScanRadius(...)}:
- *    Purpose: Validates validate scan radius.
+ *    Purpose: Enforces configured scan radius limits and force-load constraints before scanning starts.
  *    Input: int chunkRadius, boolean forceLoad.
  *    Output: void.
  * 10) {@code forceLoadChunks(...)}:
- *    Purpose: Forces force load chunks.
+ *    Purpose: Ensures all chunks in the requested scan area are loaded before a force-load scan executes.
  *    Input: ServerLevel serverLevel, BlockPos center, int chunkRadius.
  *    Output: void.
  * 11) {@code scanE(...)}:
- *    Purpose: Scans scan e.
+ *    Purpose: Collects grouped nearby entity summaries within a chunk-radius search area.
  *    Input: ServerLevel serverLevel, BlockPos center, int chunkRadius, boolean forceLoad.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 12) {@code scanBE(...)}:
- *    Purpose: Scans scan be.
+ *    Purpose: Collects grouped nearby block-entity summaries within a chunk-radius search area.
  *    Input: ServerLevel serverLevel, BlockPos center, int chunkRadius, boolean forceLoad.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 13) {@code scanEInTile(...)}:
- *    Purpose: Scans scan ein tile.
+ *    Purpose: Scans entities inside one rectangular tile used by incremental or fast scanning.
  *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yCenter, int yRadius.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 14) {@code scanBEInTile(...)}:
- *    Purpose: Scans scan bein tile.
+ *    Purpose: Scans block entities inside one rectangular tile using explicit vertical bounds.
  *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yMin, int yMax.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 15) {@code scanB(...)}:
- *    Purpose: Scans scan b.
+ *    Purpose: Collects grouped nearby block summaries within a chunk-radius search area.
  *    Input: ServerLevel serverLevel, BlockPos center, int chunkRadius, boolean forceLoad.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 16) {@code scanSAIFast(...)}:
- *    Purpose: Scans scan saifast.
+ *    Purpose: Executes the optimized fast scan path that mixes detailed and quick chunk processing around SteveAI and the player.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, BlockPos playerPos, String rawScanInput, int chunkRadius.
  *    Output: void.
  * 17) {@code looksLikeTargetList(...)}:
- *    Purpose: Checks whether looks like target list.
+ *    Purpose: Detects whether the raw scan input is formatted as an explicit target list.
  *    Input: String rawInput.
  *    Output: boolean.
  * 18) {@code runLegacyScan(...)}:
- *    Purpose: Performs run legacy scan.
+ *    Purpose: Runs the legacy named scan modes that map to the older broad collection behaviors.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, String scanType, int blockRadius.
  *    Output: void.
  * 19) {@code runFilteredScan(...)}:
- *    Purpose: Performs run filtered scan.
+ *    Purpose: Runs a filtered scan using parsed explicit target ids and aliases.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, String rawInput, int blockRadius.
  *    Output: void.
  * 20) {@code parseTargetTokens(...)}:
- *    Purpose: Parses parse target tokens.
+ *    Purpose: Splits a raw target-list input string into normalized token entries.
  *    Input: String rawInput.
  *    Output: java.util.List<String>.
  * 21) {@code resolveFilterTargets(...)}:
- *    Purpose: Resolves resolve filter targets.
+ *    Purpose: Converts parsed target tokens into concrete block/entity/block-entity target sets.
  *    Input: java.util.List<String> tokens.
  *    Output: ScanFilterTargets.
  * 22) {@code resolveAlias(...)}:
- *    Purpose: Resolves resolve alias.
+ *    Purpose: Maps user-friendly aliases to canonical namespaced target ids.
  *    Input: String token.
  *    Output: String.
  * 23) {@code mapToClusteredText(...)}:
- *    Purpose: Maps map to clustered text.
+ *    Purpose: Serializes grouped seen-summary maps into readable clustered report text.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> map, String title.
  *    Output: String.
  * 24) {@code detailListToText(...)}:
- *    Purpose: Details detail list to text.
+ *    Purpose: Serializes detailed scan entries into readable line-based text.
  *    Input: List<SteveAiCollectors.DetailedEntry> entries, String title.
  *    Output: String.
  * 25) {@code splitIntoTouchingClusters(...)}:
- *    Purpose: Performs split into touching clusters.
+ *    Purpose: Groups positions into connected clusters based on touching-neighbor adjacency.
  *    Input: java.util.List<BlockPos> positions.
  *    Output: java.util.List<java.util.Set<BlockPos>>.
  * 26) {@code getTouchingNeighbors(...)}:
- *    Purpose: Returns get touching neighbors.
+ *    Purpose: Returns the orthogonally touching neighboring block positions for a source position.
  *    Input: BlockPos pos.
  *    Output: java.util.List<BlockPos>.
  * 27) {@code updatePoiMapFromCurrentScan(...)}:
- *    Purpose: Updates update poi map from current scan.
+ *    Purpose: Pushes the current grouped scan results into the POI manager using full ingestion.
  *    Input: none.
  *    Output: int.
  * 28) {@code updatePoiMapFromCurrentScanFast(...)}:
- *    Purpose: Updates update poi map from current scan fast.
+ *    Purpose: Pushes the current grouped scan results into the POI manager using fast ingestion.
  *    Input: none.
  *    Output: int.
  * 29) {@code replaceScanResults(...)}:
- *    Purpose: Performs replace scan results.
+ *    Purpose: Replaces all stored grouped scan state and metadata with externally supplied scan results.
  *    Input: String scanType, int chunkRadius, BlockPos center, long gameTime, Map<String, SteveAiCollectors.SeenSummary> blocks, Map<String, SteveAiCollectors.SeenSummary> entities, Map<String, SteveAiCollectors.SeenSummary> blockEntities.
  *    Output: void.
  * 30) {@code getScannedBlocks(...)}:
- *    Purpose: Returns get scanned blocks.
+ *    Purpose: Returns the current grouped block scan map.
  *    Input: none.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 31) {@code getChunkScanResult(...)}:
- *    Purpose: Returns get chunk scan result.
+ *    Purpose: Returns the cached chunk scan result for one chunk coordinate pair.
  *    Input: int chunkX, int chunkZ.
  *    Output: ChunkScanResult.
  * 32) {@code getChunkScanResults(...)}:
- *    Purpose: Returns get chunk scan results.
+ *    Purpose: Returns the full map of cached chunk scan results.
  *    Input: none.
  *    Output: Map<Long, ChunkScanResult>.
  * 33) {@code getScannedEntities(...)}:
- *    Purpose: Returns get scanned entities.
+ *    Purpose: Returns the current grouped entity scan map.
  *    Input: none.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 34) {@code getScannedBlockEntities(...)}:
- *    Purpose: Returns get scanned block entities.
+ *    Purpose: Returns the current grouped block-entity scan map.
  *    Input: none.
  *    Output: Map<String, SteveAiCollectors.SeenSummary>.
  * 35) {@code getDetailedBlocks(...)}:
- *    Purpose: Returns get detailed blocks.
+ *    Purpose: Returns the most recent detailed block scan entries.
  *    Input: none.
  *    Output: List<SteveAiCollectors.DetailedEntry>.
  * 36) {@code getDetailedEntities(...)}:
- *    Purpose: Returns get detailed entities.
+ *    Purpose: Returns the most recent detailed entity scan entries.
  *    Input: none.
  *    Output: List<SteveAiCollectors.DetailedEntry>.
  * 37) {@code getDetailedBlockEntities(...)}:
- *    Purpose: Returns get detailed block entities.
+ *    Purpose: Returns the most recent detailed block-entity scan entries.
  *    Input: none.
  *    Output: List<SteveAiCollectors.DetailedEntry>.
  * 38) {@code getLastScanChunkRadius(...)}:
- *    Purpose: Returns get last scan chunk radius.
+ *    Purpose: Returns the chunk radius used by the last grouped scan.
  *    Input: none.
  *    Output: int.
  * 39) {@code getLastScanType(...)}:
- *    Purpose: Returns get last scan type.
+ *    Purpose: Returns the normalized scan type recorded for the last grouped scan.
  *    Input: none.
  *    Output: String.
  * 40) {@code getLastScanCenter(...)}:
- *    Purpose: Returns get last scan center.
+ *    Purpose: Returns the center position used by the last grouped scan.
  *    Input: none.
  *    Output: BlockPos.
  * 41) {@code getLastScanGameTime(...)}:
- *    Purpose: Returns get last scan game time.
+ *    Purpose: Returns the game-time tick when the last grouped scan was stored.
  *    Input: none.
  *    Output: long.
  * 42) {@code getLastDetailRadius(...)}:
- *    Purpose: Returns get last detail radius.
+ *    Purpose: Returns the radius used by the last detailed scan.
  *    Input: none.
  *    Output: int.
  * 43) {@code getLastDetailCenter(...)}:
- *    Purpose: Returns get last detail center.
+ *    Purpose: Returns the center position used by the last detailed scan.
  *    Input: none.
  *    Output: BlockPos.
  * 44) {@code getLastDetailGameTime(...)}:
- *    Purpose: Returns get last detail game time.
+ *    Purpose: Returns the game-time tick when the last detailed scan was stored.
  *    Input: none.
  *    Output: long.
  * 45) {@code getLastFastDetailedChunkCount(...)}:
- *    Purpose: Returns get last fast detailed chunk count.
+ *    Purpose: Returns how many chunks were processed in detailed mode by the last fast scan.
  *    Input: none.
  *    Output: int.
  * 46) {@code getLastFastQuickChunkCount(...)}:
- *    Purpose: Returns get last fast quick chunk count.
+ *    Purpose: Returns how many chunks were processed in quick mode by the last fast scan.
  *    Input: none.
  *    Output: int.
  * 47) {@code getStatusText(...)}:
- *    Purpose: Returns get status text.
+ *    Purpose: Builds a human-readable status summary of the currently stored scan state.
  *    Input: none.
  *    Output: String.
  * 48) {@code writeTextFiles(...)}:
- *    Purpose: Writes write text files.
+ *    Purpose: Writes the current grouped scan results and POI summary to text files.
  *    Input: ServerLevel serverLevel, String suffix.
  *    Output: Path.
  * 49) {@code writeDetailTextFiles(...)}:
- *    Purpose: Writes write detail text files.
+ *    Purpose: Writes the current detailed scan results to text files.
  *    Input: ServerLevel serverLevel, String suffix.
  *    Output: Path.
  * 50) {@code mapToText(...)}:
- *    Purpose: Maps map to text.
+ *    Purpose: Converts a grouped summary map into a simple titled text block.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> map, String title.
  *    Output: String.
  * 51) {@code buildFileName(...)}:
- *    Purpose: Builds build file name.
+ *    Purpose: Builds an output filename from a base label and sanitized suffix.
  *    Input: String baseName, String safeSuffix.
  *    Output: String.
  * 52) {@code sanitizeSuffix(...)}:
- *    Purpose: Performs sanitize suffix.
+ *    Purpose: Normalizes an optional suffix into a filesystem-safe filename fragment.
  *    Input: String suffix.
  *    Output: String.
  * 53) {@code blankIfNeeded(...)}:
- *    Purpose: Performs blank if needed.
+ *    Purpose: Returns an empty string for null values so text serialization stays stable.
  *    Input: String value.
  *    Output: String.
  * 54) {@code chunkKey(...)}:
- *    Purpose: Performs chunk key.
+ *    Purpose: Encodes chunk X/Z coordinates into a single map key.
  *    Input: int chunkX, int chunkZ.
  *    Output: long.
  */

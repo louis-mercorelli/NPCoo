@@ -6,23 +6,23 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHGuiInventory(...)}:
- *    Purpose: Constructs CEHGuiInventory.
+ *    Purpose: Prevents instantiation of this static GUI-and-inventory command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleOpenGui(...)}:
- *    Purpose: Handles handle open gui.
+ *    Purpose: Opens the SteveAI merchant-style GUI for the player and sends its initial offers.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code getDisplayName(...)}:
- *    Purpose: Returns get display name.
+ *    Purpose: Supplies the title text shown by the temporary menu provider used when opening the GUI.
  *    Input: none.
  *    Output: Component.
  * 4) {@code createMenu(...)}:
- *    Purpose: Creates create menu.
+ *    Purpose: Creates the SteveAI merchant menu instance for the newly opened GUI container.
  *    Input: int containerId, net.minecraft.world.entity.player.Inventory playerInventory, net.minecraft.world.entity.player.Player pPlayer.
  *    Output: net.minecraft.world.inventory.AbstractContainerMenu.
  * 5) {@code handleInv(...)}:
- *    Purpose: Handles handle inv.
+ *    Purpose: Shows a text summary of SteveAI's inventory contents.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

@@ -6,19 +6,19 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiChatRequestPacket(...)}:
- *    Purpose: Constructs SteveAiChatRequestPacket.
+ *    Purpose: Stores the outgoing chat message sent from the client to the server.
  *    Input: String message.
  *    Output: none (constructor).
  * 2) {@code encode(...)}:
- *    Purpose: Performs encode.
+ *    Purpose: Serializes the chat request message into the network buffer.
  *    Input: SteveAiChatRequestPacket pkt, FriendlyByteBuf buf.
  *    Output: void.
  * 3) {@code decode(...)}:
- *    Purpose: Performs decode.
+ *    Purpose: Reconstructs a chat request packet from the network buffer.
  *    Input: FriendlyByteBuf buf.
  *    Output: SteveAiChatRequestPacket.
  * 4) {@code handle(...)}:
- *    Purpose: Performs handle.
+ *    Purpose: Runs the server-side chat request flow and sends the AI reply back to the requesting player.
  *    Input: SteveAiChatRequestPacket pkt, CustomPayloadEvent.Context ctx.
  *    Output: void.
  */

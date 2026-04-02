@@ -6,23 +6,23 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHFollow(...)}:
- *    Purpose: Constructs CEHFollow.
+ *    Purpose: Prevents instantiation of this static follow-command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleFollowMe(...)}:
- *    Purpose: Handles handle follow me.
+ *    Purpose: Enables follow mode and starts moving SteveAI toward the calling player.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code handleFindMe(...)}:
- *    Purpose: Handles handle find me.
+ *    Purpose: Starts a one-time path toward the calling player without enabling persistent follow mode.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 4) {@code moveSteveAiTowardPlayer(...)}:
- *    Purpose: Moves move steve ai toward player.
+ *    Purpose: Starts villager navigation toward the target player at the requested speed.
  *    Input: ServerLevel serverLevel, ServerPlayer player, double speed.
  *    Output: boolean.
  * 5) {@code handleStopFollow(...)}:
- *    Purpose: Handles handle stop follow.
+ *    Purpose: Disables follow mode and stops SteveAI's current navigation path.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

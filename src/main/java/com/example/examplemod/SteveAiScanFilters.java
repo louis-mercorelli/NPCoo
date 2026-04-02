@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiScanFilters(...)}:
- *    Purpose: Constructs SteveAiScanFilters.
+ *    Purpose: Prevents instantiation of this static scan-filter helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code isInterestingLookSeeBlock(...)}:
- *    Purpose: Checks whether is interesting look see block.
+ *    Purpose: Identifies blocks that should be highlighted in look-see scan summaries.
  *    Input: BlockState state.
  *    Output: boolean.
  */

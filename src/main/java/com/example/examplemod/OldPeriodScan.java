@@ -6,67 +6,67 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code OldPeriodScan(...)}:
- *    Purpose: Constructs OldPeriodScan.
+ *    Purpose: Prevents instantiation of this archived periodic-scan helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code sendLookSeeSection(...)}:
- *    Purpose: Performs send look see section.
+ *    Purpose: Sends one formatted look-see section for grouped scan results to the command source.
  *    Input: CommandSourceStack source, String sectionTitle, java.util.Map<String, SteveAiCollectors.SeenSummary> grouped, String kind.
  *    Output: void.
  * 3) {@code forceStartPeriodicScanNow(...)}:
- *    Purpose: Forces force start periodic scan now.
+ *    Purpose: Starts a periodic scan cycle immediately when no scan jobs are already queued.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
  * 4) {@code maybeStartPeriodicScan(...)}:
- *    Purpose: Performs maybe start periodic scan.
+ *    Purpose: Starts a scheduled periodic scan cycle when the scan interval is reached.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
  * 5) {@code enqueuePeriodicScanJobs(...)}:
- *    Purpose: Performs enqueue periodic scan jobs.
+ *    Purpose: Queues one periodic scan job for each SteveAI entity found across loaded dimensions.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: int.
  * 6) {@code startPeriodicScanCycle(...)}:
- *    Purpose: Starts start periodic scan cycle.
+ *    Purpose: Marks a periodic scan cycle as active and records its timing metadata.
  *    Input: int queued, boolean forced.
  *    Output: void.
  * 7) {@code notifyPeriodicScanStarted(...)}:
- *    Purpose: Performs notify periodic scan started.
+ *    Purpose: Sends the scan-start notification to the tracked player.
  *    Input: int queuedJobs.
  *    Output: void.
  * 8) {@code processPeriodicScanQueue(...)}:
- *    Purpose: Processes process periodic scan queue.
+ *    Purpose: Advances queued periodic scan jobs until the current tick's time budget is exhausted.
  *    Input: none.
  *    Output: void.
  * 9) {@code notifyPeriodicScanFinished(...)}:
- *    Purpose: Performs notify periodic scan finished.
+ *    Purpose: Sends the scan-finished notification with timing information.
  *    Input: none.
  *    Output: void.
  * 10) {@code sendScanProgressBar(...)}:
- *    Purpose: Performs send scan progress bar.
+ *    Purpose: Sends action-bar-only progress updates to avoid filling the chat log.
  *    Input: String msg.
  *    Output: void.
  * 11) {@code sendScanStatusToTrackedPlayer(...)}:
- *    Purpose: Performs send scan status to tracked player.
+ *    Purpose: Sends a status message to the currently tracked player uuid.
  *    Input: String msg.
  *    Output: void.
  * 12) {@code sendStatusToPlayer(...)}:
- *    Purpose: Performs send status to player.
+ *    Purpose: Sends a status message to a specific player when available, otherwise logs it.
  *    Input: java.util.UUID playerUuid, String msg.
  *    Output: void.
  * 13) {@code writePeriodicScanFiles(...)}:
- *    Purpose: Writes write periodic scan files.
+ *    Purpose: Writes the periodic scan outputs, updates POIs, and persists village personalities.
  *    Input: ServerLevel serverLevel, java.util.UUID playerUuid, Entity steveAiEntity, java.util.Map<String, SteveAiCollectors.SeenSummary> groupedBlocks, java.util.Map<String, SteveAiCollectors.SeenSummary> groupedEntities, java.util.Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities.
  *    Output: void.
  * 14) {@code appendWorldInfo(...)}:
- *    Purpose: Appends append world info.
+ *    Purpose: Appends world-state metadata such as biome, weather, and moon phase to the SteveAI context file.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity.
  *    Output: void.
  * 15) {@code appendSteveAiLine(...)}:
- *    Purpose: Appends append steve ai line.
+ *    Purpose: Appends one line to the tracked player's SteveAI text context file.
  *    Input: ServerLevel serverLevel, java.util.UUID playerUuid, String line.
  *    Output: void.
  * 16) {@code processPeriodicScanJobPhase(...)}:
- *    Purpose: Processes process periodic scan job phase.
+ *    Purpose: Advances one periodic scan job through its current phase and updates stored results.
  *    Input: CommandEvents.PeriodicScanJob job.
  *    Output: void.
  */

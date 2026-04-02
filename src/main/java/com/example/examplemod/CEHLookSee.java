@@ -6,19 +6,19 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHLookSee(...)}:
- *    Purpose: Constructs CEHLookSee.
+ *    Purpose: Prevents instantiation of this static look-see command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleLookSee(...)}:
- *    Purpose: Handles handle look see.
+ *    Purpose: Runs a quick local scan and reports grouped totals plus key village-style signals.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code totalCount(...)}:
- *    Purpose: Performs total count.
+ *    Purpose: Sums the total occurrence count across all entries in a grouped summary map.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> grouped.
  *    Output: int.
  * 4) {@code entryCount(...)}:
- *    Purpose: Performs entry count.
+ *    Purpose: Returns the count for one specific grouped summary key.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> grouped, String key.
  *    Output: int.
  */

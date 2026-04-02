@@ -6,19 +6,19 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiLocator(...)}:
- *    Purpose: Constructs SteveAiLocator.
+ *    Purpose: Prevents instantiation of this static SteveAI lookup helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code isSteveAi(...)}:
- *    Purpose: Checks whether is steve ai.
+ *    Purpose: Checks whether an entity matches SteveAI by villager type, tag, or custom name.
  *    Input: Entity entity.
  *    Output: boolean.
  * 3) {@code findSteveAi(...)}:
- *    Purpose: Finds find steve ai.
+ *    Purpose: Finds the SteveAI villager in the current server level.
  *    Input: ServerLevel serverLevel.
  *    Output: Villager.
  * 4) {@code findSteveAiAnywhere(...)}:
- *    Purpose: Finds find steve ai anywhere.
+ *    Purpose: Searches every loaded dimension for an existing SteveAI entity.
  *    Input: ServerLevel serverLevel.
  *    Output: Entity.
  */

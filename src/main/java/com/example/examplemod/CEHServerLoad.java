@@ -6,27 +6,27 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHServerLoad(...)}:
- *    Purpose: Constructs CEHServerLoad.
+ *    Purpose: Prevents instantiation of this static server-load command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleServerLoadStatus(...)}:
- *    Purpose: Handles handle server load status.
+ *    Purpose: Sends the current server-load status message to the command source.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code handleServerLoadTune(...)}:
- *    Purpose: Handles handle server load tune.
+ *    Purpose: Handles runtime tuning of the server-load thresholds and smoothing values.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 4) {@code handleServerLoadStreamStatus(...)}:
- *    Purpose: Handles handle server load stream status.
+ *    Purpose: Reports whether periodic server-load heartbeat streaming is currently enabled.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 5) {@code handleServerLoadStreamToggle(...)}:
- *    Purpose: Handles handle server load stream toggle.
+ *    Purpose: Enables or disables server-load heartbeat streaming and records who changed it.
  *    Input: CommandContext<CommandSourceStack> context, boolean enabled.
  *    Output: int.
  * 6) {@code handleServerLoadReset(...)}:
- *    Purpose: Handles handle server load reset.
+ *    Purpose: Restores the default server-load tuning configuration.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

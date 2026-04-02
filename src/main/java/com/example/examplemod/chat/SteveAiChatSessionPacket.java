@@ -6,19 +6,19 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiChatSessionPacket(...)}:
- *    Purpose: Constructs SteveAiChatSessionPacket.
+ *    Purpose: Stores whether a SteveAI chat session was opened or closed on the client.
  *    Input: boolean opened.
  *    Output: none (constructor).
  * 2) {@code encode(...)}:
- *    Purpose: Performs encode.
+ *    Purpose: Serializes the chat-session open or close flag into the network buffer.
  *    Input: SteveAiChatSessionPacket pkt, FriendlyByteBuf buf.
  *    Output: void.
  * 3) {@code decode(...)}:
- *    Purpose: Performs decode.
+ *    Purpose: Reconstructs a chat-session packet from the network buffer.
  *    Input: FriendlyByteBuf buf.
  *    Output: SteveAiChatSessionPacket.
  * 4) {@code handle(...)}:
- *    Purpose: Performs handle.
+ *    Purpose: Starts or ends the server-side chat session snapshot for the sending player.
  *    Input: SteveAiChatSessionPacket pkt, CustomPayloadEvent.Context ctx.
  *    Output: void.
  */

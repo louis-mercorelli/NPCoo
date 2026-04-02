@@ -6,15 +6,15 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code ExampleMod(...)}:
- *    Purpose: Constructs ExampleMod.
+ *    Purpose: Initializes the mod's registries, listeners, menus, and config wiring.
  *    Input: FMLJavaModLoadingContext context.
  *    Output: none (constructor).
  * 2) {@code commonSetup(...)}:
- *    Purpose: Performs common setup.
+ *    Purpose: Performs shared startup work such as network registration and config-driven logging.
  *    Input: final FMLCommonSetupEvent event.
  *    Output: void.
  * 3) {@code addCreative(...)}:
- *    Purpose: Adds add creative.
+ *    Purpose: Adds the example block item to the building-blocks creative tab.
  *    Input: BuildCreativeModeTabContentsEvent event.
  *    Output: void.
  */

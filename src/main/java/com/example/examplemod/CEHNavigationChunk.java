@@ -6,31 +6,31 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHNavigationChunk(...)}:
- *    Purpose: Constructs CEHNavigationChunk.
+ *    Purpose: Prevents instantiation of this static navigation-and-chunk helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleForceChunkOn(...)}:
- *    Purpose: Handles handle force chunk on.
+ *    Purpose: Enables chunk forcing for SteveAI's current chunk.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code handleForceChunkOff(...)}:
- *    Purpose: Handles handle force chunk off.
+ *    Purpose: Disables chunk forcing and unforces the currently tracked SteveAI chunk.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 4) {@code handleWhereRu(...)}:
- *    Purpose: Handles handle where ru.
+ *    Purpose: Reports SteveAI's loaded position or the last known recorded location.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 5) {@code handleTele(...)}:
- *    Purpose: Handles handle tele.
+ *    Purpose: Teleports SteveAI to a safe standing position near the calling player.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 6) {@code findSafeTeleportPosNearPlayer(...)}:
- *    Purpose: Finds find safe teleport pos near player.
+ *    Purpose: Searches nearby positions around the player for a safe teleport destination.
  *    Input: ServerLevel serverLevel, ServerPlayer player.
  *    Output: BlockPos.
  * 7) {@code findSafeStandingPos(...)}:
- *    Purpose: Finds find safe standing pos.
+ *    Purpose: Validates whether a position has solid ground and enough air space to stand safely.
  *    Input: ServerLevel serverLevel, BlockPos nearPos.
  *    Output: BlockPos.
  */

@@ -6,35 +6,35 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHScan(...)}:
- *    Purpose: Constructs CEHScan.
+ *    Purpose: Prevents instantiation of this static scan-command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code parseScanSaiArgs(...)}:
- *    Purpose: Parses parse scan sai args.
+ *    Purpose: Parses the freeform scanSAI argument tail into scan input, chunk radius, and fast-mode flags.
  *    Input: String tail, int defaultChunkRadius.
  *    Output: ParsedScanSaiArgs.
  * 3) {@code handleScanSaiArgs(...)}:
- *    Purpose: Handles handle scan sai args.
+ *    Purpose: Handles the greedy scanSAI argument form and reports parse failures back to the command source.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 4) {@code handleScanSai(...)}:
- *    Purpose: Handles handle scan sai.
+ *    Purpose: Runs the main grouped or fast SteveAI scan flow and reports the resulting grouped counts.
  *    Input: CommandContext<CommandSourceStack> context, String rawScanInput, int chunkRadius, boolean fastMode.
  *    Output: int.
  * 5) {@code handleScanStatus(...)}:
- *    Purpose: Handles handle scan status.
+ *    Purpose: Reports the current scan manager status for the most recently stored scan state.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 6) {@code handleDirectCenteredScan(...)}:
- *    Purpose: Handles handle direct centered scan.
+ *    Purpose: Runs a direct centered scanB, scanE, or scanBE request at explicit coordinates.
  *    Input: CommandContext<CommandSourceStack> context, String mode, BlockPos center, int chunkRadius, boolean forceLoad.
  *    Output: int.
  * 7) {@code handleDetailSaiAtSteve(...)}:
- *    Purpose: Handles handle detail sai at steve.
+ *    Purpose: Runs a detailed scan centered on SteveAI's current position.
  *    Input: CommandContext<CommandSourceStack> context, int radius.
  *    Output: int.
  * 8) {@code handleDetailSaiAtPos(...)}:
- *    Purpose: Handles handle detail sai at pos.
+ *    Purpose: Runs a detailed scan centered on the requested block position.
  *    Input: CommandContext<CommandSourceStack> context, BlockPos center, int radius.
  *    Output: int.
  */

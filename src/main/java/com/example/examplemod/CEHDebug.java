@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHDebug(...)}:
- *    Purpose: Constructs CEHDebug.
+ *    Purpose: Prevents instantiation of this static debug-command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleDebugScreenToggle(...)}:
- *    Purpose: Handles handle debug screen toggle.
+ *    Purpose: Toggles whether SteveAI screen debug messages are shown and logs who changed the setting.
  *    Input: CommandContext<CommandSourceStack> context, boolean enabled.
  *    Output: int.
  */

@@ -6,91 +6,91 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code label(...)}:
- *    Purpose: Performs label.
+ *    Purpose: Returns the display label text for one screen tab.
  *    Input: none.
  *    Output: String.
  * 2) {@code scrollChatToBottom(...)}:
- *    Purpose: Performs scroll chat to bottom.
+ *    Purpose: Jumps the chat view to the newest available lines.
  *    Input: none.
  *    Output: void.
  * 3) {@code SteveAiScreen(...)}:
- *    Purpose: Constructs SteveAiScreen.
+ *    Purpose: Constructs the custom SteveAI merchant and chat screen.
  *    Input: SteveAiMenu menu, Inventory playerInventory, Component title.
  *    Output: none (constructor).
  * 4) {@code init(...)}:
- *    Purpose: Performs init.
+ *    Purpose: Initializes tabs, chat input, and the server-side chat session state.
  *    Input: none.
  *    Output: void.
  * 5) {@code render(...)}:
- *    Purpose: Performs render.
+ *    Purpose: Renders either the trade UI or the custom panel, then overlays tabs and tooltips.
  *    Input: GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick.
  *    Output: void.
  * 6) {@code renderLabels(...)}:
- *    Purpose: Performs render labels.
+ *    Purpose: Delegates label rendering to the base merchant screen when the trade tab is active.
  *    Input: GuiGraphics guiGraphics, int mouseX, int mouseY.
  *    Output: void.
  * 7) {@code drawMainPanel(...)}:
- *    Purpose: Performs draw main panel.
+ *    Purpose: Draws the framed custom panel used by the non-trade tabs.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
  * 8) {@code drawCustomLabels(...)}:
- *    Purpose: Performs draw custom labels.
+ *    Purpose: Draws the title text for the custom SteveAI panel.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
  * 9) {@code drawTabs(...)}:
- *    Purpose: Performs draw tabs.
+ *    Purpose: Draws all top-level tabs for the SteveAI screen.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
  * 10) {@code drawTab(...)}:
- *    Purpose: Performs draw tab.
+ *    Purpose: Draws one tab with the correct selected or unselected styling.
  *    Input: GuiGraphics guiGraphics, int x, int y, int width, Tab tab.
  *    Output: void.
  * 11) {@code drawPlaceholderContent(...)}:
- *    Purpose: Performs draw placeholder content.
+ *    Purpose: Draws either the chat tab contents or placeholder text for unfinished tabs.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
  * 12) {@code drawChatTab(...)}:
- *    Purpose: Performs draw chat tab.
+ *    Purpose: Renders the chat transcript area with scrolling support.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
  * 13) {@code drawWrappedText(...)}:
- *    Purpose: Performs draw wrapped text.
+ *    Purpose: Draws wrapped text lines inside a bounded width.
  *    Input: GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color.
  *    Output: void.
  * 14) {@code updateTabVisibility(...)}:
- *    Purpose: Updates update tab visibility.
+ *    Purpose: Shows or hides the chat input box when the active tab changes.
  *    Input: none.
  *    Output: void.
  * 15) {@code mouseClicked(...)}:
- *    Purpose: Performs mouse clicked.
+ *    Purpose: Handles tab switching and chat-input mouse interaction before falling back to trade UI clicks.
  *    Input: MouseButtonEvent event, boolean consumed.
  *    Output: boolean.
  * 16) {@code keyPressed(...)}:
- *    Purpose: Performs key pressed.
+ *    Purpose: Handles chat submission, chat scrolling keys, and tab-specific keyboard behavior.
  *    Input: KeyEvent event.
  *    Output: boolean.
  * 17) {@code mouseScrolled(...)}:
- *    Purpose: Performs mouse scrolled.
+ *    Purpose: Scrolls the chat transcript when the mouse wheel is used over the chat area.
  *    Input: double mouseX, double mouseY, double deltaX, double deltaY.
  *    Output: boolean.
  * 18) {@code onClose(...)}:
- *    Purpose: Performs on close.
+ *    Purpose: Logs that the screen is closing before normal cleanup continues.
  *    Input: none.
  *    Output: void.
  * 19) {@code receiveServerReply(...)}:
- *    Purpose: Performs receive server reply.
+ *    Purpose: Updates the chat panel with the latest prompt and AI reply from the server.
  *    Input: String prompt, String reply.
  *    Output: void.
  * 20) {@code removed(...)}:
- *    Purpose: Performs removed.
+ *    Purpose: Sends the chat-session close packet when the screen is removed.
  *    Input: none.
  *    Output: void.
  * 21) {@code charTyped(...)}:
- *    Purpose: Performs char typed.
+ *    Purpose: Forwards typed characters into the chat input when the chat tab is active.
  *    Input: CharacterEvent event.
  *    Output: boolean.
  * 22) {@code isTabClicked(...)}:
- *    Purpose: Checks whether is tab clicked.
+ *    Purpose: Checks whether the mouse position falls inside a tab's clickable area.
  *    Input: double mouseX, double mouseY, int x, int y, int width.
  *    Output: boolean.
  */

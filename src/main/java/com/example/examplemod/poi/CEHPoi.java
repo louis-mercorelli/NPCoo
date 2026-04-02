@@ -6,19 +6,19 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHPoi(...)}:
- *    Purpose: Constructs CEHPoi.
+ *    Purpose: Prevents instantiation of this static POI command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handlePoiUpdate(...)}:
- *    Purpose: Handles handle poi update.
+ *    Purpose: Updates the POI map from the currently stored fast scan results.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code handlePoiConfirmCandidates(...)}:
- *    Purpose: Handles handle poi confirm candidates.
+ *    Purpose: Rescans candidate chunks and promotes POI candidates through the stage-two confirmation flow.
  *    Input: CommandContext<CommandSourceStack> context, int limit.
  *    Output: int.
  * 4) {@code handlePoiReset(...)}:
- *    Purpose: Handles handle poi reset.
+ *    Purpose: Clears all stored POI data.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

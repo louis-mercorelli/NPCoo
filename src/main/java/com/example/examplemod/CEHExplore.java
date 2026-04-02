@@ -6,23 +6,23 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHExplore(...)}:
- *    Purpose: Constructs CEHExplore.
+ *    Purpose: Prevents instantiation of this static explore-command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleExplorePoi(...)}:
- *    Purpose: Handles handle explore poi.
+ *    Purpose: Starts exploration toward the nearest known POI of the requested type.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code handleExploreStop(...)}:
- *    Purpose: Handles handle explore stop.
+ *    Purpose: Stops the active exploration task and clears exploration state.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 4) {@code handleExploreStatus(...)}:
- *    Purpose: Handles handle explore status.
+ *    Purpose: Reports the current exploration target, center, and radius.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 5) {@code mapExplorePoiToPoiType(...)}:
- *    Purpose: Maps map explore poi to poi type.
+ *    Purpose: Maps user-facing explore keywords onto the internal POI type names.
  *    Input: String poi.
  *    Output: String.
  */

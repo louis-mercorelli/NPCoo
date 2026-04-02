@@ -6,7 +6,7 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code ask(...)}:
- *    Purpose: Performs ask.
+ *    Purpose: Sends a prompt to the OpenAI responses API and returns the combined text reply.
  *    Input: String prompt.
  *    Output: String.
  */

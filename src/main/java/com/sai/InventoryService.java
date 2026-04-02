@@ -6,31 +6,31 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code getInventorySummary(...)}:
- *    Purpose: Returns get inventory summary.
+ *    Purpose: Builds a readable summary of the occupied slots in a villager inventory.
  *    Input: Villager villager.
  *    Output: String.
  * 2) {@code findItemByName(...)}:
- *    Purpose: Finds find item by name.
+ *    Purpose: Resolves a typed item name or id into a registered Minecraft item.
  *    Input: String itemName.
  *    Output: Item.
  * 3) {@code addItemToInventory(...)}:
- *    Purpose: Adds add item to inventory.
+ *    Purpose: Inserts or stacks an item stack into SteveAI's inventory when space is available.
  *    Input: Villager villager, ItemStack toAdd.
  *    Output: boolean.
  * 4) {@code removeItemFromInventory(...)}:
- *    Purpose: Removes remove item from inventory.
+ *    Purpose: Removes up to the requested item count from SteveAI's inventory and returns the removed stack.
  *    Input: Villager villager, Item item, int count.
  *    Output: ItemStack.
  * 5) {@code dropItem(...)}:
- *    Purpose: Drops drop item.
+ *    Purpose: Spawns an item entity near SteveAI so removed inventory items are dropped into the world.
  *    Input: ServerLevel serverLevel, Villager villager, ItemStack stack.
  *    Output: void.
  * 6) {@code handleInvAdd(...)}:
- *    Purpose: Handles handle inv add.
+ *    Purpose: Handles the command that adds an item stack to SteveAI's inventory.
  *    Input: CommandContext<CommandSourceStack> context, int count.
  *    Output: int.
  * 7) {@code handleInvDrop(...)}:
- *    Purpose: Handles handle inv drop.
+ *    Purpose: Handles the command that removes items from SteveAI's inventory and drops them nearby.
  *    Input: CommandContext<CommandSourceStack> context, int count.
  *    Output: int.
  */

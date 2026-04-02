@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiMenu(...)}:
- *    Purpose: Constructs SteveAiMenu.
+ *    Purpose: Constructs the SteveAI merchant menu backed by a client-side merchant instance.
  *    Input: int containerId, Inventory playerInventory.
  *    Output: none (constructor).
  * 2) {@code createMerchant(...)}:
- *    Purpose: Creates create merchant.
+ *    Purpose: Creates the temporary client-side merchant and seeds it with the current sample offers.
  *    Input: Inventory playerInventory.
  *    Output: ClientSideMerchant.
  */

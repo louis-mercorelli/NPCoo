@@ -6,43 +6,43 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code getSteveAiDataDir(...)}:
- *    Purpose: Returns get steve ai data dir.
+ *    Purpose: Ensures the SteveAI per-world data directory exists and returns its path.
  *    Input: ServerLevel serverLevel.
  *    Output: Path.
  * 2) {@code buildChatContext(...)}:
- *    Purpose: Builds build chat context.
+ *    Purpose: Builds the OpenAI prompt context from live POI data plus the latest chat and scan files.
  *    Input: ServerLevel serverLevel, UUID playerUuid, int tailLines.
  *    Output: String.
  * 3) {@code appendChatLine(...)}:
- *    Purpose: Appends append chat line.
+ *    Purpose: Appends one line to the player's SteveAI chat transcript file.
  *    Input: ServerLevel serverLevel, UUID playerUuid, String line.
  *    Output: void.
  * 4) {@code readWholeFile(...)}:
- *    Purpose: Reads read whole file.
+ *    Purpose: Reads an entire file and returns an empty string when the file is missing.
  *    Input: Path file.
  *    Output: String.
  * 5) {@code buildLivePoiSummaryText(...)}:
- *    Purpose: Builds build live poi summary text.
+ *    Purpose: Builds a text snapshot of the current in-memory POI summary.
  *    Input: none.
  *    Output: String.
  * 6) {@code startChatSession(...)}:
- *    Purpose: Starts start chat session.
+ *    Purpose: Captures a POI summary snapshot for a player when a chat session begins.
  *    Input: ServerLevel serverLevel, UUID playerUuid.
  *    Output: void.
  * 7) {@code endChatSession(...)}:
- *    Purpose: Performs end chat session.
+ *    Purpose: Removes the cached POI snapshot for a player when a chat session ends.
  *    Input: UUID playerUuid.
  *    Output: void.
  * 8) {@code findLatestMatchingFile(...)}:
- *    Purpose: Finds find latest matching file.
+ *    Purpose: Finds the most recently modified file in a directory that matches a glob pattern.
  *    Input: Path dir, String globPattern.
  *    Output: Path.
  * 9) {@code logFileTail(...)}:
- *    Purpose: Performs log file tail.
+ *    Purpose: Logs the tail of a file for debugging when that file is present.
  *    Input: String logPrefix, Path file, int maxLines.
  *    Output: void.
  * 10) {@code readLastNLines(...)}:
- *    Purpose: Reads read last nlines.
+ *    Purpose: Reads the last N lines of a file for chat-context assembly.
  *    Input: Path file, int maxLines.
  *    Output: String.
  */

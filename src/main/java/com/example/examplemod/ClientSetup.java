@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code onClientSetup(...)}:
- *    Purpose: Performs on client setup.
+ *    Purpose: Registers the SteveAI screen factory during client initialization.
  *    Input: FMLClientSetupEvent event.
  *    Output: void.
  * 2) {@code steveAiMenuType(...)}:
- *    Purpose: Performs steve ai menu type.
+ *    Purpose: Returns the registered SteveAI menu type with the cast needed for screen registration.
  *    Input: none.
  *    Output: MenuType<MerchantMenu>.
  */

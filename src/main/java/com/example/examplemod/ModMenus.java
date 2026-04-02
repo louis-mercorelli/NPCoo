@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code createSteveAiMenuType(...)}:
- *    Purpose: Creates create steve ai menu type.
+ *    Purpose: Creates the MenuType used for the SteveAI merchant interface.
  *    Input: none.
  *    Output: MenuType<SteveAiMenu>.
  * 2) {@code ModMenus(...)}:
- *    Purpose: Constructs ModMenus.
+ *    Purpose: Prevents instantiation of this static menu-registry holder.
  *    Input: none.
  *    Output: none (constructor).
  */

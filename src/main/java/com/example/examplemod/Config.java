@@ -6,15 +6,15 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code validateItemName(...)}:
- *    Purpose: Validates validate item name.
+ *    Purpose: Validates that a configured item string resolves to a registered item id.
  *    Input: final Object obj.
  *    Output: boolean.
  * 2) {@code onLoad(...)}:
- *    Purpose: Performs on load.
+ *    Purpose: Loads Forge config values into the runtime fields used by the mod.
  *    Input: final ModConfigEvent event.
  *    Output: void.
  * 3) {@code onReload(...)}:
- *    Purpose: Performs on reload.
+ *    Purpose: Reacts to config reload events so config refreshes are visible in the log.
  *    Input: final ModConfigEvent.Reloading event.
  *    Output: void.
  */

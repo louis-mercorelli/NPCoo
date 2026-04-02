@@ -6,175 +6,175 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code Poi(...)}:
- *    Purpose: Constructs Poi.
+ *    Purpose: Creates a POI cluster with its initial type, center, and first evidence entry.
  *    Input: String type, BlockPos pos, String evidenceType.
  *    Output: none (constructor).
  * 2) {@code Poi(...)}:
- *    Purpose: Constructs Poi.
+ *    Purpose: Creates a POI cluster and records whether its first evidence came from a confirming block hit.
  *    Input: String type, BlockPos pos, String evidenceType, boolean isBlockEvidence.
  *    Output: none (constructor).
  * 3) {@code add(...)}:
- *    Purpose: Performs add.
+ *    Purpose: Adds evidence and a new position to an existing POI cluster without marking block confirmation.
  *    Input: BlockPos pos, String evidenceType.
  *    Output: boolean.
  * 4) {@code add(...)}:
- *    Purpose: Performs add.
+ *    Purpose: Adds evidence and a new position to an existing POI cluster and can mark it as block-confirmed.
  *    Input: BlockPos pos, String evidenceType, boolean isBlockEvidence.
  *    Output: boolean.
  * 5) {@code isConfirmed(...)}:
- *    Purpose: Checks whether is confirmed.
+ *    Purpose: Reports whether this POI has confirming block evidence.
  *    Input: none.
  *    Output: boolean.
  * 6) {@code mergeFrom(...)}:
- *    Purpose: Performs merge from.
+ *    Purpose: Merges another POI cluster into this one and recomputes the shared center.
  *    Input: Poi other.
  *    Output: void.
  * 7) {@code recomputeCenter(...)}:
- *    Purpose: Recomputes recompute center.
+ *    Purpose: Recomputes the POI center from all recorded positions in the cluster.
  *    Input: none.
  *    Output: void.
  * 8) {@code getBounds(...)}:
- *    Purpose: Returns get bounds.
+ *    Purpose: Returns the bounding box that covers all seen positions for this POI cluster.
  *    Input: none.
  *    Output: int[].
  * 9) {@code VillageAssignment(...)}:
- *    Purpose: Constructs VillageAssignment.
+ *    Purpose: Stores the assigned personality and active scene for a village POI.
  *    Input: String personality, String scene.
  *    Output: none (constructor).
  * 10) {@code processBlockEntity(...)}:
- *    Purpose: Processes process block entity.
+ *    Purpose: Normalizes a block-entity hit into POI evidence and ingests it with default merging.
  *    Input: String typeName, BlockPos pos.
  *    Output: boolean.
  * 11) {@code processBlockEntity(...)}:
- *    Purpose: Processes process block entity.
+ *    Purpose: Normalizes a block-entity hit into POI evidence and ingests it with explicit merge control.
  *    Input: String typeName, BlockPos pos, boolean allowMerge.
  *    Output: boolean.
  * 12) {@code processEntity(...)}:
- *    Purpose: Processes process entity.
+ *    Purpose: Normalizes an entity hit into POI evidence and ingests it with default merging.
  *    Input: String typeName, BlockPos pos.
  *    Output: boolean.
  * 13) {@code processEntity(...)}:
- *    Purpose: Processes process entity.
+ *    Purpose: Normalizes an entity hit into POI evidence and ingests it with explicit merge control.
  *    Input: String typeName, BlockPos pos, boolean allowMerge.
  *    Output: boolean.
  * 14) {@code processBlock(...)}:
- *    Purpose: Processes process block.
+ *    Purpose: Normalizes a block hit into POI evidence and ingests it with default merging.
  *    Input: String typeName, BlockPos pos.
  *    Output: boolean.
  * 15) {@code processBlock(...)}:
- *    Purpose: Processes process block.
+ *    Purpose: Normalizes a block hit into POI evidence and ingests it with explicit merge control.
  *    Input: String typeName, BlockPos pos, boolean allowMerge.
  *    Output: boolean.
  * 16) {@code ingestFastScanSummaries(...)}:
- *    Purpose: Performs ingest fast scan summaries.
+ *    Purpose: Ingests fast-scan entity and block-entity summaries into the POI map.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> scannedEntities, Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities.
  *    Output: int.
  * 17) {@code ingestScanSummaries(...)}:
- *    Purpose: Performs ingest scan summaries.
+ *    Purpose: Ingests full block, entity, and block-entity summaries and then consolidates duplicate POIs.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> scannedBlocks, Map<String, SteveAiCollectors.SeenSummary> scannedEntities, Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities.
  *    Output: int.
  * 18) {@code normalizeEvidence(...)}:
- *    Purpose: Normalizes normalize evidence.
+ *    Purpose: Converts alternate registry-name formats into canonical Minecraft ids.
  *    Input: String type.
  *    Output: String.
  * 19) {@code mapToPoi(...)}:
- *    Purpose: Maps map to poi.
+ *    Purpose: Maps normalized evidence ids onto higher-level POI categories.
  *    Input: String type.
  *    Output: String.
  * 20) {@code getMergeDistance(...)}:
- *    Purpose: Returns get merge distance.
+ *    Purpose: Returns the merge radius to use for a POI type and a specific evidence item.
  *    Input: String poiType, String evidence.
  *    Output: int.
  * 21) {@code addOrMerge(...)}:
- *    Purpose: Adds add or merge.
+ *    Purpose: Merges a hit into the nearest matching POI when allowed or creates a new POI cluster.
  *    Input: String type, BlockPos pos, String evidence, boolean isBlockEvidence, boolean allowMerge.
  *    Output: boolean.
  * 22) {@code consolidateStage2Duplicates(...)}:
- *    Purpose: Performs consolidate stage2 duplicates.
+ *    Purpose: Collapses nearby duplicate POI clusters after stage-two confirmation scans.
  *    Input: none.
  *    Output: int.
  * 23) {@code getPoiMergeDistance(...)}:
- *    Purpose: Returns get poi merge distance.
+ *    Purpose: Returns the effective merge radius for an existing POI based on all of its evidence.
  *    Input: Poi poi.
  *    Output: int.
  * 24) {@code hasAnyVillageWorkstation(...)}:
- *    Purpose: Checks whether has any village workstation.
+ *    Purpose: Checks whether a POI carries workstation evidence associated with villages.
  *    Input: Poi poi.
  *    Output: boolean.
  * 25) {@code hasTrialChamberCore(...)}:
- *    Purpose: Checks whether has trial chamber core.
+ *    Purpose: Checks whether a POI has core trial-chamber evidence such as a trial spawner or vault.
  *    Input: Poi poi.
  *    Output: boolean.
  * 26) {@code hasTrialChamberSupport(...)}:
- *    Purpose: Checks whether has trial chamber support.
+ *    Purpose: Checks whether a POI has supporting architectural or container evidence for a trial chamber.
  *    Input: Poi poi.
  *    Output: boolean.
  * 27) {@code isUndergroundLike(...)}:
- *    Purpose: Checks whether is underground like.
+ *    Purpose: Checks whether a POI's center and bounds make it look subterranean.
  *    Input: Poi poi.
  *    Output: boolean.
  * 28) {@code isLikelyInWater(...)}:
- *    Purpose: Checks whether is likely in water.
+ *    Purpose: Checks whether a POI likely sits in water based on evidence and vertical position.
  *    Input: Poi poi.
  *    Output: boolean.
  * 29) {@code classifyPoiType(...)}:
- *    Purpose: Classifies classify poi type.
+ *    Purpose: Converts a raw POI candidate into its final inferred POI type.
  *    Input: Poi poi.
  *    Output: String.
  * 30) {@code buildSummaryLines(...)}:
- *    Purpose: Builds build summary lines.
+ *    Purpose: Builds human-readable POI summary lines including confidence and personality details.
  *    Input: none.
  *    Output: List<String>.
  * 31) {@code personalityKey(...)}:
- *    Purpose: Performs personality key.
+ *    Purpose: Builds the grid key used to persist village personality assignments.
  *    Input: BlockPos center.
  *    Output: String.
  * 32) {@code getOrAssignVillageAssignment(...)}:
- *    Purpose: Returns get or assign village assignment.
+ *    Purpose: Returns an existing village personality assignment or creates one for the POI.
  *    Input: Poi poi.
  *    Output: VillageAssignment.
  * 33) {@code choosePersonality(...)}:
- *    Purpose: Chooses choose personality.
+ *    Purpose: Chooses a personality template for a newly confirmed village.
  *    Input: none.
  *    Output: String.
  * 34) {@code chooseSceneForPersonality(...)}:
- *    Purpose: Chooses choose scene for personality.
+ *    Purpose: Chooses one scene description associated with the supplied personality template.
  *    Input: String personality.
  *    Output: String.
  * 35) {@code getPersonalityCharacters(...)}:
- *    Purpose: Returns get personality characters.
+ *    Purpose: Returns the main character names associated with a stored personality template.
  *    Input: String personality.
  *    Output: String.
  * 36) {@code loadPersonalitiesFromFile(...)}:
- *    Purpose: Loads load personalities from file.
+ *    Purpose: Loads saved village personality and scene assignments from disk.
  *    Input: Path file.
  *    Output: void.
  * 37) {@code savePersonalitiesToFile(...)}:
- *    Purpose: Saves save personalities to file.
+ *    Purpose: Saves locked village personality and scene assignments back to disk.
  *    Input: Path file.
  *    Output: void.
  * 38) {@code getConfidence(...)}:
- *    Purpose: Returns get confidence.
+ *    Purpose: Computes a confidence label for a POI from its evidence mix, density, and inferred type.
  *    Input: Poi poi, String finalType.
  *    Output: String.
  * 39) {@code clear(...)}:
- *    Purpose: Performs clear.
+ *    Purpose: Clears all tracked POIs from memory.
  *    Input: none.
  *    Output: void.
  * 40) {@code getPoiCount(...)}:
- *    Purpose: Returns get poi count.
+ *    Purpose: Returns the current number of tracked POIs.
  *    Input: none.
  *    Output: int.
  * 41) {@code getCandidateCenters(...)}:
- *    Purpose: Returns get candidate centers.
+ *    Purpose: Returns the centers of unconfirmed POI candidates up to the requested limit.
  *    Input: int maxCount.
  *    Output: List<BlockPos>.
  * 42) {@code findNearestPoiCenter(...)}:
- *    Purpose: Finds find nearest poi center.
+ *    Purpose: Finds the nearest POI center whose final classified type matches the requested type.
  *    Input: String type, BlockPos fromPos.
  *    Output: BlockPos.
  * 43) {@code findNearestVillageForExplore(...)}:
- *    Purpose: Finds find nearest village for explore.
+ *    Purpose: Finds the nearest village with non-low confidence for exploration commands.
  *    Input: BlockPos fromPos.
  *    Output: BlockPos.
  */

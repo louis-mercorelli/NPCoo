@@ -6,19 +6,19 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiChatReplyPacket(...)}:
- *    Purpose: Constructs SteveAiChatReplyPacket.
+ *    Purpose: Stores the original prompt and generated reply being returned to the client.
  *    Input: String prompt, String reply.
  *    Output: none (constructor).
  * 2) {@code encode(...)}:
- *    Purpose: Performs encode.
+ *    Purpose: Serializes the prompt and reply into the network buffer.
  *    Input: SteveAiChatReplyPacket pkt, FriendlyByteBuf buf.
  *    Output: void.
  * 3) {@code decode(...)}:
- *    Purpose: Performs decode.
+ *    Purpose: Reconstructs a chat reply packet from the network buffer.
  *    Input: FriendlyByteBuf buf.
  *    Output: SteveAiChatReplyPacket.
  * 4) {@code handle(...)}:
- *    Purpose: Performs handle.
+ *    Purpose: Delivers the server reply to the open SteveAI screen on the client.
  *    Input: SteveAiChatReplyPacket pkt, CustomPayloadEvent.Context ctx.
  *    Output: void.
  */

@@ -6,35 +6,35 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code onClientTick(...)}:
- *    Purpose: Performs on client tick.
+ *    Purpose: Handles client tick updates for chat hints and shift-right-click opening of the SteveAI screen.
  *    Input: TickEvent.ClientTickEvent.Post event.
  *    Output: void.
  * 2) {@code refreshHintState(...)}:
- *    Purpose: Performs refresh hint state.
+ *    Purpose: Refreshes whether the chat hint should be visible when the active world changes.
  *    Input: Minecraft mc.
  *    Output: void.
  * 3) {@code markHintSeen(...)}:
- *    Purpose: Performs mark hint seen.
+ *    Purpose: Persists that the player has already seen the SteveAI chat hint in the current singleplayer world.
  *    Input: Minecraft mc.
  *    Output: void.
  * 4) {@code hasSeenHintForCurrentWorld(...)}:
- *    Purpose: Checks whether has seen hint for current world.
+ *    Purpose: Checks whether the hint-seen marker file already exists for the current world.
  *    Input: Minecraft mc.
  *    Output: boolean.
  * 5) {@code isSingleplayerWorld(...)}:
- *    Purpose: Checks whether is singleplayer world.
+ *    Purpose: Reports whether the client is connected to an integrated singleplayer server.
  *    Input: Minecraft mc.
  *    Output: boolean.
  * 6) {@code getWorldHintKey(...)}:
- *    Purpose: Returns get world hint key.
+ *    Purpose: Builds a stable key that distinguishes hint state between worlds or dimensions.
  *    Input: Minecraft mc.
  *    Output: String.
  * 7) {@code getHintFile(...)}:
- *    Purpose: Returns get hint file.
+ *    Purpose: Returns the file path used to persist the chat-hint seen flag.
  *    Input: Minecraft mc.
  *    Output: java.nio.file.Path.
  * 8) {@code isLookingAtSteveAi(...)}:
- *    Purpose: Checks whether is looking at steve ai.
+ *    Purpose: Checks whether the crosshair is currently targeting the SteveAI villager.
  *    Input: Minecraft mc.
  *    Output: boolean.
  */

@@ -6,19 +6,19 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code onCommandsRegister(...)}:
- *    Purpose: Performs on commands register.
+ *    Purpose: Registers the full testmod command tree and wires each branch to the appropriate handler.
  *    Input: RegisterCommandsEvent event.
  *    Output: void.
  * 2) {@code onServerTick(...)}:
- *    Purpose: Performs on server tick.
+ *    Purpose: Captures tick-start timing data used by the server-load monitor.
  *    Input: net.minecraftforge.event.TickEvent.ServerTickEvent.Pre event.
  *    Output: void.
  * 3) {@code onServerTick(...)}:
- *    Purpose: Performs on server tick.
+ *    Purpose: Runs per-tick post-processing such as server-load tracking and shared SteveAI orchestration.
  *    Input: net.minecraftforge.event.TickEvent.ServerTickEvent.Post event.
  *    Output: void.
  * 4) {@code onPlayerLoggedIn(...)}:
- *    Purpose: Performs on player logged in.
+ *    Purpose: Records the most recent player identity so later SteveAI actions can target that player.
  *    Input: PlayerEvent.PlayerLoggedInEvent event.
  *    Output: void.
  */

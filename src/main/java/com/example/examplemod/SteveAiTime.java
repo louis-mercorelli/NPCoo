@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiTime(...)}:
- *    Purpose: Constructs SteveAiTime.
+ *    Purpose: Prevents instantiation of this static time-formatting helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code scanTs(...)}:
- *    Purpose: Scans scan ts.
+ *    Purpose: Returns the current timestamp formatted for scan logs and output filenames.
  *    Input: none.
  *    Output: String.
  */

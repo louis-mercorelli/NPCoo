@@ -6,15 +6,15 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SteveAiChunkForcing(...)}:
- *    Purpose: Constructs SteveAiChunkForcing.
+ *    Purpose: Prevents instantiation of this static chunk-forcing helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code updateForcedChunkForSteveAi(...)}:
- *    Purpose: Updates update forced chunk for steve ai.
+ *    Purpose: Moves the forced chunk marker to SteveAI's current chunk, unforcing the old one if needed.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity.
  *    Output: void.
  * 3) {@code clearForcedSteveAiChunk(...)}:
- *    Purpose: Clears clear forced steve ai chunk.
+ *    Purpose: Unforces the currently tracked SteveAI chunk and clears the cached chunk coordinates.
  *    Input: ServerLevel serverLevel.
  *    Output: void.
  */

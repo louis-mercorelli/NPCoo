@@ -6,111 +6,111 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code SeenSummary(...)}:
- *    Purpose: Performs seen summary.
+ *    Purpose: Creates a grouped summary entry anchored at the first observed position.
  *    Input: int x, int y, int z.
  *    Output: none (constructor).
  * 2) {@code SeenSummary(...)}:
- *    Purpose: Performs seen summary.
+ *    Purpose: Creates a grouped summary entry and optionally enables full location tracking.
  *    Input: int x, int y, int z, boolean storeAllLocations.
  *    Output: none (constructor).
  * 3) {@code increment(...)}:
- *    Purpose: Performs increment.
+ *    Purpose: Increases the occurrence count when another matching object is found.
  *    Input: none.
  *    Output: void.
  * 4) {@code addLocation(...)}:
- *    Purpose: Adds add location.
+ *    Purpose: Records another observed position and increases the occurrence count.
  *    Input: BlockPos pos.
  *    Output: void.
  * 5) {@code setMinDistanceFromCenter(...)}:
- *    Purpose: Sets set min distance from center.
+ *    Purpose: Stores the closest known distance from the scan center for this summary.
  *    Input: double distance.
  *    Output: void.
  * 6) {@code storesAllLocations(...)}:
- *    Purpose: Performs stores all locations.
+ *    Purpose: Reports whether this summary keeps every matched location instead of only the first one.
  *    Input: none.
  *    Output: boolean.
  * 7) {@code toString(...)}:
- *    Purpose: Performs to string.
+ *    Purpose: Formats the grouped summary into readable debug or file output text.
  *    Input: none.
  *    Output: String.
  * 8) {@code DetailedEntry(...)}:
- *    Purpose: Performs detailed entry.
+ *    Purpose: Captures one detailed scan hit with its type name and exact block position.
  *    Input: String typeName, BlockPos pos.
  *    Output: none (constructor).
  * 9) {@code toString(...)}:
- *    Purpose: Performs to string.
+ *    Purpose: Formats one detailed scan hit as a single readable text line.
  *    Input: none.
  *    Output: String.
  * 10) {@code shouldStoreAllLocationsForBlock(...)}:
- *    Purpose: Checks whether should store all locations for block.
+ *    Purpose: Decides whether a block type should preserve every matching location in grouped scans.
  *    Input: String blockName.
  *    Output: boolean.
  * 11) {@code collectNearbyEntities(...)}:
- *    Purpose: Performs collect nearby entities.
+ *    Purpose: Groups nearby living entities around SteveAI, applying an optional entity filter.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, double radius, Predicate<Entity> filter.
  *    Output: Map<String, SeenSummary>.
  * 12) {@code collectNearbyEntities(...)}:
- *    Purpose: Performs collect nearby entities.
+ *    Purpose: Groups nearby living entities around SteveAI without additional filtering.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, double radius.
  *    Output: Map<String, SeenSummary>.
  * 13) {@code collectNearbyEntitiesFiltered(...)}:
- *    Purpose: Performs collect nearby entities filtered.
+ *    Purpose: Groups only the targeted entity ids found near SteveAI.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, double radius, Set<String> targetEntityIds.
  *    Output: Map<String, SeenSummary>.
  * 14) {@code collectNearbyBlocks(...)}:
- *    Purpose: Performs collect nearby blocks.
+ *    Purpose: Groups nearby blocks around SteveAI while honoring an optional block-state filter.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius, Predicate<BlockState> filter.
  *    Output: Map<String, SeenSummary>.
  * 15) {@code collectNearbyBlocks(...)}:
- *    Purpose: Performs collect nearby blocks.
+ *    Purpose: Groups nearby blocks around SteveAI without additional filtering.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius.
  *    Output: Map<String, SeenSummary>.
  * 16) {@code collectNearbyBlocksFiltered(...)}:
- *    Purpose: Performs collect nearby blocks filtered.
+ *    Purpose: Groups only the targeted block ids found near SteveAI.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius, Set<String> targetBlockIds.
  *    Output: Map<String, SeenSummary>.
  * 17) {@code collectNearbyBlockEntities(...)}:
- *    Purpose: Performs collect nearby block entities.
+ *    Purpose: Groups nearby block entities around SteveAI without extra filtering.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks.
  *    Output: Map<String, SeenSummary>.
  * 18) {@code collectNearbyBlockEntities(...)}:
- *    Purpose: Performs collect nearby block entities.
+ *    Purpose: Groups nearby block entities around SteveAI while honoring an optional predicate.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks, Predicate<BlockEntity> filter.
  *    Output: Map<String, SeenSummary>.
  * 19) {@code collectNearbyBlockEntitiesFiltered(...)}:
- *    Purpose: Performs collect nearby block entities filtered.
+ *    Purpose: Groups only the targeted block-entity ids found near SteveAI.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks, Set<String> targetBlockEntityIds.
  *    Output: Map<String, SeenSummary>.
  * 20) {@code collectEntitiesInTile(...)}:
- *    Purpose: Performs collect entities in tile.
+ *    Purpose: Groups entities inside one rectangular tile region for tiled scan workflows.
  *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yCenter, int yRadius.
  *    Output: Map<String, SeenSummary>.
  * 21) {@code collectBlocksInTile(...)}:
- *    Purpose: Performs collect blocks in tile.
+ *    Purpose: Groups blocks inside one rectangular tile region while honoring the supplied block filter.
  *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yMin, int yMax, java.util.function.Predicate<net.minecraft.world.level.block.state.BlockState> filter.
  *    Output: Map<String, SeenSummary>.
  * 22) {@code collectBlockEntitiesInTile(...)}:
- *    Purpose: Performs collect block entities in tile.
+ *    Purpose: Groups block entities inside one rectangular tile region.
  *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yMin, int yMax.
  *    Output: Map<String, SeenSummary>.
  * 23) {@code mergeInto(...)}:
- *    Purpose: Performs merge into.
+ *    Purpose: Merges grouped scan counts and locations from one summary map into another.
  *    Input: Map<String, SeenSummary> target, Map<String, SeenSummary> source.
  *    Output: void.
  * 24) {@code annotateDistanceFromCenter(...)}:
- *    Purpose: Performs annotate distance from center.
+ *    Purpose: Updates each grouped summary with its nearest distance to the provided center point.
  *    Input: Map<String, SeenSummary> grouped, BlockPos center.
  *    Output: void.
  * 25) {@code collectDetailedBlocksAt(...)}:
- *    Purpose: Performs collect detailed blocks at.
+ *    Purpose: Collects per-position block entries around a center point for detailed scans.
  *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
  *    Output: List<DetailedEntry>.
  * 26) {@code collectDetailedBlockEntitiesAt(...)}:
- *    Purpose: Performs collect detailed block entities at.
+ *    Purpose: Collects per-position block-entity entries around a center point for detailed scans.
  *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
  *    Output: List<DetailedEntry>.
  * 27) {@code collectDetailedEntitiesAt(...)}:
- *    Purpose: Performs collect detailed entities at.
+ *    Purpose: Collects per-position entity entries around a center point for detailed scans.
  *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
  *    Output: List<DetailedEntry>.
  */

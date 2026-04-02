@@ -6,31 +6,31 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code OldTickExplore(...)}:
- *    Purpose: Performs old tick explore.
+ *    Purpose: Prevents instantiation of this legacy exploration helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code countNearbyVillagers(...)}:
- *    Purpose: Performs count nearby villagers.
+ *    Purpose: Counts nearby villagers around SteveAI to help confirm village exploration success.
  *    Input: ServerLevel serverLevel, Villager steveAi, double radius.
  *    Output: int.
  * 3) {@code stopExploreTask(...)}:
- *    Purpose: Stops stop explore task.
+ *    Purpose: Clears the current exploration state and target tracking.
  *    Input: none.
  *    Output: void.
  * 4) {@code tickExplore(...)}:
- *    Purpose: Performs tick explore.
+ *    Purpose: Advances one exploration tick by moving SteveAI toward the center or a local patrol target.
  *    Input: ServerLevel serverLevel, Villager steveAi.
  *    Output: void.
  * 5) {@code pickNextExploreTarget(...)}:
- *    Purpose: Performs pick next explore target.
+ *    Purpose: Chooses the next unexplored patrol target around the active exploration center.
  *    Input: ServerLevel serverLevel.
  *    Output: BlockPos.
  * 6) {@code reachedExploreTarget(...)}:
- *    Purpose: Performs reached explore target.
+ *    Purpose: Checks whether SteveAI is close enough to consider an exploration target reached.
  *    Input: Villager steveAi, BlockPos target.
  *    Output: boolean.
  * 7) {@code isGoodExploreTarget(...)}:
- *    Purpose: Checks whether is good explore target.
+ *    Purpose: Checks whether an exploration target is in bounds, walkable, and has headroom.
  *    Input: ServerLevel serverLevel, BlockPos pos.
  *    Output: boolean.
  */

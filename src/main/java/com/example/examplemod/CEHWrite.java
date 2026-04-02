@@ -6,35 +6,35 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code CEHWrite(...)}:
- *    Purpose: Constructs CEHWrite.
+ *    Purpose: Prevents instantiation of this static file-write command helper.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code handleWriteNow(...)}:
- *    Purpose: Handles handle write now.
+ *    Purpose: Handles the writeNow command by collecting fresh scan data and writing summary files immediately.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code writeSteveAiSummary(...)}:
- *    Purpose: Writes write steve ai summary.
+ *    Purpose: Writes grouped block, entity, block-entity, and POI summary files for the tracked player.
  *    Input: ServerLevel serverLevel, UUID playerUuid, Entity steveAiEntity, java.util.List<String> poiSummaryLines.
  *    Output: void.
  * 4) {@code contextSendStatusToPlayer(...)}:
- *    Purpose: Performs context send status to player.
+ *    Purpose: Sends a status message to the tracked player when possible and falls back to logging otherwise.
  *    Input: UUID playerUuid, String msg.
  *    Output: void.
  * 5) {@code logFileTail(...)}:
- *    Purpose: Performs log file tail.
+ *    Purpose: Logs the tail of an output file to help debug write operations.
  *    Input: String logPrefix, Path file, int maxLines.
  *    Output: void.
  * 6) {@code mapToText(...)}:
- *    Purpose: Maps map to text.
+ *    Purpose: Converts a grouped scan map into titled plain-text output for file writing.
  *    Input: java.util.Map<String, SteveAiCollectors.SeenSummary> map, String title.
  *    Output: String.
  * 7) {@code handleWriteT(...)}:
- *    Purpose: Handles handle write t.
+ *    Purpose: Handles the command that writes the current grouped scan files to disk.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 8) {@code handleWriteTD(...)}:
- *    Purpose: Handles handle write td.
+ *    Purpose: Handles the command that writes the current detailed scan files to disk.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

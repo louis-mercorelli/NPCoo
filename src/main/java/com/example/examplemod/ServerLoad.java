@@ -6,99 +6,99 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code ServerLoad(...)}:
- *    Purpose: Constructs ServerLoad.
+ *    Purpose: Prevents instantiation of this static server-load tracker.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code isWarmingUp(...)}:
- *    Purpose: Checks whether is warming up.
+ *    Purpose: Reports whether the server has not collected enough timing samples yet.
  *    Input: none.
  *    Output: boolean.
  * 3) {@code isHeartbeatLoggingEnabled(...)}:
- *    Purpose: Checks whether is heartbeat logging enabled.
+ *    Purpose: Reports whether periodic server-load heartbeat messages are enabled.
  *    Input: none.
  *    Output: boolean.
  * 4) {@code setHeartbeatLoggingEnabled(...)}:
- *    Purpose: Sets set heartbeat logging enabled.
+ *    Purpose: Enables or disables periodic server-load heartbeat messages.
  *    Input: boolean enabled.
  *    Output: void.
  * 5) {@code getLoadEmaAlpha(...)}:
- *    Purpose: Returns get load ema alpha.
+ *    Purpose: Returns the smoothing factor used for the rolling MSPT average.
  *    Input: none.
  *    Output: double.
  * 6) {@code getIdleMaxMspt(...)}:
- *    Purpose: Returns get idle max mspt.
+ *    Purpose: Returns the MSPT threshold below which the server is considered idle.
  *    Input: none.
  *    Output: double.
  * 7) {@code getBusyMaxMspt(...)}:
- *    Purpose: Returns get busy max mspt.
+ *    Purpose: Returns the MSPT threshold above which the server is considered busy.
  *    Input: none.
  *    Output: double.
  * 8) {@code getBehindLagDebtMs(...)}:
- *    Purpose: Returns get behind lag debt ms.
+ *    Purpose: Returns the lag-debt threshold used to classify the server as behind.
  *    Input: none.
  *    Output: double.
  * 9) {@code tune(...)}:
- *    Purpose: Performs tune.
+ *    Purpose: Applies runtime tuning values for server-load thresholds and smoothing.
  *    Input: double idleMspt, double busyMspt, double behindDebtMs, double emaAlpha.
  *    Output: void.
  * 10) {@code resetTune(...)}:
- *    Purpose: Resets reset tune.
+ *    Purpose: Restores the default server-load tuning thresholds and smoothing values.
  *    Input: none.
  *    Output: void.
  * 11) {@code onServerTickPre(...)}:
- *    Purpose: Performs on server tick pre.
+ *    Purpose: Captures the tick start time before the server begins work for this tick.
  *    Input: none.
  *    Output: void.
  * 12) {@code onServerTickPost(...)}:
- *    Purpose: Performs on server tick post.
+ *    Purpose: Updates load metrics after the tick and emits status output when needed.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
  * 13) {@code buildServerLoadMessage(...)}:
- *    Purpose: Builds build server load message.
+ *    Purpose: Builds a formatted status message describing the current server load state.
  *    Input: ServerLevel level, boolean includeTune.
  *    Output: String.
  * 14) {@code updateServerLoadMetrics(...)}:
- *    Purpose: Updates update server load metrics.
+ *    Purpose: Recalculates rolling MSPT and lag debt from the most recent measured tick.
  *    Input: none.
  *    Output: void.
  * 15) {@code maybeSendServerLoadStatus(...)}:
- *    Purpose: Performs maybe send server load status.
+ *    Purpose: Sends periodic load heartbeats and summary messages when timing and settings allow.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
  * 16) {@code classifyServerLoadState(...)}:
- *    Purpose: Classifies classify server load state.
+ *    Purpose: Classifies the current server state from MSPT and accumulated lag debt.
  *    Input: double mspt, double currentLagDebtMs.
  *    Output: String.
  * 17) {@code colorForServerLoadState(...)}:
- *    Purpose: Performs color for server load state.
+ *    Purpose: Returns the Minecraft color code associated with a load-state label.
  *    Input: String state.
  *    Output: String.
  * 18) {@code buildBehindPart(...)}:
- *    Purpose: Builds build behind part.
+ *    Purpose: Builds the message fragment that describes behind-schedule lag details.
  *    Input: double mspt, double currentLagDebtMs, boolean behind.
  *    Output: String.
  * 19) {@code recordServerLoadState(...)}:
- *    Purpose: Performs record server load state.
+ *    Purpose: Adds one classified load state to the rolling history buffer.
  *    Input: String state.
  *    Output: void.
  * 20) {@code buildServerLoadSummaryMessage(...)}:
- *    Purpose: Builds build server load summary message.
+ *    Purpose: Builds a summary message from the recent server-load history windows.
  *    Input: none.
  *    Output: String.
  * 21) {@code summarizeRecentServerLoadStates(...)}:
- *    Purpose: Performs summarize recent server load states.
+ *    Purpose: Summarizes the recent load history for one requested time window.
  *    Input: int windowSeconds.
  *    Output: String.
  * 22) {@code stripMinecraftColorCodes(...)}:
- *    Purpose: Performs strip minecraft color codes.
+ *    Purpose: Removes Minecraft color codes from a status string before summary parsing.
  *    Input: String text.
  *    Output: String.
  * 23) {@code add(...)}:
- *    Purpose: Performs add.
+ *    Purpose: Appends one load-state sample while keeping the history queue size bounded.
  *    Input: String state.
  *    Output: void.
  * 24) {@code format(...)}:
- *    Purpose: Performs format.
+ *    Purpose: Formats one time-window summary from the stored server-load history.
  *    Input: int windowSeconds.
  *    Output: String.
  */

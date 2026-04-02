@@ -6,7 +6,7 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code register(...)}:
- *    Purpose: Performs register.
+ *    Purpose: Registers the SteveAI chat request, reply, and session packets on the mod network channel.
  *    Input: none.
  *    Output: void.
  */
