@@ -30,6 +30,8 @@ import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import com.sai.InventoryService;
+import com.example.examplemod.chat.CEHChat;
+import com.example.examplemod.poi.CEHPoi;
 
 @Mod.EventBusSubscriber(modid = ExampleMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class CommandEvents {

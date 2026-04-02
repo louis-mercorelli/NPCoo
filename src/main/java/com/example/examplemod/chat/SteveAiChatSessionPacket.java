@@ -1,4 +1,6 @@
-package com.example.examplemod;
+package com.example.examplemod.chat;
+
+import com.example.examplemod.SteveAiContextFiles;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;

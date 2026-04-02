@@ -1,5 +1,8 @@
 package com.example.examplemod;
 
+import com.example.examplemod.chat.SteveAiChatRequestPacket;
+import com.example.examplemod.chat.SteveAiChatSessionPacket;
+
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.MerchantScreen;

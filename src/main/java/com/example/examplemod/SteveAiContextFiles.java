@@ -1,6 +1,7 @@
 package com.example.examplemod;
 
 import com.mojang.logging.LogUtils;
+import com.example.examplemod.poi.PoiManager;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;

@@ -1,4 +1,4 @@
-package com.example.examplemod;
+package com.example.examplemod.chat;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;

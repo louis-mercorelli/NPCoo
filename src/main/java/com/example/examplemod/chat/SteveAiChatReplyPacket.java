@@ -1,4 +1,6 @@
-package com.example.examplemod;
+package com.example.examplemod.chat;
+
+import com.example.examplemod.SteveAiScreen;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;

@@ -2,6 +2,7 @@ package com.example.examplemod;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.example.examplemod.poi.PoiManager;
 
 import java.io.IOException;
 import java.nio.file.Files;

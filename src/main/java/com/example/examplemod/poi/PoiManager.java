@@ -1,4 +1,6 @@
-package com.example.examplemod;
+package com.example.examplemod.poi;
+
+import com.example.examplemod.SteveAiCollectors;
 
 import net.minecraft.core.BlockPos;
 

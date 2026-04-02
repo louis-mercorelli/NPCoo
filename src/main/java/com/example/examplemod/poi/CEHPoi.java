@@ -1,6 +1,7 @@
-package com.example.examplemod;
+package com.example.examplemod.poi;
 
 import com.mojang.brigadier.context.CommandContext;
+import com.example.examplemod.SteveAiScanManager;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,11 +11,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 
-final class CEHPoi {
+public final class CEHPoi {
 
     private CEHPoi() {}
 
-    static int handlePoiUpdate(CommandContext<CommandSourceStack> context) {
+    public static int handlePoiUpdate(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         int updates = SteveAiScanManager.updatePoiMapFromCurrentScanFast();
         int poiCount = PoiManager.getPoiCount();
@@ -24,7 +25,7 @@ final class CEHPoi {
         return 1;
     }
 
-    static int handlePoiConfirmCandidates(CommandContext<CommandSourceStack> context, int limit) {
+    public static int handlePoiConfirmCandidates(CommandContext<CommandSourceStack> context, int limit) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
@@ -71,7 +72,7 @@ final class CEHPoi {
         return 1;
     }
 
-    static int handlePoiReset(CommandContext<CommandSourceStack> context) {
+    public static int handlePoiReset(CommandContext<CommandSourceStack> context) {
         PoiManager.clear();
         context.getSource().sendSuccess(() -> Component.literal("POI map reset: totalPois=0"), false);
         return 1;

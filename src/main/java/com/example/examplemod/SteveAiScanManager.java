@@ -1,5 +1,6 @@
 package com.example.examplemod;
 
+import com.example.examplemod.poi.PoiManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;

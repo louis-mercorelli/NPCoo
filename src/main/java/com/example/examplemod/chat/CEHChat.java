@@ -1,4 +1,4 @@
-package com.example.examplemod;
+package com.example.examplemod.chat;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -9,20 +9,25 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.UUID;
 
+import com.example.examplemod.SteveAiContextFiles;
+
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
 
-final class CEHChat {
+public final class CEHChat {
+
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
 
     private CEHChat() {}
 
-    static int handleSteveAiChat(CommandContext<CommandSourceStack> context) {
+    public static int handleSteveAiChat(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         String message = StringArgumentType.getString(context, "message");
 
-        CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("TESTMOD asking OpenAI...: {}"), message);
+        LOGGER.info(com.sai.NpcooLog.tag("TESTMOD asking OpenAI...: {}"), message);
         source.sendSuccess(() -> Component.literal("§6[testmod] Asking OpenAI: " + message), false);
 
         if (!(source.getEntity() instanceof ServerPlayer player)) {
@@ -35,11 +40,11 @@ final class CEHChat {
 
         String reply = askSteveAi(serverLevel, playerUuid, message);
         source.sendSuccess(() -> Component.literal("§6[testmod] OpenAI reply: " + reply), false);
-        CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("ExampleMod OpenAI response... {}"), reply);
+        LOGGER.info(com.sai.NpcooLog.tag("ExampleMod OpenAI response... {}"), reply);
         return 1;
     }
 
-    static void appendSteveAiChatLine(ServerLevel serverLevel, UUID playerUuid, String line) {
+    private static void appendSteveAiChatLine(ServerLevel serverLevel, UUID playerUuid, String line) {
         try {
             Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
             Path chatFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat.txt");
@@ -57,22 +62,22 @@ final class CEHChat {
                 StandardOpenOption.APPEND
             );
         } catch (IOException e) {
-            CommandEvents.LOGGER.error(com.sai.NpcooLog.tag("Failed to write steveAI chat file"), e);
+            LOGGER.error(com.sai.NpcooLog.tag("Failed to write steveAI chat file"), e);
         }
     }
 
-    static String chatTs() {
+    private static String chatTs() {
         return java.time.LocalDateTime.now()
             .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
-    static String oneLine(String s) {
+    private static String oneLine(String s) {
         if (s == null) return "";
         return s.replace("\r", " ").replace("\n", " ").trim();
     }
 
-    static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
-        CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("askSteveAi START playerUuid={} message={}"), playerUuid, message);
+    public static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
+        LOGGER.info(com.sai.NpcooLog.tag("askSteveAi START playerUuid={} message={}"), playerUuid, message);
 
         String fileContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
         String normalizedMessage = message == null ? "" : message.toLowerCase(java.util.Locale.ROOT);
@@ -116,7 +121,7 @@ final class CEHChat {
             "[" + chatTs() + "] STEVEAI: " + oneLine(reply));
         appendSteveAiChatLine(serverLevel, playerUuid, "");
 
-        CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("askSteveAi FINISH playerUuid={} reply={}"), playerUuid, reply);
+        LOGGER.info(com.sai.NpcooLog.tag("askSteveAi FINISH playerUuid={} reply={}"), playerUuid, reply);
         return reply;
     }
 }

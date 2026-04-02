@@ -1,5 +1,9 @@
 package com.example.examplemod;
 
+import com.example.examplemod.chat.SteveAiChatReplyPacket;
+import com.example.examplemod.chat.SteveAiChatRequestPacket;
+import com.example.examplemod.chat.SteveAiChatSessionPacket;
+
 import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.SimpleChannel;
 
