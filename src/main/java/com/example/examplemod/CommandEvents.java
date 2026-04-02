@@ -127,6 +127,7 @@ public class CommandEvents {
     private static long measuredTickSamples = 0L;
     private static double rollingMspt = 0.0;
     private static double lagDebtMs = 0.0;
+    private static boolean serverLoadHeartbeatLoggingEnabled = true;
     private static long nextServerLoadSampleGameTime = 0L;
     private static long nextServerLoadSummaryGameTime = 0L;
     private static final Deque<String> recentServerLoadStates = new ArrayDeque<>();
@@ -388,6 +389,15 @@ public class CommandEvents {
                     )
                     .then(Commands.literal("serverLoad")
                         .executes(CommandEvents::handleServerLoadStatus)
+                        .then(Commands.literal("stream")
+                            .executes(CommandEvents::handleServerLoadStreamStatus)
+                            .then(Commands.literal("on")
+                                .executes(context -> handleServerLoadStreamToggle(context, true))
+                            )
+                            .then(Commands.literal("off")
+                                .executes(context -> handleServerLoadStreamToggle(context, false))
+                            )
+                        )
                         .then(Commands.literal("set")
                             .then(Commands.argument("idleMspt", DoubleArgumentType.doubleArg(0.1, SERVER_TICK_BUDGET_MS))
                                 .then(Commands.argument("busyMspt", DoubleArgumentType.doubleArg(0.1, SERVER_TICK_BUDGET_MS))
@@ -984,8 +994,10 @@ public class CommandEvents {
             String state = classifyServerLoadState(rollingMspt, lagDebtMs);
             recordServerLoadState(state);
 
-            String heartbeat = buildServerLoadMessage(level, false);
-            LOGGER.info(com.example.examplemod.NpcooLog.tag(stripMinecraftColorCodes(heartbeat)));
+            if (serverLoadHeartbeatLoggingEnabled) {
+                String heartbeat = buildServerLoadMessage(level, false);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag(stripMinecraftColorCodes(heartbeat)));
+            }
         }
 
         if (now >= nextServerLoadSummaryGameTime) {
@@ -1036,7 +1048,7 @@ public class CommandEvents {
 
     private static String classifyServerLoadState(double mspt, double currentLagDebtMs) {
         double behindLoadMsptThreshold = SERVER_TICK_BUDGET_MS * BEHIND_LOAD_MULTIPLIER;
-        boolean behind = mspt > behindLoadMsptThreshold || currentLagDebtMs > behindLagDebtMs;
+        boolean behind = mspt > behindLoadMsptThreshold && currentLagDebtMs > behindLagDebtMs;
         if (behind) {
             return "BEHIND";
         }
@@ -1147,6 +1159,28 @@ public class CommandEvents {
                 loadEmaAlpha
             )),
             false
+        );
+        return 1;
+    }
+
+    private static int handleServerLoadStreamStatus(CommandContext<CommandSourceStack> context) {
+        context.getSource().sendSuccess(
+            () -> Component.literal("§b[serverLoad] heartbeat stream " + (serverLoadHeartbeatLoggingEnabled ? "enabled" : "disabled") + "§r"),
+            false
+        );
+        return 1;
+    }
+
+    private static int handleServerLoadStreamToggle(CommandContext<CommandSourceStack> context, boolean enabled) {
+        serverLoadHeartbeatLoggingEnabled = enabled;
+        context.getSource().sendSuccess(
+            () -> Component.literal("§b[serverLoad] heartbeat stream " + (enabled ? "enabled" : "disabled") + "§r"),
+            false
+        );
+        LOGGER.info(
+            com.example.examplemod.NpcooLog.tag("serverLoad heartbeat stream {} by {}"),
+            enabled ? "enabled" : "disabled",
+            context.getSource().getTextName()
         );
         return 1;
     }
