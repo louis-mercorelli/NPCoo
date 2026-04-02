@@ -1,3 +1,19 @@
+/**
+ * File: SteveAiScanFilters.java
+ *
+ * Main intent:
+ * Defines SteveAiScanFilters functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: SteveAiScanFilters() {}.
+ * 2) {@code state)(...)}:
+ *    Purpose: Implements state) logic in this file.
+ *    Input: BlockState state.
+ *    Output: boolean.
+ */
 package com.example.examplemod;
 
 import net.minecraft.world.level.block.BedBlock;

@@ -1,3 +1,43 @@
+/**
+ * File: ClientHackEvents.java
+ *
+ * Main intent:
+ * Defines ClientHackEvents functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: TickEvent.ClientTickEvent.Post event.
+ *    Output: void.
+ * 2) {@code mc)(...)}:
+ *    Purpose: Implements mc) logic in this file.
+ *    Input: Minecraft mc.
+ *    Output: void.
+ * 3) {@code mc)(...)}:
+ *    Purpose: Implements mc) logic in this file.
+ *    Input: Minecraft mc.
+ *    Output: void.
+ * 4) {@code mc)(...)}:
+ *    Purpose: Implements mc) logic in this file.
+ *    Input: Minecraft mc.
+ *    Output: boolean.
+ * 5) {@code mc)(...)}:
+ *    Purpose: Implements mc) logic in this file.
+ *    Input: Minecraft mc.
+ *    Output: boolean.
+ * 6) {@code mc)(...)}:
+ *    Purpose: Implements mc) logic in this file.
+ *    Input: Minecraft mc.
+ *    Output: String.
+ * 7) {@code mc)(...)}:
+ *    Purpose: Implements mc) logic in this file.
+ *    Input: Minecraft mc.
+ *    Output: java.nio.file.Path.
+ * 8) {@code mc)(...)}:
+ *    Purpose: Implements mc) logic in this file.
+ *    Input: Minecraft mc.
+ *    Output: boolean.
+ */
 package com.example.examplemod;
 
 import org.slf4j.Logger;

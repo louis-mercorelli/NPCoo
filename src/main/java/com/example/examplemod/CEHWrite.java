@@ -1,3 +1,39 @@
+/**
+ * File: CEHWrite.java
+ *
+ * Main intent:
+ * Defines CEHWrite functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHWrite() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code msg)(...)}:
+ *    Purpose: Implements msg) logic in this file.
+ *    Input: UUID playerUuid, String msg.
+ *    Output: void.
+ * 4) {@code maxLines)(...)}:
+ *    Purpose: Implements maxLines) logic in this file.
+ *    Input: String logPrefix, Path file, int maxLines.
+ *    Output: void.
+ * 5) {@code title)(...)}:
+ *    Purpose: Implements title) logic in this file.
+ *    Input: java.util.Map<String, SteveAiCollectors.SeenSummary> map, String title.
+ *    Output: String.
+ * 6) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 7) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.arguments.StringArgumentType;

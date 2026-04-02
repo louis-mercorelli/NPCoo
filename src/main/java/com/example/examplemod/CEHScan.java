@@ -1,3 +1,31 @@
+/**
+ * File: CEHScan.java
+ *
+ * Main intent:
+ * Defines CEHScan functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHScan() {}.
+ * 2) {@code defaultChunkRadius)(...)}:
+ *    Purpose: Implements defaultChunkRadius) logic in this file.
+ *    Input: String tail, int defaultChunkRadius.
+ *    Output: ParsedScanSaiArgs.
+ * 3) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 4) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 5) {@code radius)(...)}:
+ *    Purpose: Implements radius) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context, int radius.
+ *    Output: int.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.arguments.StringArgumentType;

@@ -1,3 +1,27 @@
+/**
+ * File: SteveAiChatSessionPacket.java
+ *
+ * Main intent:
+ * Defines SteveAiChatSessionPacket functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code opened)(...)}:
+ *    Purpose: Implements opened) logic in this file.
+ *    Input: boolean opened.
+ *    Output: SteveAiChatSessionPacket(boolean opened).
+ * 2) {@code buf)(...)}:
+ *    Purpose: Implements buf) logic in this file.
+ *    Input: SteveAiChatSessionPacket pkt, FriendlyByteBuf buf.
+ *    Output: void.
+ * 3) {@code buf)(...)}:
+ *    Purpose: Implements buf) logic in this file.
+ *    Input: FriendlyByteBuf buf.
+ *    Output: SteveAiChatSessionPacket.
+ * 4) {@code ctx)(...)}:
+ *    Purpose: Implements ctx) logic in this file.
+ *    Input: SteveAiChatSessionPacket pkt, CustomPayloadEvent.Context ctx.
+ *    Output: void.
+ */
 package com.example.examplemod.chat;
 
 import com.example.examplemod.SteveAiContextFiles;
@@ -6,6 +30,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.network.CustomPayloadEvent;
+
 
 public class SteveAiChatSessionPacket {
     private final boolean opened;

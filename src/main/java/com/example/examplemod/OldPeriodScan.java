@@ -1,3 +1,67 @@
+/**
+ * File: OldPeriodScan.java
+ *
+ * Main intent:
+ * Defines OldPeriodScan functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: OldPeriodScan() {}.
+ * 2) {@code server)(...)}:
+ *    Purpose: Implements server) logic in this file.
+ *    Input: net.minecraft.server.MinecraftServer server.
+ *    Output: void.
+ * 3) {@code server)(...)}:
+ *    Purpose: Implements server) logic in this file.
+ *    Input: net.minecraft.server.MinecraftServer server.
+ *    Output: void.
+ * 4) {@code server)(...)}:
+ *    Purpose: Implements server) logic in this file.
+ *    Input: net.minecraft.server.MinecraftServer server.
+ *    Output: int.
+ * 5) {@code forced)(...)}:
+ *    Purpose: Implements forced) logic in this file.
+ *    Input: int queued, boolean forced.
+ *    Output: void.
+ * 6) {@code queuedJobs)(...)}:
+ *    Purpose: Implements queuedJobs) logic in this file.
+ *    Input: int queuedJobs.
+ *    Output: void.
+ * 7) {@code processPeriodicScanQueue(...)}:
+ *    Purpose: Implements processPeriodicScanQueue logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 8) {@code notifyPeriodicScanFinished(...)}:
+ *    Purpose: Implements notifyPeriodicScanFinished logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 9) {@code msg)(...)}:
+ *    Purpose: Implements msg) logic in this file.
+ *    Input: String msg.
+ *    Output: void.
+ * 10) {@code msg)(...)}:
+ *    Purpose: Implements msg) logic in this file.
+ *    Input: String msg.
+ *    Output: void.
+ * 11) {@code msg)(...)}:
+ *    Purpose: Implements msg) logic in this file.
+ *    Input: java.util.UUID playerUuid, String msg.
+ *    Output: void.
+ * 12) {@code steveAiEntity)(...)}:
+ *    Purpose: Implements steveAiEntity) logic in this file.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity.
+ *    Output: void.
+ * 13) {@code line)(...)}:
+ *    Purpose: Implements line) logic in this file.
+ *    Input: ServerLevel serverLevel, java.util.UUID playerUuid, String line.
+ *    Output: void.
+ * 14) {@code job)(...)}:
+ *    Purpose: Implements job) logic in this file.
+ *    Input: CommandEvents.PeriodicScanJob job.
+ *    Output: void.
+ */
 package com.example.examplemod;
 
 import com.example.examplemod.poi.PoiManager;

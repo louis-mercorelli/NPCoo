@@ -1,3 +1,15 @@
+/**
+ * File: ModNetworking.java
+ *
+ * Main intent:
+ * Defines ModNetworking functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code register(...)}:
+ *    Purpose: Implements register logic in this file.
+ *    Input: none.
+ *    Output: void.
+ */
 package com.example.examplemod;
 
 import com.example.examplemod.chat.SteveAiChatReplyPacket;

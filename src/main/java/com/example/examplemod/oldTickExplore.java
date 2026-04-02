@@ -1,3 +1,39 @@
+/**
+ * File: oldTickExplore.java
+ *
+ * Main intent:
+ * Defines oldTickExplore functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: OldTickExplore() {}.
+ * 2) {@code radius)(...)}:
+ *    Purpose: Implements radius) logic in this file.
+ *    Input: ServerLevel serverLevel, Villager steveAi, double radius.
+ *    Output: int.
+ * 3) {@code stopExploreTask(...)}:
+ *    Purpose: Implements stopExploreTask logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 4) {@code steveAi)(...)}:
+ *    Purpose: Implements steveAi) logic in this file.
+ *    Input: ServerLevel serverLevel, Villager steveAi.
+ *    Output: void.
+ * 5) {@code serverLevel)(...)}:
+ *    Purpose: Implements serverLevel) logic in this file.
+ *    Input: ServerLevel serverLevel.
+ *    Output: BlockPos.
+ * 6) {@code target)(...)}:
+ *    Purpose: Implements target) logic in this file.
+ *    Input: Villager steveAi, BlockPos target.
+ *    Output: boolean.
+ * 7) {@code pos)(...)}:
+ *    Purpose: Implements pos) logic in this file.
+ *    Input: ServerLevel serverLevel, BlockPos pos.
+ *    Output: boolean.
+ */
 package com.example.examplemod;
 
 import net.minecraft.core.BlockPos;

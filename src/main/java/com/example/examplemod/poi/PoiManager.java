@@ -1,3 +1,175 @@
+/**
+ * File: PoiManager.java
+ *
+ * Main intent:
+ * Defines PoiManager functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code evidenceType)(...)}:
+ *    Purpose: Implements evidenceType) logic in this file.
+ *    Input: String type, BlockPos pos, String evidenceType.
+ *    Output: Poi(String type, BlockPos pos, String evidenceType).
+ * 2) {@code isBlockEvidence)(...)}:
+ *    Purpose: Implements isBlockEvidence) logic in this file.
+ *    Input: String type, BlockPos pos, String evidenceType, boolean isBlockEvidence.
+ *    Output: Poi(String type, BlockPos pos, String evidenceType, boolean isBlockEvidence).
+ * 3) {@code evidenceType)(...)}:
+ *    Purpose: Implements evidenceType) logic in this file.
+ *    Input: BlockPos pos, String evidenceType.
+ *    Output: boolean.
+ * 4) {@code isBlockEvidence)(...)}:
+ *    Purpose: Implements isBlockEvidence) logic in this file.
+ *    Input: BlockPos pos, String evidenceType, boolean isBlockEvidence.
+ *    Output: boolean.
+ * 5) {@code isConfirmed(...)}:
+ *    Purpose: Implements isConfirmed logic in this file.
+ *    Input: none.
+ *    Output: boolean.
+ * 6) {@code other)(...)}:
+ *    Purpose: Implements other) logic in this file.
+ *    Input: Poi other.
+ *    Output: void.
+ * 7) {@code recomputeCenter(...)}:
+ *    Purpose: Implements recomputeCenter logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 8) {@code getBounds(...)}:
+ *    Purpose: Implements getBounds logic in this file.
+ *    Input: none.
+ *    Output: int[].
+ * 9) {@code scene)(...)}:
+ *    Purpose: Implements scene) logic in this file.
+ *    Input: String personality, String scene.
+ *    Output: VillageAssignment(String personality, String scene).
+ * 10) {@code pos)(...)}:
+ *    Purpose: Implements pos) logic in this file.
+ *    Input: String typeName, BlockPos pos.
+ *    Output: boolean.
+ * 11) {@code allowMerge)(...)}:
+ *    Purpose: Implements allowMerge) logic in this file.
+ *    Input: String typeName, BlockPos pos, boolean allowMerge.
+ *    Output: boolean.
+ * 12) {@code pos)(...)}:
+ *    Purpose: Implements pos) logic in this file.
+ *    Input: String typeName, BlockPos pos.
+ *    Output: boolean.
+ * 13) {@code allowMerge)(...)}:
+ *    Purpose: Implements allowMerge) logic in this file.
+ *    Input: String typeName, BlockPos pos, boolean allowMerge.
+ *    Output: boolean.
+ * 14) {@code pos)(...)}:
+ *    Purpose: Implements pos) logic in this file.
+ *    Input: String typeName, BlockPos pos.
+ *    Output: boolean.
+ * 15) {@code allowMerge)(...)}:
+ *    Purpose: Implements allowMerge) logic in this file.
+ *    Input: String typeName, BlockPos pos, boolean allowMerge.
+ *    Output: boolean.
+ * 16) {@code type)(...)}:
+ *    Purpose: Implements type) logic in this file.
+ *    Input: String type.
+ *    Output: String.
+ * 17) {@code type)(...)}:
+ *    Purpose: Implements type) logic in this file.
+ *    Input: String type.
+ *    Output: String.
+ * 18) {@code evidence)(...)}:
+ *    Purpose: Implements evidence) logic in this file.
+ *    Input: String poiType, String evidence.
+ *    Output: int.
+ * 19) {@code allowMerge)(...)}:
+ *    Purpose: Implements allowMerge) logic in this file.
+ *    Input: String type, BlockPos pos, String evidence, boolean isBlockEvidence, boolean allowMerge.
+ *    Output: boolean.
+ * 20) {@code consolidateStage2Duplicates(...)}:
+ *    Purpose: Implements consolidateStage2Duplicates logic in this file.
+ *    Input: none.
+ *    Output: int.
+ * 21) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: int.
+ * 22) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: boolean.
+ * 23) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: boolean.
+ * 24) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: boolean.
+ * 25) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: boolean.
+ * 26) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: boolean.
+ * 27) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: String.
+ * 28) {@code buildSummaryLines(...)}:
+ *    Purpose: Implements buildSummaryLines logic in this file.
+ *    Input: none.
+ *    Output: List<String>.
+ * 29) {@code center)(...)}:
+ *    Purpose: Implements center) logic in this file.
+ *    Input: BlockPos center.
+ *    Output: String.
+ * 30) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: Poi poi.
+ *    Output: VillageAssignment.
+ * 31) {@code choosePersonality(...)}:
+ *    Purpose: Implements choosePersonality logic in this file.
+ *    Input: none.
+ *    Output: String.
+ * 32) {@code personality)(...)}:
+ *    Purpose: Implements personality) logic in this file.
+ *    Input: String personality.
+ *    Output: String.
+ * 33) {@code personality)(...)}:
+ *    Purpose: Implements personality) logic in this file.
+ *    Input: String personality.
+ *    Output: String.
+ * 34) {@code file)(...)}:
+ *    Purpose: Implements file) logic in this file.
+ *    Input: Path file.
+ *    Output: void.
+ * 35) {@code file)(...)}:
+ *    Purpose: Implements file) logic in this file.
+ *    Input: Path file.
+ *    Output: void.
+ * 36) {@code finalType)(...)}:
+ *    Purpose: Implements finalType) logic in this file.
+ *    Input: Poi poi, String finalType.
+ *    Output: String.
+ * 37) {@code clear(...)}:
+ *    Purpose: Implements clear logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 38) {@code getPoiCount(...)}:
+ *    Purpose: Implements getPoiCount logic in this file.
+ *    Input: none.
+ *    Output: int.
+ * 39) {@code maxCount)(...)}:
+ *    Purpose: Implements maxCount) logic in this file.
+ *    Input: int maxCount.
+ *    Output: List<BlockPos>.
+ * 40) {@code fromPos)(...)}:
+ *    Purpose: Implements fromPos) logic in this file.
+ *    Input: String type, BlockPos fromPos.
+ *    Output: BlockPos.
+ * 41) {@code fromPos)(...)}:
+ *    Purpose: Implements fromPos) logic in this file.
+ *    Input: BlockPos fromPos.
+ *    Output: BlockPos.
+ */
 package com.example.examplemod.poi;
 
 import com.example.examplemod.SteveAiCollectors;
@@ -15,6 +187,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 
 public class PoiManager {
 
@@ -136,8 +309,6 @@ public class PoiManager {
 
     private static final List<Poi> pois = new ArrayList<>();
 
-    // Village personality options — assigned only after stage2 confirmation.
-    // Persists across PoiManager.clear() calls and is saved/loaded from disk.
     private static final String[] PERSONALITY_OPTIONS = {
         "scooby_doo",
         "er_tv_series",
@@ -145,7 +316,6 @@ public class PoiManager {
         "pirates_of_the_caribbean"
     };
 
-    // Keyed by grid-snapped "X,Z" so minor center drift doesn't create duplicates.
     private static final Map<String, VillageAssignment> savedPersonalities = new HashMap<>();
 
     public static class VillageAssignment {
@@ -158,12 +328,11 @@ public class PoiManager {
         }
     }
 
-    // MVP tuning constants
-    private static final int VILLAGE_MIN_POSITION_COUNT = 2;   // proxy for "villager > 1"
+    private static final int VILLAGE_MIN_POSITION_COUNT = 2;
     private static final int VILLAGE_MIN_Y = 10;
 
     private static final int UNDERGROUND_MAX_Y = 10;
-    private static final int UNDERGROUND_BED_CLUSTER_MIN_POSITIONS = 5; // proxy for "beds > 4"
+    private static final int UNDERGROUND_BED_CLUSTER_MIN_POSITIONS = 5;
     private static final int WATER_SURFACE_MAX_Y = 63;
 
     public static boolean processBlockEntity(String typeName, BlockPos pos) {
@@ -342,7 +511,6 @@ public class PoiManager {
     private static String mapToPoi(String type) {
         return switch (type) {
 
-            // Village evidence
             case "minecraft:bell",
                  "minecraft:villager",                
                  "minecraft:lectern",
@@ -355,12 +523,10 @@ public class PoiManager {
                  "minecraft:iron_golem",
                  "minecraft:cat" -> "village_candidate";
 
-            // Dungeon
             case "minecraft:mob_spawner",
                  "minecraft:spawner",
                  "minecraft:chest" -> "dungeon";
 
-            // Trial chamber
             case "minecraft:trial_spawner",
                  "minecraft:vault",
                  "minecraft:decorated_pot",
@@ -373,48 +539,37 @@ public class PoiManager {
                  "minecraft:barrel",
                  "minecraft:hopper" -> "trial_chamber";
 
-            // Fortress
             case "minecraft:blaze",
                  "minecraft:wither_skeleton" -> "fortress";
 
-            // Bastion
             case "minecraft:piglin",
                  "minecraft:piglin_brute" -> "bastion";
 
-            // Stronghold
             case "minecraft:end_portal_frame",
                  "minecraft:silverfish" -> "stronghold";
 
-            // Ruined portal
             case "minecraft:obsidian",
                  "minecraft:crying_obsidian" -> "ruined_portal";
 
-            // End city
             case "minecraft:shulker",
                  "minecraft:dragon_head" -> "end_city";
 
-            // Witch hut
             case "minecraft:witch" -> "witch_hut";
 
-            // Ancient city
             case "minecraft:sculk_shrieker",
                  "minecraft:sculk_sensor",
                  "minecraft:reinforced_deepslate",
                  "minecraft:warden" -> "ancient_city";
 
-            // Geode
             case "minecraft:budding_amethyst",
                  "minecraft:amethyst_block",
                  "minecraft:calcite",
                  "minecraft:smooth_basalt" -> "geode";
 
-            // Fossil
             case "minecraft:bone_block" -> "fossil";
 
-            // Lava pool
             case "minecraft:lava" -> "lava_pool";
 
-            // Ore vein
             case "minecraft:diamond_ore",
                  "minecraft:deepslate_diamond_ore",
                  "minecraft:iron_ore",
@@ -567,8 +722,6 @@ public class PoiManager {
             || poi.evidence.contains("minecraft:kelp")
             || poi.evidence.contains("minecraft:seagrass");
 
-        // If the cluster is near/under sea level and lacks strong village anchors,
-        // treat it as likely water-adjacent for conservative village promotion.
         boolean nearSeaLevelBand = centerY <= WATER_SURFACE_MAX_Y && bounds[2] <= WATER_SURFACE_MAX_Y;
         boolean hasStrongVillageAnchor = poi.evidence.contains("minecraft:bell")
             || poi.evidence.contains("minecraft:iron_golem")
@@ -597,9 +750,6 @@ public class PoiManager {
         int posCount = poi.seenPositions.size();
         int evidenceCount = poi.evidence.size();
 
-        // New tuning:
-        // - underground bed-heavy clusters should not become villages
-        // - underground chamber-ish support should push away from village
         boolean undergroundLike = isUndergroundLike(poi);
         boolean likelyInWater = isLikelyInWater(poi);
 
@@ -656,7 +806,6 @@ public class PoiManager {
                     && "village".equals(finalType)
                     && ("high".equals(confidence) || "very_high".equals(confidence))) {
                 VillageAssignment assignment = getOrAssignVillageAssignment(poi);
-                // Keep personality locked, but pick a fresh scene each summary rebuild.
                 String activeScene = chooseSceneForPersonality(assignment.personality);
                 String chars = getPersonalityCharacters(assignment.personality);
                 personalityPart = " personality=" + assignment.personality
@@ -687,18 +836,15 @@ public class PoiManager {
         return lines;
     }
 
-    // -------------------------------------------------------------------------
-    // Village personality helpers
-    // -------------------------------------------------------------------------
 
-    /** Grid-snapped key so minor center drift doesn't create duplicate entries. */
+    
     private static String personalityKey(BlockPos center) {
         int gx = Math.round((float) center.getX() / 64) * 64;
         int gz = Math.round((float) center.getZ() / 64) * 64;
         return gx + "," + gz;
     }
 
-    /** Returns the locked assignment for this village, or assigns one once and keeps it. */
+    
     private static VillageAssignment getOrAssignVillageAssignment(Poi poi) {
         String key = personalityKey(poi.center);
         return savedPersonalities.computeIfAbsent(key, k -> {
@@ -764,7 +910,7 @@ public class PoiManager {
         return scenes[idx];
     }
 
-    /** Human-readable character list for a personality theme. */
+    
     public static String getPersonalityCharacters(String personality) {
         if (personality == null) return "";
         return switch (personality) {
@@ -776,7 +922,7 @@ public class PoiManager {
         };
     }
 
-    /** Loads saved personalities from a flat properties file (survives server restarts). */
+    
     public static void loadPersonalitiesFromFile(Path file) {
         if (file == null || !Files.exists(file)) return;
         try {
@@ -789,9 +935,6 @@ public class PoiManager {
                     String key = parts[0].trim();
                     String value = parts[1].trim();
 
-                    // Backward compatible format support:
-                    // old: gridX,gridZ=personality
-                    // new: gridX,gridZ=personality|scene text
                     String[] valueParts = value.split("\\|", 2);
                     String personality = valueParts[0].trim();
                     if (personality.isBlank()) {
@@ -808,11 +951,10 @@ public class PoiManager {
                 }
             }
         } catch (IOException e) {
-            // start fresh — personalities will be re-assigned on next scan
         }
     }
 
-    /** Persists all assignments to a flat properties file. */
+    
     public static void savePersonalitiesToFile(Path file) {
         if (savedPersonalities.isEmpty()) return;
         try {
@@ -840,7 +982,6 @@ public class PoiManager {
                 StandardOpenOption.WRITE
             );
         } catch (IOException e) {
-            // non-fatal — data will be re-derived on next scan
         }
     }
 

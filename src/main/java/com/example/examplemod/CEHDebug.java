@@ -1,3 +1,19 @@
+/**
+ * File: CEHDebug.java
+ *
+ * Main intent:
+ * Defines CEHDebug functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHDebug() {}.
+ * 2) {@code enabled)(...)}:
+ *    Purpose: Implements enabled) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context, boolean enabled.
+ *    Output: int.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.context.CommandContext;

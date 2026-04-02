@@ -1,3 +1,35 @@
+/**
+ * File: SteveAiContextFiles.java
+ *
+ * Main intent:
+ * Defines SteveAiContextFiles functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code tailLines)(...)}:
+ *    Purpose: Implements tailLines) logic in this file.
+ *    Input: ServerLevel serverLevel, UUID playerUuid, int tailLines.
+ *    Output: String.
+ * 2) {@code line)(...)}:
+ *    Purpose: Implements line) logic in this file.
+ *    Input: ServerLevel serverLevel, UUID playerUuid, String line.
+ *    Output: void.
+ * 3) {@code buildLivePoiSummaryText(...)}:
+ *    Purpose: Implements buildLivePoiSummaryText logic in this file.
+ *    Input: none.
+ *    Output: String.
+ * 4) {@code playerUuid)(...)}:
+ *    Purpose: Implements playerUuid) logic in this file.
+ *    Input: ServerLevel serverLevel, UUID playerUuid.
+ *    Output: void.
+ * 5) {@code playerUuid)(...)}:
+ *    Purpose: Implements playerUuid) logic in this file.
+ *    Input: UUID playerUuid.
+ *    Output: void.
+ * 6) {@code maxLines)(...)}:
+ *    Purpose: Implements maxLines) logic in this file.
+ *    Input: String logPrefix, Path file, int maxLines.
+ *    Output: void.
+ */
 package com.example.examplemod;
 
 import com.mojang.logging.LogUtils;

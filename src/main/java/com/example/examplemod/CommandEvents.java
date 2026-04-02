@@ -1,3 +1,27 @@
+/**
+ * File: CommandEvents.java
+ *
+ * Main intent:
+ * Defines CommandEvents functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: RegisterCommandsEvent event.
+ *    Output: void.
+ * 2) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: net.minecraftforge.event.TickEvent.ServerTickEvent.Pre event.
+ *    Output: void.
+ * 3) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: net.minecraftforge.event.TickEvent.ServerTickEvent.Post event.
+ *    Output: void.
+ * 4) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: PlayerEvent.PlayerLoggedInEvent event.
+ *    Output: void.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.arguments.DoubleArgumentType;

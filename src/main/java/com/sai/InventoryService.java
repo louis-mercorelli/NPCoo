@@ -1,3 +1,39 @@
+/**
+ * File: InventoryService.java
+ *
+ * Main intent:
+ * Defines InventoryService functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code villager)(...)}:
+ *    Purpose: Implements villager) logic in this file.
+ *    Input: Villager villager.
+ *    Output: String.
+ * 2) {@code itemName)(...)}:
+ *    Purpose: Implements itemName) logic in this file.
+ *    Input: String itemName.
+ *    Output: Item.
+ * 3) {@code toAdd)(...)}:
+ *    Purpose: Implements toAdd) logic in this file.
+ *    Input: Villager villager, ItemStack toAdd.
+ *    Output: boolean.
+ * 4) {@code count)(...)}:
+ *    Purpose: Implements count) logic in this file.
+ *    Input: Villager villager, Item item, int count.
+ *    Output: ItemStack.
+ * 5) {@code stack)(...)}:
+ *    Purpose: Implements stack) logic in this file.
+ *    Input: ServerLevel serverLevel, Villager villager, ItemStack stack.
+ *    Output: void.
+ * 6) {@code count)(...)}:
+ *    Purpose: Implements count) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context, int count.
+ *    Output: int.
+ * 7) {@code count)(...)}:
+ *    Purpose: Implements count) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context, int count.
+ *    Output: int.
+ */
 package com.sai;
 
 import com.example.examplemod.SteveAiLocator;

@@ -1,3 +1,27 @@
+/**
+ * File: CEHLookSee.java
+ *
+ * Main intent:
+ * Defines CEHLookSee functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHLookSee() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code grouped)(...)}:
+ *    Purpose: Implements grouped) logic in this file.
+ *    Input: Map<String, SteveAiCollectors.SeenSummary> grouped.
+ *    Output: int.
+ * 4) {@code key)(...)}:
+ *    Purpose: Implements key) logic in this file.
+ *    Input: Map<String, SteveAiCollectors.SeenSummary> grouped, String key.
+ *    Output: int.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.context.CommandContext;

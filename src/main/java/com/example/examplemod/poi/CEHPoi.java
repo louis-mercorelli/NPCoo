@@ -1,3 +1,27 @@
+/**
+ * File: CEHPoi.java
+ *
+ * Main intent:
+ * Defines CEHPoi functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHPoi() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code limit)(...)}:
+ *    Purpose: Implements limit) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context, int limit.
+ *    Output: int.
+ * 4) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ */
 package com.example.examplemod.poi;
 
 import com.mojang.brigadier.context.CommandContext;
@@ -10,6 +34,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+
 
 public final class CEHPoi {
 

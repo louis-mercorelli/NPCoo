@@ -1,3 +1,27 @@
+/**
+ * File: CEHGuiInventory.java
+ *
+ * Main intent:
+ * Defines CEHGuiInventory functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHGuiInventory() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code getDisplayName(...)}:
+ *    Purpose: Implements getDisplayName logic in this file.
+ *    Input: none.
+ *    Output: Component.
+ * 4) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.context.CommandContext;

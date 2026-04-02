@@ -1,3 +1,19 @@
+/**
+ * File: SteveAiMenu.java
+ *
+ * Main intent:
+ * Defines SteveAiMenu functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code playerInventory)(...)}:
+ *    Purpose: Implements playerInventory) logic in this file.
+ *    Input: int containerId, Inventory playerInventory.
+ *    Output: SteveAiMenu(int containerId, Inventory playerInventory).
+ * 2) {@code playerInventory)(...)}:
+ *    Purpose: Implements playerInventory) logic in this file.
+ *    Input: Inventory playerInventory.
+ *    Output: ClientSideMerchant.
+ */
 package com.example.examplemod;
 
 //import static net.minecraft.world.inventory.AbstractContainerMenu.LOGGER;

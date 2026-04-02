@@ -1,3 +1,31 @@
+/**
+ * File: CEHExplore.java
+ *
+ * Main intent:
+ * Defines CEHExplore functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHExplore() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 4) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 5) {@code poi)(...)}:
+ *    Purpose: Implements poi) logic in this file.
+ *    Input: String poi.
+ *    Output: String.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.arguments.StringArgumentType;

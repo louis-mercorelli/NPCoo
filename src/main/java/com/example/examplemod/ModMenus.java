@@ -1,3 +1,19 @@
+/**
+ * File: ModMenus.java
+ *
+ * Main intent:
+ * Defines ModMenus functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code createSteveAiMenuType(...)}:
+ *    Purpose: Implements createSteveAiMenuType logic in this file.
+ *    Input: none.
+ *    Output: MenuType<SteveAiMenu>.
+ * 2) {@code ModMenus(...)}:
+ *    Purpose: Implements ModMenus logic in this file.
+ *    Input: none.
+ *    Output: none (constructor).
+ */
 package com.example.examplemod;
 
 import net.minecraft.world.flag.FeatureFlags;

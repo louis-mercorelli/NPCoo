@@ -1,3 +1,39 @@
+/**
+ * File: CEHNavigationChunk.java
+ *
+ * Main intent:
+ * Defines CEHNavigationChunk functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHNavigationChunk() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 4) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 5) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 6) {@code player)(...)}:
+ *    Purpose: Implements player) logic in this file.
+ *    Input: ServerLevel serverLevel, ServerPlayer player.
+ *    Output: BlockPos.
+ * 7) {@code nearPos)(...)}:
+ *    Purpose: Implements nearPos) logic in this file.
+ *    Input: ServerLevel serverLevel, BlockPos nearPos.
+ *    Output: BlockPos.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.context.CommandContext;

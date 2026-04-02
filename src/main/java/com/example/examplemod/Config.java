@@ -1,3 +1,23 @@
+/**
+ * File: Config.java
+ *
+ * Main intent:
+ * Defines Config functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code obj)(...)}:
+ *    Purpose: Implements obj) logic in this file.
+ *    Input: final Object obj.
+ *    Output: boolean.
+ * 2) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: final ModConfigEvent event.
+ *    Output: void.
+ * 3) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: final ModConfigEvent.Reloading event.
+ *    Output: void.
+ */
 package com.example.examplemod;
 
 import net.minecraft.resources.Identifier;

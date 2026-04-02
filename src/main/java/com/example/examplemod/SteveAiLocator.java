@@ -1,3 +1,27 @@
+/**
+ * File: SteveAiLocator.java
+ *
+ * Main intent:
+ * Defines SteveAiLocator functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: SteveAiLocator() {}.
+ * 2) {@code entity)(...)}:
+ *    Purpose: Implements entity) logic in this file.
+ *    Input: Entity entity.
+ *    Output: boolean.
+ * 3) {@code serverLevel)(...)}:
+ *    Purpose: Implements serverLevel) logic in this file.
+ *    Input: ServerLevel serverLevel.
+ *    Output: Villager.
+ * 4) {@code serverLevel)(...)}:
+ *    Purpose: Implements serverLevel) logic in this file.
+ *    Input: ServerLevel serverLevel.
+ *    Output: Entity.
+ */
 package com.example.examplemod;
 
 import net.minecraft.server.level.ServerLevel;

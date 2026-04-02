@@ -1,3 +1,27 @@
+/**
+ * File: SteveAiChatRequestPacket.java
+ *
+ * Main intent:
+ * Defines SteveAiChatRequestPacket functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code message)(...)}:
+ *    Purpose: Implements message) logic in this file.
+ *    Input: String message.
+ *    Output: SteveAiChatRequestPacket(String message).
+ * 2) {@code buf)(...)}:
+ *    Purpose: Implements buf) logic in this file.
+ *    Input: SteveAiChatRequestPacket pkt, FriendlyByteBuf buf.
+ *    Output: void.
+ * 3) {@code buf)(...)}:
+ *    Purpose: Implements buf) logic in this file.
+ *    Input: FriendlyByteBuf buf.
+ *    Output: SteveAiChatRequestPacket.
+ * 4) {@code ctx)(...)}:
+ *    Purpose: Implements ctx) logic in this file.
+ *    Input: SteveAiChatRequestPacket pkt, CustomPayloadEvent.Context ctx.
+ *    Output: void.
+ */
 package com.example.examplemod.chat;
 
 import com.example.examplemod.ModNetworking;
@@ -7,6 +31,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.network.CustomPayloadEvent;
 import net.minecraftforge.network.PacketDistributor;
+
 
 public class SteveAiChatRequestPacket {
     private final String message;

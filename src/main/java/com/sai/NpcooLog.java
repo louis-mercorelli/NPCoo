@@ -1,3 +1,19 @@
+/**
+ * File: NpcooLog.java
+ *
+ * Main intent:
+ * Defines NpcooLog functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code NpcooLog(...)}:
+ *    Purpose: Implements NpcooLog logic in this file.
+ *    Input: none.
+ *    Output: none (constructor).
+ * 2) {@code message)(...)}:
+ *    Purpose: Implements message) logic in this file.
+ *    Input: String message.
+ *    Output: String.
+ */
 package com.sai;
 
 public final class NpcooLog {

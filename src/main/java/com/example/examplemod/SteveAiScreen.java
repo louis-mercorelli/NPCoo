@@ -1,3 +1,99 @@
+/**
+ * File: SteveAiScreen.java
+ *
+ * Main intent:
+ * Defines SteveAiScreen functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code label(...)}:
+ *    Purpose: Implements label logic in this file.
+ *    Input: none.
+ *    Output: String.
+ * 2) {@code scrollChatToBottom(...)}:
+ *    Purpose: Implements scrollChatToBottom logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 3) {@code title)(...)}:
+ *    Purpose: Implements title) logic in this file.
+ *    Input: SteveAiMenu menu, Inventory playerInventory, Component title.
+ *    Output: SteveAiScreen(SteveAiMenu menu, Inventory playerInventory, Component title).
+ * 4) {@code init(...)}:
+ *    Purpose: Implements init logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 5) {@code partialTick)(...)}:
+ *    Purpose: Implements partialTick) logic in this file.
+ *    Input: GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick.
+ *    Output: void.
+ * 6) {@code mouseY)(...)}:
+ *    Purpose: Implements mouseY) logic in this file.
+ *    Input: GuiGraphics guiGraphics, int mouseX, int mouseY.
+ *    Output: void.
+ * 7) {@code guiGraphics)(...)}:
+ *    Purpose: Implements guiGraphics) logic in this file.
+ *    Input: GuiGraphics guiGraphics.
+ *    Output: void.
+ * 8) {@code guiGraphics)(...)}:
+ *    Purpose: Implements guiGraphics) logic in this file.
+ *    Input: GuiGraphics guiGraphics.
+ *    Output: void.
+ * 9) {@code guiGraphics)(...)}:
+ *    Purpose: Implements guiGraphics) logic in this file.
+ *    Input: GuiGraphics guiGraphics.
+ *    Output: void.
+ * 10) {@code tab)(...)}:
+ *    Purpose: Implements tab) logic in this file.
+ *    Input: GuiGraphics guiGraphics, int x, int y, int width, Tab tab.
+ *    Output: void.
+ * 11) {@code guiGraphics)(...)}:
+ *    Purpose: Implements guiGraphics) logic in this file.
+ *    Input: GuiGraphics guiGraphics.
+ *    Output: void.
+ * 12) {@code guiGraphics)(...)}:
+ *    Purpose: Implements guiGraphics) logic in this file.
+ *    Input: GuiGraphics guiGraphics.
+ *    Output: void.
+ * 13) {@code color)(...)}:
+ *    Purpose: Implements color) logic in this file.
+ *    Input: GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color.
+ *    Output: void.
+ * 14) {@code updateTabVisibility(...)}:
+ *    Purpose: Implements updateTabVisibility logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 15) {@code consumed)(...)}:
+ *    Purpose: Implements consumed) logic in this file.
+ *    Input: MouseButtonEvent event, boolean consumed.
+ *    Output: boolean.
+ * 16) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: KeyEvent event.
+ *    Output: boolean.
+ * 17) {@code deltaY)(...)}:
+ *    Purpose: Implements deltaY) logic in this file.
+ *    Input: double mouseX, double mouseY, double deltaX, double deltaY.
+ *    Output: boolean.
+ * 18) {@code onClose(...)}:
+ *    Purpose: Implements onClose logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 19) {@code reply)(...)}:
+ *    Purpose: Implements reply) logic in this file.
+ *    Input: String prompt, String reply.
+ *    Output: void.
+ * 20) {@code removed(...)}:
+ *    Purpose: Implements removed logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 21) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: CharacterEvent event.
+ *    Output: boolean.
+ * 22) {@code width)(...)}:
+ *    Purpose: Implements width) logic in this file.
+ *    Input: double mouseX, double mouseY, int x, int y, int width.
+ *    Output: boolean.
+ */
 package com.example.examplemod;
 
 import com.example.examplemod.chat.SteveAiChatRequestPacket;

@@ -1,3 +1,23 @@
+/**
+ * File: ExampleMod.java
+ *
+ * Main intent:
+ * Defines ExampleMod functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: FMLJavaModLoadingContext context.
+ *    Output: ExampleMod(FMLJavaModLoadingContext context).
+ * 2) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: final FMLCommonSetupEvent event.
+ *    Output: void.
+ * 3) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: BuildCreativeModeTabContentsEvent event.
+ *    Output: void.
+ */
 package com.example.examplemod;
 
 import net.minecraft.core.registries.Registries;

@@ -1,3 +1,107 @@
+/**
+ * File: ServerLoad.java
+ *
+ * Main intent:
+ * Defines ServerLoad functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code ServerLoad(...)}:
+ *    Purpose: Implements ServerLoad logic in this file.
+ *    Input: none.
+ *    Output: none (constructor).
+ * 2) {@code isWarmingUp(...)}:
+ *    Purpose: Implements isWarmingUp logic in this file.
+ *    Input: none.
+ *    Output: boolean.
+ * 3) {@code isHeartbeatLoggingEnabled(...)}:
+ *    Purpose: Implements isHeartbeatLoggingEnabled logic in this file.
+ *    Input: none.
+ *    Output: boolean.
+ * 4) {@code enabled)(...)}:
+ *    Purpose: Implements enabled) logic in this file.
+ *    Input: boolean enabled.
+ *    Output: void.
+ * 5) {@code getLoadEmaAlpha(...)}:
+ *    Purpose: Implements getLoadEmaAlpha logic in this file.
+ *    Input: none.
+ *    Output: double.
+ * 6) {@code getIdleMaxMspt(...)}:
+ *    Purpose: Implements getIdleMaxMspt logic in this file.
+ *    Input: none.
+ *    Output: double.
+ * 7) {@code getBusyMaxMspt(...)}:
+ *    Purpose: Implements getBusyMaxMspt logic in this file.
+ *    Input: none.
+ *    Output: double.
+ * 8) {@code getBehindLagDebtMs(...)}:
+ *    Purpose: Implements getBehindLagDebtMs logic in this file.
+ *    Input: none.
+ *    Output: double.
+ * 9) {@code emaAlpha)(...)}:
+ *    Purpose: Implements emaAlpha) logic in this file.
+ *    Input: double idleMspt, double busyMspt, double behindDebtMs, double emaAlpha.
+ *    Output: void.
+ * 10) {@code resetTune(...)}:
+ *    Purpose: Implements resetTune logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 11) {@code onServerTickPre(...)}:
+ *    Purpose: Implements onServerTickPre logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 12) {@code server)(...)}:
+ *    Purpose: Implements server) logic in this file.
+ *    Input: net.minecraft.server.MinecraftServer server.
+ *    Output: void.
+ * 13) {@code includeTune)(...)}:
+ *    Purpose: Implements includeTune) logic in this file.
+ *    Input: ServerLevel level, boolean includeTune.
+ *    Output: String.
+ * 14) {@code updateServerLoadMetrics(...)}:
+ *    Purpose: Implements updateServerLoadMetrics logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 15) {@code server)(...)}:
+ *    Purpose: Implements server) logic in this file.
+ *    Input: net.minecraft.server.MinecraftServer server.
+ *    Output: void.
+ * 16) {@code currentLagDebtMs)(...)}:
+ *    Purpose: Implements currentLagDebtMs) logic in this file.
+ *    Input: double mspt, double currentLagDebtMs.
+ *    Output: String.
+ * 17) {@code state)(...)}:
+ *    Purpose: Implements state) logic in this file.
+ *    Input: String state.
+ *    Output: String.
+ * 18) {@code behind)(...)}:
+ *    Purpose: Implements behind) logic in this file.
+ *    Input: double mspt, double currentLagDebtMs, boolean behind.
+ *    Output: String.
+ * 19) {@code state)(...)}:
+ *    Purpose: Implements state) logic in this file.
+ *    Input: String state.
+ *    Output: void.
+ * 20) {@code buildServerLoadSummaryMessage(...)}:
+ *    Purpose: Implements buildServerLoadSummaryMessage logic in this file.
+ *    Input: none.
+ *    Output: String.
+ * 21) {@code windowSeconds)(...)}:
+ *    Purpose: Implements windowSeconds) logic in this file.
+ *    Input: int windowSeconds.
+ *    Output: String.
+ * 22) {@code text)(...)}:
+ *    Purpose: Implements text) logic in this file.
+ *    Input: String text.
+ *    Output: String.
+ * 23) {@code state)(...)}:
+ *    Purpose: Implements state) logic in this file.
+ *    Input: String state.
+ *    Output: void.
+ * 24) {@code windowSeconds)(...)}:
+ *    Purpose: Implements windowSeconds) logic in this file.
+ *    Input: int windowSeconds.
+ *    Output: String.
+ */
 package com.example.examplemod;
 
 import java.util.ArrayDeque;

@@ -1,3 +1,35 @@
+/**
+ * File: CEHChat.java
+ *
+ * Main intent:
+ * Defines CEHChat functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHChat() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code line)(...)}:
+ *    Purpose: Implements line) logic in this file.
+ *    Input: ServerLevel serverLevel, UUID playerUuid, String line.
+ *    Output: void.
+ * 4) {@code chatTs(...)}:
+ *    Purpose: Implements chatTs logic in this file.
+ *    Input: none.
+ *    Output: String.
+ * 5) {@code s)(...)}:
+ *    Purpose: Implements s) logic in this file.
+ *    Input: String s.
+ *    Output: String.
+ * 6) {@code message)(...)}:
+ *    Purpose: Implements message) logic in this file.
+ *    Input: ServerLevel serverLevel, UUID playerUuid, String message.
+ *    Output: String.
+ */
 package com.example.examplemod.chat;
 
 import com.mojang.brigadier.arguments.StringArgumentType;

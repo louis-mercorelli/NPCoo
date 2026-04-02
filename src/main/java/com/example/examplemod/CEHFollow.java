@@ -1,3 +1,31 @@
+/**
+ * File: CEHFollow.java
+ *
+ * Main intent:
+ * Defines CEHFollow functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: CEHFollow() {}.
+ * 2) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 3) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ * 4) {@code speed)(...)}:
+ *    Purpose: Implements speed) logic in this file.
+ *    Input: ServerLevel serverLevel, ServerPlayer player, double speed.
+ *    Output: boolean.
+ * 5) {@code context)(...)}:
+ *    Purpose: Implements context) logic in this file.
+ *    Input: CommandContext<CommandSourceStack> context.
+ *    Output: int.
+ */
 package com.example.examplemod;
 
 import com.mojang.brigadier.context.CommandContext;

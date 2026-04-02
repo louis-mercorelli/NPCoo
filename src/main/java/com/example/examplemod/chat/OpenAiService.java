@@ -1,3 +1,15 @@
+/**
+ * File: OpenAiService.java
+ *
+ * Main intent:
+ * Defines OpenAiService functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code prompt)(...)}:
+ *    Purpose: Implements prompt) logic in this file.
+ *    Input: String prompt.
+ *    Output: String.
+ */
 package com.example.examplemod.chat;
 
 import com.openai.client.OpenAIClient;
@@ -5,6 +17,7 @@ import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.models.ChatModel;
 import com.openai.models.responses.Response;
 import com.openai.models.responses.ResponseCreateParams;
+
 
 public class OpenAiService {
 

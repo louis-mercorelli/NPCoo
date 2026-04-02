@@ -1,3 +1,51 @@
+/**
+ * File: SteveAiCollectors.java
+ *
+ * Main intent:
+ * Defines SteveAiCollectors functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code z)(...)}:
+ *    Purpose: Implements z) logic in this file.
+ *    Input: int x, int y, int z.
+ *    Output: SeenSummary(int x, int y, int z).
+ * 2) {@code storeAllLocations)(...)}:
+ *    Purpose: Implements storeAllLocations) logic in this file.
+ *    Input: int x, int y, int z, boolean storeAllLocations.
+ *    Output: SeenSummary(int x, int y, int z, boolean storeAllLocations).
+ * 3) {@code increment(...)}:
+ *    Purpose: Implements increment logic in this file.
+ *    Input: none.
+ *    Output: void.
+ * 4) {@code pos)(...)}:
+ *    Purpose: Implements pos) logic in this file.
+ *    Input: BlockPos pos.
+ *    Output: void.
+ * 5) {@code distance)(...)}:
+ *    Purpose: Implements distance) logic in this file.
+ *    Input: double distance.
+ *    Output: void.
+ * 6) {@code storesAllLocations(...)}:
+ *    Purpose: Implements storesAllLocations logic in this file.
+ *    Input: none.
+ *    Output: boolean.
+ * 7) {@code toString(...)}:
+ *    Purpose: Implements toString logic in this file.
+ *    Input: none.
+ *    Output: String.
+ * 8) {@code pos)(...)}:
+ *    Purpose: Implements pos) logic in this file.
+ *    Input: String typeName, BlockPos pos.
+ *    Output: DetailedEntry(String typeName, BlockPos pos).
+ * 9) {@code toString(...)}:
+ *    Purpose: Implements toString logic in this file.
+ *    Input: none.
+ *    Output: String.
+ * 10) {@code blockName)(...)}:
+ *    Purpose: Implements blockName) logic in this file.
+ *    Input: String blockName.
+ *    Output: boolean.
+ */
 package com.example.examplemod;
 
 import net.minecraft.core.BlockPos;

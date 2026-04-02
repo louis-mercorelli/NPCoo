@@ -1,3 +1,19 @@
+/**
+ * File: ClientSetup.java
+ *
+ * Main intent:
+ * Defines ClientSetup functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code event)(...)}:
+ *    Purpose: Implements event) logic in this file.
+ *    Input: FMLClientSetupEvent event.
+ *    Output: void.
+ * 2) {@code steveAiMenuType(...)}:
+ *    Purpose: Implements steveAiMenuType logic in this file.
+ *    Input: none.
+ *    Output: MenuType<MerchantMenu>.
+ */
 package com.example.examplemod;
 
 import org.slf4j.Logger;

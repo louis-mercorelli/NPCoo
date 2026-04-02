@@ -1,3 +1,27 @@
+/**
+ * File: SteveAiChatReplyPacket.java
+ *
+ * Main intent:
+ * Defines SteveAiChatReplyPacket functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code reply)(...)}:
+ *    Purpose: Implements reply) logic in this file.
+ *    Input: String prompt, String reply.
+ *    Output: SteveAiChatReplyPacket(String prompt, String reply).
+ * 2) {@code buf)(...)}:
+ *    Purpose: Implements buf) logic in this file.
+ *    Input: SteveAiChatReplyPacket pkt, FriendlyByteBuf buf.
+ *    Output: void.
+ * 3) {@code buf)(...)}:
+ *    Purpose: Implements buf) logic in this file.
+ *    Input: FriendlyByteBuf buf.
+ *    Output: SteveAiChatReplyPacket.
+ * 4) {@code ctx)(...)}:
+ *    Purpose: Implements ctx) logic in this file.
+ *    Input: SteveAiChatReplyPacket pkt, CustomPayloadEvent.Context ctx.
+ *    Output: void.
+ */
 package com.example.examplemod.chat;
 
 import com.example.examplemod.SteveAiScreen;
@@ -5,6 +29,7 @@ import com.example.examplemod.SteveAiScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.event.network.CustomPayloadEvent;
+
 
 public class SteveAiChatReplyPacket {
     private final String prompt;

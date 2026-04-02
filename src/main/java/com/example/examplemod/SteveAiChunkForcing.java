@@ -1,3 +1,23 @@
+/**
+ * File: SteveAiChunkForcing.java
+ *
+ * Main intent:
+ * Defines SteveAiChunkForcing functionality for the NPCoo mod codebase.
+ *
+ * Methods (what each does, with input/output):
+ * 1) {@code {}(...)}:
+ *    Purpose: Implements {} logic in this file.
+ *    Input: none.
+ *    Output: SteveAiChunkForcing() {}.
+ * 2) {@code steveAiEntity)(...)}:
+ *    Purpose: Implements steveAiEntity) logic in this file.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity.
+ *    Output: void.
+ * 3) {@code serverLevel)(...)}:
+ *    Purpose: Implements serverLevel) logic in this file.
+ *    Input: ServerLevel serverLevel.
+ *    Output: void.
+ */
 package com.example.examplemod;
 
 import net.minecraft.server.level.ServerLevel;
