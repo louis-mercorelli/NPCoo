@@ -53,6 +53,7 @@ import java.util.UUID;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import com.example.examplemod.gui.CEHGuiInventory;
 import com.sai.InventoryService;
 import com.example.examplemod.chat.CEHChat;
 import com.example.examplemod.poi.CEHPoi;

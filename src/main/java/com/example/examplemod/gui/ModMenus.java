@@ -14,7 +14,9 @@
  *    Input: none.
  *    Output: none (constructor).
  */
-package com.example.examplemod;
+package com.example.examplemod.gui;
+
+import com.example.examplemod.ExampleMod;
 
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;

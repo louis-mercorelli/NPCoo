@@ -26,7 +26,10 @@
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */
-package com.example.examplemod;
+package com.example.examplemod.gui;
+
+import com.example.examplemod.CommandEvents;
+import com.example.examplemod.SteveAiLocator;
 
 import com.mojang.brigadier.context.CommandContext;
 
@@ -44,11 +47,12 @@ import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.entity.npc.villager.Villager;
 import com.sai.InventoryService;
 
-final class CEHGuiInventory {
+public final class CEHGuiInventory {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
 
     private CEHGuiInventory() {}
 
-    static int handleOpenGui(CommandContext<CommandSourceStack> context) {
+    public static int handleOpenGui(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (source.getEntity() instanceof ServerPlayer player) {
@@ -71,23 +75,23 @@ final class CEHGuiInventory {
                         int containerId,
                         net.minecraft.world.entity.player.Inventory playerInventory,
                         net.minecraft.world.entity.player.Player pPlayer) {
-                    CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("CommandEvents.opengui ### CREATE MENU ### called "));
+                    LOGGER.info(com.sai.NpcooLog.tag("CommandEvents.opengui ### CREATE MENU ### called "));
                     return new SteveAiMenu(containerId, playerInventory);
                 }
             });
 
             if (containerId.isPresent()) {
-                CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("Sending merchant offers to client, count={}"), offers.size());
+                LOGGER.info(com.sai.NpcooLog.tag("Sending merchant offers to client, count={}"), offers.size());
                 player.sendMerchantOffers(containerId.getAsInt(), offers, 2, 0, false, false);
             } else {
-                CommandEvents.LOGGER.warn(com.sai.NpcooLog.tag("openMenu returned empty OptionalInt"));
+                LOGGER.warn(com.sai.NpcooLog.tag("openMenu returned empty OptionalInt"));
             }
         }
 
         return 1;
     }
 
-    static int handleInv(CommandContext<CommandSourceStack> context) {
+    public static int handleInv(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
@@ -103,7 +107,7 @@ final class CEHGuiInventory {
 
         String summary = InventoryService.getInventorySummary(steveAi);
         source.sendSuccess(() -> Component.literal("SteveAI inventory: " + summary), false);
-        CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("SteveAI inventory command -> {}"), summary);
+        LOGGER.info(com.sai.NpcooLog.tag("SteveAI inventory command -> {}"), summary);
         return 1;
     }
 }

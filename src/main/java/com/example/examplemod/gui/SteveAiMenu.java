@@ -14,7 +14,7 @@
  *    Input: Inventory playerInventory.
  *    Output: ClientSideMerchant.
  */
-package com.example.examplemod;
+package com.example.examplemod.gui;
 
 //import static net.minecraft.world.inventory.AbstractContainerMenu.LOGGER;
 

@@ -40,21 +40,19 @@
  */
 package com.example.examplemod;
 
+import com.example.examplemod.gui.SteveAiMenu;
+import com.example.examplemod.gui.SteveAiScreen;
 import org.slf4j.Logger;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.phys.EntityHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.listener.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-@Mod.EventBusSubscriber(modid = ExampleMod.MODID, value = Dist.CLIENT)
+@Mod.EventBusSubscriber(modid = ExampleMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class ClientHackEvents {
     private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
     private static final String CHAT_HINT_TEXT = "press <shift> <right click> to chat with steveAI";
@@ -84,20 +82,18 @@ public class ClientHackEvents {
 
         // fire once per click, not continuously while held down
         if (shiftRightClickDown && !wasShiftRightClickDown) {
-            if (isLookingAtSteveAi(mc)) {
-                LOGGER.info(com.sai.NpcooLog.tag("### ClientHackEvents opening SteveAiScreen from SHIFT-right-click ###"));
+            LOGGER.info(com.sai.NpcooLog.tag("### ClientHackEvents opening SteveAiScreen from SHIFT-right-click ###"));
 
-                markHintSeen(mc);
+            markHintSeen(mc);
 
-                SteveAiMenu menu = new SteveAiMenu(0, mc.player.getInventory());
-                SteveAiScreen screen = new SteveAiScreen(
-                    menu,
-                    mc.player.getInventory(),
-                    Component.literal("")
-                );
+            SteveAiMenu menu = new SteveAiMenu(0, mc.player.getInventory());
+            SteveAiScreen screen = new SteveAiScreen(
+                menu,
+                mc.player.getInventory(),
+                Component.literal("")
+            );
 
-                mc.setScreen(screen);
-            }
+            mc.setScreen(screen);
         }
 
         wasShiftRightClickDown = shiftRightClickDown;
@@ -178,23 +174,4 @@ public class ClientHackEvents {
             .resolve("steveai_chat_hint_seen.txt");
     }
 
-    private static boolean isLookingAtSteveAi(Minecraft mc) {
-        HitResult hit = mc.hitResult;
-
-        if (!(hit instanceof EntityHitResult entityHit)) {
-            return false;
-        }
-
-        Entity entity = entityHit.getEntity();
-
-        if (entity == null || entity.getType() != EntityType.VILLAGER) {
-            return false;
-        }
-
-        if (entity.hasCustomName() && entity.getCustomName() != null) {
-            return "steveAI".equals(entity.getCustomName().getString());
-        }
-
-        return false;
-    }
 }

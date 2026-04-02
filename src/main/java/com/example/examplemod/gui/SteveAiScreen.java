@@ -94,8 +94,9 @@
  *    Input: double mouseX, double mouseY, int x, int y, int width.
  *    Output: boolean.
  */
-package com.example.examplemod;
+package com.example.examplemod.gui;
 
+import com.example.examplemod.ModNetworking;
 import com.example.examplemod.chat.SteveAiChatRequestPacket;
 import com.example.examplemod.chat.SteveAiChatSessionPacket;
 

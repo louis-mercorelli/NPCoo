@@ -16,6 +16,9 @@
  */
 package com.example.examplemod;
 
+import com.example.examplemod.gui.ModMenus;
+import com.example.examplemod.gui.SteveAiMenu;
+import com.example.examplemod.gui.SteveAiScreen;
 import org.slf4j.Logger;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.world.inventory.MenuType;

@@ -20,6 +20,7 @@
  */
 package com.example.examplemod;
 
+import com.example.examplemod.gui.ModMenus;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
