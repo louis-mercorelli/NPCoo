@@ -18,19 +18,20 @@
  *    Input: ServerLevel serverLevel.
  *    Output: void.
  */
-package com.example.examplemod;
+package com.example.examplemod.steveAI;
 
+import com.example.examplemod.CommandEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 
-final class SteveAiChunkForcing {
+public final class SteveAiChunkForcing {
 
     private static Integer forcedSteveAiChunkX = null;
     private static Integer forcedSteveAiChunkZ = null;
 
     private SteveAiChunkForcing() {}
 
-    static void updateForcedChunkForSteveAi(ServerLevel serverLevel, Entity steveAiEntity) {
+    public static void updateForcedChunkForSteveAi(ServerLevel serverLevel, Entity steveAiEntity) {
         int chunkX = steveAiEntity.chunkPosition().x;
         int chunkZ = steveAiEntity.chunkPosition().z;
 
@@ -51,7 +52,7 @@ final class SteveAiChunkForcing {
         CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("Forced steveAI chunk {},{} result={}"), chunkX, chunkZ, added);
     }
 
-    static void clearForcedSteveAiChunk(ServerLevel serverLevel) {
+    public static void clearForcedSteveAiChunk(ServerLevel serverLevel) {
         if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null) {
             boolean removed = serverLevel.setChunkForced(forcedSteveAiChunkX, forcedSteveAiChunkZ, false);
             CommandEvents.LOGGER.info(com.sai.NpcooLog.tag("Cleared forced steveAI chunk {},{} result={}"), forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);

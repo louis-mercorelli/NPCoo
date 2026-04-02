@@ -34,8 +34,9 @@
  *    Input: ServerLevel serverLevel, BlockPos nearPos.
  *    Output: BlockPos.
  */
-package com.example.examplemod;
+package com.example.examplemod.steveAI;
 
+import com.example.examplemod.CommandEvents;
 import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.commands.CommandSourceStack;
@@ -45,11 +46,11 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.npc.villager.Villager;
 
-final class CEHNavigationChunk {
+public final class CEHNavigationChunk {
 
     private CEHNavigationChunk() {}
 
-    static int handleForceChunkOn(CommandContext<CommandSourceStack> context) {
+    public static int handleForceChunkOn(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getEntity() instanceof ServerPlayer player)) {
@@ -69,7 +70,7 @@ final class CEHNavigationChunk {
         return 1;
     }
 
-    static int handleForceChunkOff(CommandContext<CommandSourceStack> context) {
+    public static int handleForceChunkOff(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getEntity() instanceof ServerPlayer player)) {
@@ -83,7 +84,7 @@ final class CEHNavigationChunk {
         return 1;
     }
 
-    static int handleWhereRu(CommandContext<CommandSourceStack> context) {
+    public static int handleWhereRu(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getEntity() instanceof ServerPlayer player)) {
@@ -131,7 +132,7 @@ final class CEHNavigationChunk {
         return 0;
     }
 
-    static int handleTele(CommandContext<CommandSourceStack> context) {
+    public static int handleTele(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getEntity() instanceof ServerPlayer player)) {

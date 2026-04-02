@@ -26,8 +26,9 @@
  *    Input: String poi.
  *    Output: String.
  */
-package com.example.examplemod;
+package com.example.examplemod.steveAI;
 
+import com.example.examplemod.CommandEvents;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.example.examplemod.poi.PoiManager;
@@ -40,11 +41,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.npc.villager.Villager;
 
-final class CEHExplore {
+public final class CEHExplore {
 
     private CEHExplore() {}
 
-    static int handleExplorePoi(CommandContext<CommandSourceStack> context) {
+    public static int handleExplorePoi(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
@@ -96,13 +97,13 @@ final class CEHExplore {
         return 1;
     }
 
-    static int handleExploreStop(CommandContext<CommandSourceStack> context) {
+    public static int handleExploreStop(CommandContext<CommandSourceStack> context) {
         OldTickExplore.stopExploreTask();
         context.getSource().sendSuccess(() -> Component.literal("SteveAI exploration stopped."), false);
         return 1;
     }
 
-    static int handleExploreStatus(CommandContext<CommandSourceStack> context) {
+    public static int handleExploreStatus(CommandContext<CommandSourceStack> context) {
         if (!CommandEvents.exploreActive || CommandEvents.exploreCenter == null) {
             context.getSource().sendSuccess(() -> Component.literal("No active exploration task."), false);
             return 1;

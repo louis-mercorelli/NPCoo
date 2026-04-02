@@ -114,7 +114,7 @@
  *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
  *    Output: List<DetailedEntry>.
  */
-package com.example.examplemod;
+package com.example.examplemod.scan;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;

@@ -38,8 +38,10 @@
  *    Input: CommandContext<CommandSourceStack> context, BlockPos center, int radius.
  *    Output: int.
  */
-package com.example.examplemod;
+package com.example.examplemod.scan;
 
+import com.example.examplemod.CommandEvents;
+import com.example.examplemod.steveAI.SteveAiLocator;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
@@ -53,7 +55,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.npc.villager.Villager;
 
-final class CEHScan {
+public final class CEHScan {
 
     private CEHScan() {}
 
@@ -125,7 +127,7 @@ final class CEHScan {
         return new ParsedScanSaiArgs(s, defaultChunkRadius, fastMode);
     }
 
-    static int handleScanSaiArgs(CommandContext<CommandSourceStack> context) {
+    public static int handleScanSaiArgs(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         String tail = StringArgumentType.getString(context, "scanArgs");
 
@@ -140,7 +142,7 @@ final class CEHScan {
         return handleScanSai(context, parsed.rawScanInput, parsed.chunkRadius, parsed.fastMode);
     }
 
-    static int handleScanSai(
+    public static int handleScanSai(
         CommandContext<CommandSourceStack> context,
         String rawScanInput,
         int chunkRadius,
@@ -223,7 +225,7 @@ final class CEHScan {
         return 1;
     }
 
-    static int handleScanStatus(CommandContext<CommandSourceStack> context) {
+    public static int handleScanStatus(CommandContext<CommandSourceStack> context) {
         context.getSource().sendSuccess(
             () -> Component.literal(SteveAiScanManager.getStatusText()),
             false
@@ -231,7 +233,7 @@ final class CEHScan {
         return 1;
     }
 
-    static int handleDirectCenteredScan(
+    public static int handleDirectCenteredScan(
         CommandContext<CommandSourceStack> context,
         String mode,
         BlockPos center,
@@ -288,7 +290,7 @@ final class CEHScan {
         return 1;
     }
 
-    static int handleDetailSaiAtSteve(CommandContext<CommandSourceStack> context, int radius) {
+    public static int handleDetailSaiAtSteve(CommandContext<CommandSourceStack> context, int radius) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
@@ -320,7 +322,7 @@ final class CEHScan {
         return 1;
     }
 
-    static int handleDetailSaiAtPos(
+    public static int handleDetailSaiAtPos(
         CommandContext<CommandSourceStack> context,
         BlockPos center,
         int radius

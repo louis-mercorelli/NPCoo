@@ -43,6 +43,10 @@ package com.example.examplemod;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.example.examplemod.poi.PoiManager;
+import com.example.examplemod.scan.SteveAiCollectors;
+import com.example.examplemod.scan.SteveAiScanFilters;
+import com.example.examplemod.scan.SteveAiScanManager;
+import com.example.examplemod.steveAI.SteveAiLocator;
 
 import java.io.IOException;
 import java.nio.file.Files;

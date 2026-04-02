@@ -34,8 +34,9 @@
  *    Input: ServerLevel serverLevel, BlockPos pos.
  *    Output: boolean.
  */
-package com.example.examplemod;
+package com.example.examplemod.steveAI;
 
+import com.example.examplemod.CommandEvents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;

@@ -14,7 +14,7 @@
  *    Input: BlockState state.
  *    Output: boolean.
  */
-package com.example.examplemod;
+package com.example.examplemod.scan;
 
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
@@ -22,11 +22,11 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
 
-final class SteveAiScanFilters {
+public final class SteveAiScanFilters {
 
     private SteveAiScanFilters() {}
 
-    static boolean isInterestingLookSeeBlock(BlockState state) {
+    public static boolean isInterestingLookSeeBlock(BlockState state) {
         Block block = state.getBlock();
 
         return block == Blocks.CHEST

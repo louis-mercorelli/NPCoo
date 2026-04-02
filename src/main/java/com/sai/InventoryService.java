@@ -36,7 +36,7 @@
  */
 package com.sai;
 
-import com.example.examplemod.SteveAiLocator;
+import com.example.examplemod.steveAI.SteveAiLocator;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;

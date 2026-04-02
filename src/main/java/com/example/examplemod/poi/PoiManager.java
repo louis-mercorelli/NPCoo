@@ -180,7 +180,7 @@
  */
 package com.example.examplemod.poi;
 
-import com.example.examplemod.SteveAiCollectors;
+import com.example.examplemod.scan.SteveAiCollectors;
 
 import net.minecraft.core.BlockPos;
 

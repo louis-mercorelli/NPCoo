@@ -25,6 +25,9 @@
 package com.example.examplemod;
 
 import com.mojang.brigadier.context.CommandContext;
+import com.example.examplemod.scan.SteveAiCollectors;
+import com.example.examplemod.scan.SteveAiScanManager;
+import com.example.examplemod.steveAI.SteveAiLocator;
 
 import java.util.Map;
 

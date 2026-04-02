@@ -29,7 +29,7 @@
 package com.example.examplemod.gui;
 
 import com.example.examplemod.CommandEvents;
-import com.example.examplemod.SteveAiLocator;
+import com.example.examplemod.steveAI.SteveAiLocator;
 
 import com.mojang.brigadier.context.CommandContext;
 

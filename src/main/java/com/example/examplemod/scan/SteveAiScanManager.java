@@ -222,8 +222,9 @@
  *    Input: int chunkX, int chunkZ.
  *    Output: long.
  */
-package com.example.examplemod;
+package com.example.examplemod.scan;
 
+import com.example.examplemod.SteveAiContextFiles;
 import com.example.examplemod.poi.PoiManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;

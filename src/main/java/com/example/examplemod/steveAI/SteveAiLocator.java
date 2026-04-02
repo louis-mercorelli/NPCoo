@@ -22,8 +22,9 @@
  *    Input: ServerLevel serverLevel.
  *    Output: Entity.
  */
-package com.example.examplemod;
+package com.example.examplemod.steveAI;
 
+import com.example.examplemod.CommandEvents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -66,7 +67,7 @@ public final class SteveAiLocator {
         return e instanceof Villager v ? v : null;
     }
 
-    static Entity findSteveAiAnywhere(ServerLevel serverLevel) {
+    public static Entity findSteveAiAnywhere(ServerLevel serverLevel) {
         for (ServerLevel levelToCheck : serverLevel.getServer().getAllLevels()) {
             var matches = levelToCheck.getEntities(
                 (Entity) null,

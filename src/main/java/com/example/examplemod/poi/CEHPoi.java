@@ -25,7 +25,7 @@
 package com.example.examplemod.poi;
 
 import com.mojang.brigadier.context.CommandContext;
-import com.example.examplemod.SteveAiScanManager;
+import com.example.examplemod.scan.SteveAiScanManager;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

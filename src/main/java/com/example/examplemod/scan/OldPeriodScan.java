@@ -70,9 +70,14 @@
  *    Input: CommandEvents.PeriodicScanJob job.
  *    Output: void.
  */
-package com.example.examplemod;
+package com.example.examplemod.scan;
 
+import com.example.examplemod.CommandEvents;
+import com.example.examplemod.SteveAiContextFiles;
 import com.example.examplemod.poi.PoiManager;
+import com.example.examplemod.steveAI.SteveAiChunkForcing;
+import com.example.examplemod.steveAI.SteveAiLocator;
+
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -92,6 +97,12 @@ class OldPeriodScan {
 
     private OldPeriodScan() {}
 
+    private static String scanTs() {
+        return java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"));
+    }
+
+    @SuppressWarnings("unused")
     private static void sendLookSeeSection(
         CommandSourceStack source,
         String sectionTitle,
@@ -168,7 +179,7 @@ class OldPeriodScan {
         CommandEvents.periodicScanCycleActive = true;
         CommandEvents.periodicScanCycleCount++;
         CommandEvents.periodicScanCycleStartNs = System.nanoTime();
-        CommandEvents.periodicScanCycleStartTs = SteveAiTime.scanTs();
+        CommandEvents.periodicScanCycleStartTs = scanTs();
 
         if (!CommandEvents.initialMapBuildStarted) {
             CommandEvents.initialMapBuildStarted = true;
@@ -240,7 +251,7 @@ class OldPeriodScan {
     }
 
     private static void notifyPeriodicScanFinished() {
-        String finishTs = SteveAiTime.scanTs();
+        String finishTs = scanTs();
         long elapsedMs = CommandEvents.periodicScanCycleStartNs > 0L
             ? (System.nanoTime() - CommandEvents.periodicScanCycleStartNs) / 1_000_000L
             : -1L;
@@ -336,7 +347,7 @@ class OldPeriodScan {
             String writeMsg = String.format(
                 "[testmod] SteveAI full %d-chunk files written %s blocks=%d entities=%d blockEntities=%d poiUpdates=%d",
                 CommandEvents.PERIODIC_SCAN_CHUNK_RADIUS,
-                SteveAiTime.scanTs(),
+                scanTs(),
                 groupedBlocks.size(),
                 groupedEntities.size(),
                 groupedBlockEntities.size(),
@@ -345,7 +356,7 @@ class OldPeriodScan {
             sendStatusToPlayer(playerUuid, writeMsg);
         } catch (java.io.IOException e) {
             CommandEvents.LOGGER.error(com.sai.NpcooLog.tag("Failed to write periodic steveAI scan files"), e);
-            sendStatusToPlayer(playerUuid, "[testmod] SteveAI file write FAILED " + SteveAiTime.scanTs() + " (see server log)");
+            sendStatusToPlayer(playerUuid, "[testmod] SteveAI file write FAILED " + scanTs() + " (see server log)");
         }
     }
 

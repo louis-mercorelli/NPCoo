@@ -26,8 +26,9 @@
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */
-package com.example.examplemod;
+package com.example.examplemod.steveAI;
 
+import com.example.examplemod.CommandEvents;
 import com.mojang.brigadier.context.CommandContext;
 
 import net.minecraft.commands.CommandSourceStack;
@@ -37,11 +38,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.npc.villager.Villager;
 
-final class CEHFollow {
+public final class CEHFollow {
 
     private CEHFollow() {}
 
-    static int handleFollowMe(CommandContext<CommandSourceStack> context) {
+    public static int handleFollowMe(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getEntity() instanceof ServerPlayer player)) {
@@ -67,7 +68,7 @@ final class CEHFollow {
         return 1;
     }
 
-    static int handleFindMe(CommandContext<CommandSourceStack> context) {
+    public static int handleFindMe(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getEntity() instanceof ServerPlayer player)) {
@@ -102,7 +103,7 @@ final class CEHFollow {
         return nav.moveTo(player, speed);
     }
 
-    static int handleStopFollow(CommandContext<CommandSourceStack> context) {
+    public static int handleStopFollow(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         CommandEvents.steveAiFollowMode = false;
         CommandEvents.steveAiFollowPlayerUuid = null;

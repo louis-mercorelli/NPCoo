@@ -57,41 +57,47 @@ import com.example.examplemod.gui.CEHGuiInventory;
 import com.sai.InventoryService;
 import com.example.examplemod.chat.CEHChat;
 import com.example.examplemod.poi.CEHPoi;
+import com.example.examplemod.scan.CEHScan;
+import com.example.examplemod.scan.SteveAiCollectors;
+import com.example.examplemod.steveAI.CEHExplore;
+import com.example.examplemod.steveAI.CEHFollow;
+import com.example.examplemod.steveAI.CEHNavigationChunk;
+import com.example.examplemod.steveAI.SteveAiLocator;
 
 @Mod.EventBusSubscriber(modid = ExampleMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class CommandEvents {
-    static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
-    static UUID lastPlayerUuid = null;
-    static String lastPlayerName = null;
-    static boolean steveAiFollowMode = false;
-    static UUID steveAiFollowPlayerUuid = null;
-    static long lastFollowTick = 0L;
-    static boolean steveAiChunkForceEnabled = true;
-    static net.minecraft.core.BlockPos lastSteveAiKnownPos = null;
-    static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> lastSteveAiKnownDimension = null;
-    static boolean exploreActive = false;
-    static String explorePoi = "";
-    static String explorePoiType = "";
-    static BlockPos exploreCenter = null;
-    static int exploreRadius = 24;
-    static BlockPos currentExploreTarget = null;
-    static long nextExploreRepathGameTime = 0L;
-    static final Set<BlockPos> exploredTargets = new HashSet<>();
-    static final long PERIODIC_SCAN_INTERVAL_TICKS = 1200L;
-    static final long MAX_PERIODIC_SCAN_MS_PER_TICK = 1000L;
-    static final int PERIODIC_SCAN_CHUNK_RADIUS = 10;
-    static final int PERIODIC_SCAN_BLOCK_RADIUS = PERIODIC_SCAN_CHUNK_RADIUS * 16;
-    static final int PERIODIC_TILE_BLOCK_WIDTH = 3 * 16; // 3 chunks = 48 blocks per tile
-    static final Deque<PeriodicScanJob> periodicScanQueue = new ArrayDeque<>();
-    static boolean periodicScanCycleActive = false;
-    static boolean initialMapBuildStarted = false;
-    static boolean initialMapBuildCompleted = false;
-    static boolean screenDebugEnabled = true;
-    static long periodicScanCycleStartNs = 0L;
-    static String periodicScanCycleStartTs = "";
-    static int periodicScanCycleCount = 0;
+    public static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
+    public static UUID lastPlayerUuid = null;
+    public static String lastPlayerName = null;
+    public static boolean steveAiFollowMode = false;
+    public static UUID steveAiFollowPlayerUuid = null;
+    public static long lastFollowTick = 0L;
+    public static boolean steveAiChunkForceEnabled = true;
+    public static net.minecraft.core.BlockPos lastSteveAiKnownPos = null;
+    public static net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> lastSteveAiKnownDimension = null;
+    public static boolean exploreActive = false;
+    public static String explorePoi = "";
+    public static String explorePoiType = "";
+    public static BlockPos exploreCenter = null;
+    public static int exploreRadius = 24;
+    public static BlockPos currentExploreTarget = null;
+    public static long nextExploreRepathGameTime = 0L;
+    public static final Set<BlockPos> exploredTargets = new HashSet<>();
+    public static final long PERIODIC_SCAN_INTERVAL_TICKS = 1200L;
+    public static final long MAX_PERIODIC_SCAN_MS_PER_TICK = 1000L;
+    public static final int PERIODIC_SCAN_CHUNK_RADIUS = 10;
+    public static final int PERIODIC_SCAN_BLOCK_RADIUS = PERIODIC_SCAN_CHUNK_RADIUS * 16;
+    public static final int PERIODIC_TILE_BLOCK_WIDTH = 3 * 16; // 3 chunks = 48 blocks per tile
+    public static final Deque<PeriodicScanJob> periodicScanQueue = new ArrayDeque<>();
+    public static boolean periodicScanCycleActive = false;
+    public static boolean initialMapBuildStarted = false;
+    public static boolean initialMapBuildCompleted = false;
+    public static boolean screenDebugEnabled = true;
+    public static long periodicScanCycleStartNs = 0L;
+    public static String periodicScanCycleStartTs = "";
+    public static int periodicScanCycleCount = 0;
 
-    enum PeriodicScanPhase {
+    public enum PeriodicScanPhase {
         LOCATION_AND_WORLD,
         ENTITIES,
         BLOCKS,
@@ -99,23 +105,23 @@ public class CommandEvents {
         SUMMARY
     }
 
-    static final class PeriodicScanJob {
-        final ServerLevel serverLevel;
-        final Entity steveAi;
-        PeriodicScanPhase phase = PeriodicScanPhase.LOCATION_AND_WORLD;
+    public static final class PeriodicScanJob {
+        public final ServerLevel serverLevel;
+        public final Entity steveAi;
+        public PeriodicScanPhase phase = PeriodicScanPhase.LOCATION_AND_WORLD;
         // Tile grid for incremental scanning (each entry: [minX, minZ, maxX, maxZ])
-        List<int[]> tiles = new java.util.ArrayList<>();
-        int entityTileIdx = 0;
-        int blockTileIdx = 0;
-        int beTileIdx = 0;
-        int totalTiles = 0;
-        int originY = 0;
+        public List<int[]> tiles = new java.util.ArrayList<>();
+        public int entityTileIdx = 0;
+        public int blockTileIdx = 0;
+        public int beTileIdx = 0;
+        public int totalTiles = 0;
+        public int originY = 0;
         // Accumulated results across all tiles
-        Map<String, SteveAiCollectors.SeenSummary> groupedBlocks = new LinkedHashMap<>();
-        Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
-        Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
+        public Map<String, SteveAiCollectors.SeenSummary> groupedBlocks = new LinkedHashMap<>();
+        public Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
+        public Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
 
-        PeriodicScanJob(ServerLevel serverLevel, Entity steveAi) {
+        public PeriodicScanJob(ServerLevel serverLevel, Entity steveAi) {
             this.serverLevel = serverLevel;
             this.steveAi = steveAi;
         }
