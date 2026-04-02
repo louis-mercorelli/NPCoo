@@ -1,6 +1,5 @@
 package com.example.examplemod;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.registries.DeferredRegister;

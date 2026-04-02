@@ -1,8 +1,6 @@
 package com.example.examplemod;
 
-import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
-
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.MerchantMenu;
