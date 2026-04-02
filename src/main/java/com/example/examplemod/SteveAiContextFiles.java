@@ -15,7 +15,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SteveAiContextFiles {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
     private static final Map<UUID, String> chatSessionPoiSummary = new ConcurrentHashMap<>();
 
     public static Path getSteveAiDataDir(ServerLevel serverLevel) throws IOException {
@@ -38,7 +38,7 @@ public class SteveAiContextFiles {
         }
 
         try {
-            LOGGER.info("[OPENAI DEBUG] buildChatContext start playerUuid={} tailLines={}", playerUuid, tailLines);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("[OPENAI DEBUG] buildChatContext start playerUuid={} tailLines={}"), playerUuid, tailLines);
 
             Path playerDataDir = getSteveAiDataDir(serverLevel);
 
@@ -90,7 +90,7 @@ public class SteveAiContextFiles {
             sb.append("=== SteveAI Detail Status ===\n");
             sb.append(detailStatusText.isBlank() ? "(latest detailStatus*.txt empty or missing)\n" : detailStatusText).append("\n");
 
-            LOGGER.info("[OPENAI DEBUG] buildChatContext finished playerDataDir={}", playerDataDir.toAbsolutePath());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("[OPENAI DEBUG] buildChatContext finished playerDataDir={}"), playerDataDir.toAbsolutePath());
 
             return sb.toString();
 
@@ -102,11 +102,11 @@ public class SteveAiContextFiles {
     public static void appendChatLine(ServerLevel serverLevel, UUID playerUuid, String line) {
         try {
             Path playerDataDir = getSteveAiDataDir(serverLevel);
-            LOGGER.info("SteveAiContextFiles ready to append to chat file");
-            LOGGER.info("SteveAiContextFiles playerDataDir: {}", playerDataDir.toAbsolutePath());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiContextFiles ready to append to chat file"));
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiContextFiles playerDataDir: {}"), playerDataDir.toAbsolutePath());
 
             Path chatFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat.txt");
-            LOGGER.info("SteveAiContextFiles chatFile: {}", chatFile.toAbsolutePath());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiContextFiles chatFile: {}"), chatFile.toAbsolutePath());
 
             String out = (line == null ? "" : line);
             if (!out.endsWith("\n")) {
@@ -121,9 +121,9 @@ public class SteveAiContextFiles {
                 StandardOpenOption.APPEND
             );
 
-            LOGGER.info("SteveAiContextFiles wrote to chat file");
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiContextFiles wrote to chat file"));
         } catch (IOException e) {
-            LOGGER.error("Failed to write steveAI chat file", e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed to write steveAI chat file"), e);
         }
     }
 
@@ -195,25 +195,25 @@ public class SteveAiContextFiles {
     private static void logFileTail(String logPrefix, Path file, int maxLines) {
         try {
             if (file == null || !Files.exists(file)) {
-                LOGGER.info("[{}] tail skipped, file missing: {}", logPrefix, file);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] tail skipped, file missing: {}"), logPrefix, file);
                 return;
             }
 
             List<String> lines = Files.readAllLines(file);
             if (lines.isEmpty()) {
-                LOGGER.info("[{}] tail for {} -> (file empty)", logPrefix, file.getFileName());
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] tail for {} -> (file empty)"), logPrefix, file.getFileName());
                 return;
             }
 
             int start = Math.max(0, lines.size() - maxLines);
             List<String> tail = lines.subList(start, lines.size());
 
-            LOGGER.info("[{}] tail for {} (last {} lines):", logPrefix, file.getFileName(), tail.size());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] tail for {} (last {} lines):"), logPrefix, file.getFileName(), tail.size());
             for (String line : tail) {
-                LOGGER.info("[{}] {}", logPrefix, line);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] {}"), logPrefix, line);
             }
         } catch (IOException e) {
-            LOGGER.error("Failed to log [{}] tail for file {}", logPrefix, file, e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed to log [{}] tail for file {}"), logPrefix, file, e);
         }
     }
 

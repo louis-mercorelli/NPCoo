@@ -9,23 +9,23 @@ import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
 
 public final class ModMenus {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
 
     public static final DeferredRegister<MenuType<?>> 
         MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, ExampleMod.MODID);
         static {
-            LOGGER.info("ModMenus ### class initialized");
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("ModMenus ### class initialized"));
         }
     
     public static final RegistryObject<MenuType<SteveAiMenu>> 
         STEVE_AI_MENU = MENUS.register("steve_ai_menu",
                     ModMenus::createSteveAiMenuType);
         static {
-            LOGGER.info("ModMenus ###steve_ai_menu registered");
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("ModMenus ###steve_ai_menu registered"));
         }
 
     private static MenuType<SteveAiMenu> createSteveAiMenuType() {
-        LOGGER.info("ModMenus ### SteveAiMenu setting up ");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("ModMenus ### SteveAiMenu setting up "));
         return new MenuType<>(SteveAiMenu::new, FeatureFlags.DEFAULT_FLAGS);
     }
 

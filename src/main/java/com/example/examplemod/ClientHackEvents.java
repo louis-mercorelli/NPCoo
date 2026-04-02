@@ -17,7 +17,7 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = ExampleMod.MODID, value = Dist.CLIENT)
 public class ClientHackEvents {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
     private static final String CHAT_HINT_TEXT = "press <shift> <right click> to chat with steveAI";
 
     private static boolean wasShiftRightClickDown = false;
@@ -46,7 +46,7 @@ public class ClientHackEvents {
         // fire once per click, not continuously while held down
         if (shiftRightClickDown && !wasShiftRightClickDown) {
             //if (isLookingAtSteveAi(mc)) {
-                LOGGER.info("### ClientHackEvents opening SteveAiScreen from SHIFT-right-click ###");
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("### ClientHackEvents opening SteveAiScreen from SHIFT-right-click ###"));
 
                 markHintSeen(mc);
 
@@ -94,7 +94,7 @@ public class ClientHackEvents {
                 java.nio.file.StandardOpenOption.WRITE
             );
         } catch (Exception ex) {
-            LOGGER.warn("Failed to persist SteveAI chat hint state", ex);
+            LOGGER.warn(com.example.examplemod.NpcooLog.tag("Failed to persist SteveAI chat hint state"), ex);
         }
     }
 
@@ -107,7 +107,7 @@ public class ClientHackEvents {
             java.nio.file.Path hintFile = getHintFile(mc);
             return hintFile != null && java.nio.file.Files.exists(hintFile);
         } catch (Exception ex) {
-            LOGGER.warn("Failed checking SteveAI chat hint state", ex);
+            LOGGER.warn(com.example.examplemod.NpcooLog.tag("Failed checking SteveAI chat hint state"), ex);
             return false;
         }
     }
@@ -121,7 +121,7 @@ public class ClientHackEvents {
             try {
                 return mc.getSingleplayerServer().getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize().toString();
             } catch (Exception ex) {
-                LOGGER.warn("Failed to compute world hint key", ex);
+                LOGGER.warn(com.example.examplemod.NpcooLog.tag("Failed to compute world hint key"), ex);
             }
         }
 

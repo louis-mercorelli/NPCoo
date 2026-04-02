@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 
 public class InventoryService {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
 
     public static String getInventorySummary(Villager villager) {
         SimpleContainer inv = villager.getInventory();
@@ -66,7 +66,7 @@ public class InventoryService {
 
                 if (slot.isEmpty()) {
                     inv.setItem(i, toAdd.copy());
-                    LOGGER.info("Added {} x{} to SteveAI inventory slot {}",
+                    LOGGER.info(com.example.examplemod.NpcooLog.tag("Added {} x{} to SteveAI inventory slot {}"),
                         toAdd.getItem(), toAdd.getCount(), i);
                     return true;
                 }
@@ -78,7 +78,7 @@ public class InventoryService {
                     slot.grow(move);
                     toAdd.shrink(move);
 
-                    LOGGER.info("Stacked {} of {} into SteveAI inventory slot {}",
+                    LOGGER.info(com.example.examplemod.NpcooLog.tag("Stacked {} of {} into SteveAI inventory slot {}"),
                         move, slot.getItem(), i);
 
                     if (toAdd.isEmpty()) {
@@ -87,11 +87,11 @@ public class InventoryService {
                 }
             }
 
-            LOGGER.info("SteveAI inventory full; could not add {}", toAdd.getItem());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI inventory full; could not add {}"), toAdd.getItem());
             return false;
 
         } catch (Exception e) {
-            LOGGER.error("Failed adding item to SteveAI inventory", e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed adding item to SteveAI inventory"), e);
             return false;
         }
     }
@@ -136,7 +136,7 @@ public class InventoryService {
             return removedTotal.isEmpty() ? ItemStack.EMPTY : removedTotal;
 
         } catch (Exception e) {
-            LOGGER.error("Failed removing item from SteveAI inventory", e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed removing item from SteveAI inventory"), e);
             return ItemStack.EMPTY;
         }
     }
@@ -195,7 +195,7 @@ public class InventoryService {
                 () -> Component.literal("Added " + count + " " + displayName + " to SteveAI. " + summary),
                 false
             );
-            LOGGER.info("SteveAI invAdd -> {} x{} ; {}", itemName, count, summary);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI invAdd -> {} x{} ; {}"), itemName, count, summary);
             return 1;
         } else {
             source.sendFailure(Component.literal("SteveAI inventory full."));
@@ -243,7 +243,7 @@ public class InventoryService {
             false
         );
 
-        LOGGER.info("SteveAI invDrop -> item={} requested={} dropped={} ; {}",
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI invDrop -> item={} requested={} dropped={} ; {}"),
             itemName, count, removed.getCount(), summary);
 
         return 1;

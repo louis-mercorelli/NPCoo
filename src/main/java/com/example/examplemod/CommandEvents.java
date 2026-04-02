@@ -67,7 +67,7 @@ import com.sai.InventoryService;
 
 @Mod.EventBusSubscriber(modid = ExampleMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public class CommandEvents {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
     private static final String STEVE_AI_NAME = "steveAI";
     private static final String STEVE_AI_TAG = "steveai_npc";
     private static UUID lastPlayerUuid = null;
@@ -110,7 +110,7 @@ public class CommandEvents {
     private static int periodicScanCycleCount = 0;
     private static final double SERVER_TICK_BUDGET_MS = 50.0;
     private static final double LOAD_EMA_ALPHA_DEFAULT = 0.08;
-    private static final double IDLE_MAX_MSPT_DEFAULT = 6.0;
+    private static final double IDLE_MAX_MSPT_DEFAULT = 7.5;
     private static final double BUSY_MAX_MSPT_DEFAULT = 40.0;
     private static final double BEHIND_LAG_DEBT_MS_DEFAULT = 150.0;
     private static final long SERVER_LOAD_NOTIFY_INTERVAL_TICKS = 1200L;
@@ -159,7 +159,7 @@ public class CommandEvents {
 
     @SubscribeEvent
     public static void onCommandsRegister(RegisterCommandsEvent event) {
-        LOGGER.info("CommandEvents.onCommandsRegister START");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("CommandEvents.onCommandsRegister START"));
         try {
             event.getDispatcher().register(
                 Commands.literal("testmod")
@@ -169,7 +169,7 @@ public class CommandEvents {
                             () -> Component.literal("§6[testmod] The mod command system is working!"),
                             false
                         );
-                        LOGGER.info("ExampleMod command executed with no message");
+                        LOGGER.info(com.example.examplemod.NpcooLog.tag("ExampleMod command executed with no message"));
                         return 1;
                     })
                     .then(Commands.literal("lookSee")
@@ -642,8 +642,8 @@ public class CommandEvents {
                                 false
                             );
 
-                            LOGGER.info("steveAI followMe enabled for player {}", player.getName().getString());
-                            LOGGER.info("Initial follow path start result: {}", started);
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("steveAI followMe enabled for player {}"), player.getName().getString());
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("Initial follow path start result: {}"), started);
                             return 1;
                         })
                     )
@@ -671,7 +671,7 @@ public class CommandEvents {
                                 false
                             );
 
-                            LOGGER.info("steveAI findMe started for player {} result={}", player.getName().getString(), started);
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("steveAI findMe started for player {} result={}"), player.getName().getString(), started);
                             return 1;
                         })
                     )
@@ -693,7 +693,7 @@ public class CommandEvents {
                                 false
                             );
 
-                            LOGGER.info("steveAI follow mode disabled");
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("steveAI follow mode disabled"));
                             return 1;
                         })
                     )
@@ -725,13 +725,13 @@ public class CommandEvents {
                                             int containerId,
                                             net.minecraft.world.entity.player.Inventory playerInventory,
                                             net.minecraft.world.entity.player.Player pPlayer) {
-                                        LOGGER.info("CommandEvents.opengui ### CREATE MENU ### called ");
+                                        LOGGER.info(com.example.examplemod.NpcooLog.tag("CommandEvents.opengui ### CREATE MENU ### called "));
                                         return new SteveAiMenu(containerId, playerInventory);
                                     }
                                 });
 
                                 if (containerId.isPresent()) {
-                                    LOGGER.info("Sending merchant offers to client, count={}", offers.size());
+                                    LOGGER.info(com.example.examplemod.NpcooLog.tag("Sending merchant offers to client, count={}"), offers.size());
 
                                     player.sendMerchantOffers(
                                         containerId.getAsInt(),
@@ -742,7 +742,7 @@ public class CommandEvents {
                                         false
                                     );
                                 } else {
-                                    LOGGER.warn("openMenu returned empty OptionalInt");
+                                    LOGGER.warn(com.example.examplemod.NpcooLog.tag("openMenu returned empty OptionalInt"));
                                 }
                             }
 
@@ -771,7 +771,7 @@ public class CommandEvents {
                                 false
                             );
 
-                            LOGGER.info("SteveAI inventory command -> {}", summary);
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI inventory command -> {}"), summary);
                             return 1;
                         })
                     )
@@ -805,7 +805,7 @@ public class CommandEvents {
                             CommandSourceStack source = context.getSource();
                             String message = StringArgumentType.getString(context, "message");
 
-                            LOGGER.info("TESTMOD asking OpenAI...: {}", message);
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("TESTMOD asking OpenAI...: {}"), message);
 
                             source.sendSuccess(
                                 () -> Component.literal("§6[testmod] Asking OpenAI: " + message),
@@ -826,13 +826,13 @@ public class CommandEvents {
                                 false
                             );
 
-                            LOGGER.info("ExampleMod OpenAI response... {}", reply);
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("ExampleMod OpenAI response... {}"), reply);
                             return 1;
                         })
                     )
             );
         } finally {
-            LOGGER.info("CommandEvents.onCommandsRegister FINISH");
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("CommandEvents.onCommandsRegister FINISH"));
         }
     }
 
@@ -866,7 +866,7 @@ public class CommandEvents {
 
                         if (distSq > 9.0) {
                             boolean started = steveAi.getNavigation().moveTo(followPlayer, 1.0D);
-                            LOGGER.info("steveAI follow tick repath result={} distSq={}", started, distSq);
+                            LOGGER.info(com.example.examplemod.NpcooLog.tag("steveAI follow tick repath result={} distSq={}"), started, distSq);
                         } else {
                             steveAi.getNavigation().stop();
                         }
@@ -925,7 +925,7 @@ public class CommandEvents {
     }
 
     private static void maybeSendServerLoadStatus(net.minecraft.server.MinecraftServer server) {
-        if (!screenDebugEnabled || lastPlayerUuid == null || measuredTickSamples == 0L) {
+        if (measuredTickSamples == 0L) {
             return;
         }
 
@@ -940,7 +940,8 @@ public class CommandEvents {
         }
         nextServerLoadNotifyGameTime = now + SERVER_LOAD_NOTIFY_INTERVAL_TICKS;
 
-        sendScanProgressBar(buildServerLoadMessage(level, false));
+        String heartbeat = buildServerLoadMessage(level, false);
+        LOGGER.info(com.example.examplemod.NpcooLog.tag(stripMinecraftColorCodes(heartbeat)));
     }
 
     private static String buildServerLoadMessage(ServerLevel level, boolean includeTune) {
@@ -949,7 +950,7 @@ public class CommandEvents {
         double mspt = rollingMspt;
         double loadPct = Math.min(999.0, (mspt / SERVER_TICK_BUDGET_MS) * 100.0);
         boolean behind = mspt >= SERVER_TICK_BUDGET_MS || lagDebtMs >= behindLagDebtMs;
-        boolean idle = !behind && playerCount == 0 && mspt <= idleMaxMspt;
+        boolean idle = !behind && mspt <= idleMaxMspt;
 
         String state;
         if (behind) {
@@ -1011,6 +1012,13 @@ public class CommandEvents {
             playerCount,
             behindPart
         );
+    }
+
+    private static String stripMinecraftColorCodes(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        return text.replaceAll("§.", "");
     }
 
     private static int handleServerLoadTune(CommandContext<CommandSourceStack> context) {
@@ -1098,9 +1106,9 @@ public class CommandEvents {
         }
 
         if (forced) {
-            LOGGER.info("Periodic scan force-started: cycle={} queuedJobs={} budgetMs={}", periodicScanCycleCount, queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Periodic scan force-started: cycle={} queuedJobs={} budgetMs={}"), periodicScanCycleCount, queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
         } else {
-            LOGGER.info("Periodic scan cycle started: cycle={} queuedJobs={} budgetMs={}", periodicScanCycleCount, queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Periodic scan cycle started: cycle={} queuedJobs={} budgetMs={}"), periodicScanCycleCount, queued, MAX_PERIODIC_SCAN_MS_PER_TICK);
         }
 
         notifyPeriodicScanStarted(queued);
@@ -1153,7 +1161,7 @@ public class CommandEvents {
         }
 
         long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
-        LOGGER.info("Periodic scan tick processed: steps={} remainingJobs={} elapsedMs={} budgetMs={}",
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("Periodic scan tick processed: steps={} remainingJobs={} elapsedMs={} budgetMs={}"),
             steps,
             periodicScanQueue.size(),
             elapsedMs,
@@ -1436,23 +1444,23 @@ public class CommandEvents {
 
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        LOGGER.info("CommandEvents.onPlayerLoggedIn START ");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("CommandEvents.onPlayerLoggedIn START "));
         try {
             var player = event.getEntity();
             var level = player.level();
             lastPlayerUuid = player.getUUID();
             lastPlayerName = player.getName().getString();
-            LOGGER.info("Tracking steveAI file for player UUID: {}", lastPlayerUuid);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Tracking steveAI file for player UUID: {}"), lastPlayerUuid);
 
-            LOGGER.info("Player UUID: {}", player.getUUID());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Player UUID: {}"), player.getUUID());
             if (!(level instanceof ServerLevel serverLevel)) {
                 return;
             }
 
-            LOGGER.info("Player {} logged in", player.getName().getString());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Player {} logged in"), player.getName().getString());
 
             if (findSteveAiAnywhere(serverLevel) != null) {
-                LOGGER.info("steveAI already exists somewhere in the world, skipping spawn");
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("steveAI already exists somewhere in the world, skipping spawn"));
                 // TODO: re-enable once chunks are confirmed loaded at login
                 // forceStartPeriodicScanNow(serverLevel.getServer());
                 return;
@@ -1482,14 +1490,14 @@ public class CommandEvents {
                 );
 
                 serverLevel.addFreshEntity(villager);
-                LOGGER.info("Spawned steveAI at {}, {}, {}", spawnX, spawnY, spawnZ);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("Spawned steveAI at {}, {}, {}"), spawnX, spawnY, spawnZ);
                 // TODO: re-enable once chunks are confirmed loaded at login
                 // forceStartPeriodicScanNow(serverLevel.getServer());
             } else {
-                LOGGER.warn("Failed to create villager entity for steveAI");
+                LOGGER.warn(com.example.examplemod.NpcooLog.tag("Failed to create villager entity for steveAI"));
             }
         } finally {
-            LOGGER.info("CommandEvents.onPlayerLoggedIn FINISH");
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("CommandEvents.onPlayerLoggedIn FINISH"));
         }
     }
 
@@ -1694,7 +1702,7 @@ public class CommandEvents {
             " at " + nearest.getX() + " " + nearest.getY() + " " + nearest.getZ()
         ), false);
 
-        LOGGER.info("Explore started: poi={} poiType={} center={}", explorePoi, explorePoiType, exploreCenter);
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("Explore started: poi={} poiType={} center={}"), explorePoi, explorePoiType, exploreCenter);
         return 1;
     }
 
@@ -1747,7 +1755,7 @@ public class CommandEvents {
             () -> Component.literal("SteveAI screen debug messages " + (enabled ? "enabled" : "disabled") + "."),
             false
         );
-        LOGGER.info("SteveAI screen debug messages set to {} by {}", enabled, context.getSource().getTextName());
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI screen debug messages set to {} by {}"), enabled, context.getSource().getTextName());
         return 1;
     }
 
@@ -1762,10 +1770,10 @@ public class CommandEvents {
         if ("village_candidate".equals(explorePoi) || "village".equals(explorePoi)) {
             int villagerCount = countNearbyVillagers(serverLevel, steveAi, 20.0);
 
-            LOGGER.info("Explore village check: nearby villager count={}", villagerCount);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Explore village check: nearby villager count={}"), villagerCount);
 
             if (villagerCount > 1) {
-                LOGGER.info("Explore complete: found village population near SteveAI.");
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("Explore complete: found village population near SteveAI."));
                 stopExploreTask();
                 return;
             }
@@ -1779,7 +1787,7 @@ public class CommandEvents {
                     exploreCenter.getZ() + 0.5,
                     0.9
                 );
-                LOGGER.info("Explore travel-to-poi center={} result={}", exploreCenter, ok);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("Explore travel-to-poi center={} result={}"), exploreCenter, ok);
                 nextExploreRepathGameTime = gameTime + 40;
             }
             return;
@@ -1794,11 +1802,11 @@ public class CommandEvents {
             nextExploreRepathGameTime = 0L;
 
             if (currentExploreTarget == null) {
-                LOGGER.info("No valid exploration target around POI center {}", exploreCenter);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("No valid exploration target around POI center {}"), exploreCenter);
                 return;
             }
 
-            LOGGER.info("Explore local target={}", currentExploreTarget);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Explore local target={}"), currentExploreTarget);
         }
 
         if (gameTime >= nextExploreRepathGameTime) {
@@ -1808,7 +1816,7 @@ public class CommandEvents {
                 currentExploreTarget.getZ() + 0.5,
                 0.9
             );
-            LOGGER.info("Explore patrol target={} result={}", currentExploreTarget, ok);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Explore patrol target={} result={}"), currentExploreTarget, ok);
             nextExploreRepathGameTime = gameTime + 40;
         }
     }
@@ -1873,7 +1881,7 @@ public class CommandEvents {
     private static int handleWriteNow(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
-        LOGGER.info("[WRITE DEBUG] /testmod writeNow invoked");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("[WRITE DEBUG] /testmod writeNow invoked"));
 
         if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
             source.sendFailure(Component.literal("Not on server level."));
@@ -1906,7 +1914,7 @@ public class CommandEvents {
             Path pd = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
             PoiManager.loadPersonalitiesFromFile(pd.resolve("village_personalities.txt"));
         } catch (IOException ex) {
-            LOGGER.warn("[WRITE DEBUG] Could not load village personalities file", ex);
+            LOGGER.warn(com.example.examplemod.NpcooLog.tag("[WRITE DEBUG] Could not load village personalities file"), ex);
         }
 
         PoiManager.ingestScanSummaries(Map.of(), groupedEntities, groupedBlockEntities);
@@ -1943,7 +1951,7 @@ public class CommandEvents {
         java.util.List<String> poiSummaryLines
     ) {
         try {
-            LOGGER.info("[WRITE DEBUG] writeSteveAiSummary start playerUuid={} steveAiPos={}", playerUuid, steveAiEntity.blockPosition());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("[WRITE DEBUG] writeSteveAiSummary start playerUuid={} steveAiPos={}"), playerUuid, steveAiEntity.blockPosition());
 
             Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
 
@@ -2017,9 +2025,9 @@ public class CommandEvents {
             );
             sendStatusToPlayer(playerUuid, writeMsg);
 
-            LOGGER.info("[WRITE DEBUG] writeSteveAiSummary finished folder={}", playerDataDir.toAbsolutePath());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("[WRITE DEBUG] writeSteveAiSummary finished folder={}"), playerDataDir.toAbsolutePath());
         } catch (IOException e) {
-            LOGGER.error("Failed to write steveAI summary file", e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed to write steveAI summary file"), e);
             sendStatusToPlayer(playerUuid, "[testmod] SteveAI file write FAILED " + scanTs() + " (see server log)");
         }
     }
@@ -2033,7 +2041,7 @@ public class CommandEvents {
         Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities
     ) {
         if (playerUuid == null) {
-            LOGGER.warn("Periodic scan write skipped because lastPlayerUuid is null");
+            LOGGER.warn(com.example.examplemod.NpcooLog.tag("Periodic scan write skipped because lastPlayerUuid is null"));
             return;
         }
 
@@ -2064,7 +2072,7 @@ public class CommandEvents {
             );
             sendStatusToPlayer(playerUuid, writeMsg);
         } catch (IOException e) {
-            LOGGER.error("Failed to write periodic steveAI scan files", e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed to write periodic steveAI scan files"), e);
             sendStatusToPlayer(playerUuid, "[testmod] SteveAI file write FAILED " + scanTs() + " (see server log)");
         }
     }
@@ -2072,25 +2080,25 @@ public class CommandEvents {
     private static void logFileTail(String logPrefix, Path file, int maxLines) {
         try {
             if (file == null || !Files.exists(file)) {
-                LOGGER.info("[{}] tail skipped, file missing: {}", logPrefix, file);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] tail skipped, file missing: {}"), logPrefix, file);
                 return;
             }
 
             java.util.List<String> lines = Files.readAllLines(file);
             if (lines.isEmpty()) {
-                LOGGER.info("[{}] tail for {} -> (file empty)", logPrefix, file.getFileName());
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] tail for {} -> (file empty)"), logPrefix, file.getFileName());
                 return;
             }
 
             int start = Math.max(0, lines.size() - maxLines);
             java.util.List<String> tail = lines.subList(start, lines.size());
 
-            LOGGER.info("[{}] tail for {} (last {} lines):", logPrefix, file.getFileName(), tail.size());
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] tail for {} (last {} lines):"), logPrefix, file.getFileName(), tail.size());
             for (String line : tail) {
-                LOGGER.info("[{}] {}", logPrefix, line);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("[{}] {}"), logPrefix, line);
             }
         } catch (IOException e) {
-            LOGGER.error("Failed to log [{}] tail for file {}", logPrefix, file, e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed to log [{}] tail for file {}"), logPrefix, file, e);
         }
     }
 
@@ -2120,7 +2128,7 @@ public class CommandEvents {
                 StandardOpenOption.APPEND
             );
         } catch (IOException e) {
-            LOGGER.error("Failed to write steveAI text file", e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed to write steveAI text file"), e);
         }
     }
 
@@ -2374,7 +2382,7 @@ public class CommandEvents {
                 StandardOpenOption.APPEND
             );
         } catch (IOException e) {
-            LOGGER.error("Failed to write steveAI chat file", e);
+            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed to write steveAI chat file"), e);
         }
     }
 
@@ -2389,7 +2397,7 @@ public class CommandEvents {
     }
 
     public static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
-        LOGGER.info("askSteveAi START playerUuid={} message={}", playerUuid, message);
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("askSteveAi START playerUuid={} message={}"), playerUuid, message);
 
         String fileContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
         String normalizedMessage = message == null ? "" : message.toLowerCase(java.util.Locale.ROOT);
@@ -2433,7 +2441,7 @@ public class CommandEvents {
             "[" + chatTs() + "] STEVEAI: " + oneLine(reply));
         appendSteveAiChatLine(serverLevel, playerUuid, "");
 
-        LOGGER.info("askSteveAi FINISH playerUuid={} reply={}", playerUuid, reply);
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("askSteveAi FINISH playerUuid={} reply={}"), playerUuid, reply);
         return reply;
     }
 
@@ -2835,20 +2843,20 @@ public class CommandEvents {
 
         if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null) {
             boolean removed = serverLevel.setChunkForced(forcedSteveAiChunkX, forcedSteveAiChunkZ, false);
-            LOGGER.info("Unforced old steveAI chunk {},{} result={}", forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Unforced old steveAI chunk {},{} result={}"), forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);
         }
 
         boolean added = serverLevel.setChunkForced(chunkX, chunkZ, true);
         forcedSteveAiChunkX = chunkX;
         forcedSteveAiChunkZ = chunkZ;
 
-        LOGGER.info("Forced steveAI chunk {},{} result={}", chunkX, chunkZ, added);
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("Forced steveAI chunk {},{} result={}"), chunkX, chunkZ, added);
     }
 
     private static void clearForcedSteveAiChunk(ServerLevel serverLevel) {
         if (forcedSteveAiChunkX != null && forcedSteveAiChunkZ != null) {
             boolean removed = serverLevel.setChunkForced(forcedSteveAiChunkX, forcedSteveAiChunkZ, false);
-            LOGGER.info("Cleared forced steveAI chunk {},{} result={}", forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("Cleared forced steveAI chunk {},{} result={}"), forcedSteveAiChunkX, forcedSteveAiChunkZ, removed);
         }
 
         forcedSteveAiChunkX = null;

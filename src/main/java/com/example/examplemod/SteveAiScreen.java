@@ -14,7 +14,7 @@ import org.slf4j.Logger;
 
 public class SteveAiScreen extends MerchantScreen {
 
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
 
     private enum Tab {
         CHAT("Chat"),
@@ -69,7 +69,7 @@ public class SteveAiScreen extends MerchantScreen {
 
     public SteveAiScreen(SteveAiMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
-        LOGGER.info("### SteveAiScreen CONSTRUCTOR ###");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("### SteveAiScreen CONSTRUCTOR ###"));
     }
 
     @Override
@@ -291,7 +291,7 @@ public class SteveAiScreen extends MerchantScreen {
             return true;
         }
         if (isTabClicked(mouseX, mouseY, histTabX, tabY, HIST_TAB_WIDTH)) {
-            LOGGER.info("HIST tab clicked");
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("HIST tab clicked"));
             activeTab = Tab.HIST;
             return true;
         }
@@ -315,7 +315,7 @@ public class SteveAiScreen extends MerchantScreen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (activeTab == Tab.CHAT && chatInput != null && chatInput.isVisible()) {
-            LOGGER.info("SteveAiScreen keypressed STARTED ");
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiScreen keypressed STARTED "));
             
             int keyCode = event.key();
 
@@ -341,16 +341,16 @@ public class SteveAiScreen extends MerchantScreen {
 
             // Handle Enter FIRST
             if (keyCode == 257 || keyCode == 335) {
-                LOGGER.info("SteveAiScreen keypressed started to wait for input");
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiScreen keypressed started to wait for input"));
                 String message = chatInput.getValue().trim();
-                LOGGER.info("SteveAiScreen keypressed input is done and enter pressed {}", message);
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiScreen keypressed input is done and enter pressed {}"), message);
 
                 if (!message.isEmpty()) {
                     lastPrompt = message;
                     lastResponse = "Thinking...";
                     scrollChatToBottom();
                     chatInput.setValue("");
-                    LOGGER.info("SteveAiScreen calling openai to get reply"); 
+                    LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiScreen calling openai to get reply")); 
 
                     if (minecraft != null && minecraft.player != null && minecraft.player.connection != null) {
                         ModNetworking.CHANNEL.send(
@@ -363,7 +363,7 @@ public class SteveAiScreen extends MerchantScreen {
                     //if (minecraft.player != null && minecraft.player.connection != null) {
                     //    minecraft.player.connection.sendCommand("testmod " + message);
                     //}
-                    LOGGER.info("SteveAiScreen finished writing to chat file "); 
+                    LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiScreen finished writing to chat file ")); 
                 }
 
                 return true;
@@ -371,7 +371,7 @@ public class SteveAiScreen extends MerchantScreen {
 
             // Let the text box handle normal editing keys after that
             if (chatInput.keyPressed(event)) {
-                LOGGER.info("SteveAiScreen keypressed leaving 1 ???  ");
+                LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiScreen keypressed leaving 1 ???  "));
                 return true;
             }
 
@@ -379,7 +379,7 @@ public class SteveAiScreen extends MerchantScreen {
             // like inventory ('e') do not close the screen
             return true;
         }
-        LOGGER.info("SteveAiScreen keypressed leaving 2 ???  ");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiScreen keypressed leaving 2 ???  "));
         return super.keyPressed(event);
 
     }
@@ -409,7 +409,7 @@ public class SteveAiScreen extends MerchantScreen {
 
     @Override
     public void onClose() {
-        LOGGER.info("### SteveAiScreen onClose ###");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("### SteveAiScreen onClose ###"));
         super.onClose();
     }
 
@@ -421,7 +421,7 @@ public class SteveAiScreen extends MerchantScreen {
 
     @Override
     public void removed() {
-        LOGGER.info("### SteveAiScreen removed ###");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("### SteveAiScreen removed ###"));
         if (chatSessionStarted && minecraft != null && minecraft.player != null && minecraft.player.connection != null) {
             ModNetworking.CHANNEL.send(
                 new SteveAiChatSessionPacket(false),

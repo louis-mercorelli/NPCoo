@@ -27,11 +27,11 @@ import org.slf4j.Logger;
 @Mod(ExampleMod.MODID)
 public final class ExampleMod {
     //private static final Logger LOGGER = LogUtils.getLogger();
-    // LOGGER.info("ExampleMod.java START");
+    // LOGGER.info(com.example.examplemod.NpcooLog.tag("ExampleMod.java START"));
     // Define mod id in a common place for everything to reference
     public static final String MODID = "examplemod";
     // Directly reference a slf4j logger
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
     // Create a Deferred Register to hold Blocks which will all be registered under the "examplemod" namespace
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
     // Create a Deferred Register to hold Items which will all be registered under the "examplemod" namespace
@@ -74,7 +74,7 @@ public final class ExampleMod {
 
     public ExampleMod(FMLJavaModLoadingContext context) {
         var modBusGroup = context.getModBusGroup();
-        LOGGER.info("HELLO FROM exampleMod and busGroup START");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("HELLO FROM exampleMod and busGroup START"));
         // Register menu types for this mod.
         ModMenus.MENUS.register(modBusGroup);
 
@@ -90,19 +90,19 @@ public final class ExampleMod {
 
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
-        LOGGER.info("HELLO FROM exampleMod and busGroup FINISH");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("HELLO FROM exampleMod and busGroup FINISH"));
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         // Some common setup code
-        LOGGER.info("HELLO FROM COMMON SETUP");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("HELLO FROM COMMON SETUP"));
         event.enqueueWork(ModNetworking::register);
         
         if (Config.logDirtBlock)
-            LOGGER.info("DIRT BLOCK >> {}", ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
+            LOGGER.info(com.example.examplemod.NpcooLog.tag("DIRT BLOCK >> {}"), ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
 
         LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
-        Config.items.forEach((item) -> LOGGER.info("ITEM >> {}", item.toString()));
+        Config.items.forEach((item) -> LOGGER.info(com.example.examplemod.NpcooLog.tag("ITEM >> {}"), item.toString()));
     }
 
     // Add the example block item to the building blocks tab

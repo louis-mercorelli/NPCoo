@@ -16,17 +16,17 @@ import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 
 public class SteveAiMenu extends MerchantMenu {
-    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
     public SteveAiMenu(int containerId, Inventory playerInventory) {
         super(containerId, playerInventory, createMerchant(playerInventory));
-        LOGGER.info("SteveAiMenu setting up first trade");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiMenu setting up first trade"));
         // optional but helps pick the first recipe
         this.setSelectionHint(0);
     }
 
     private static ClientSideMerchant createMerchant(Inventory playerInventory) {
         ClientSideMerchant merchant = new ClientSideMerchant(playerInventory.player);
-        LOGGER.info("SteveAiMenu clientSideMerchant called");
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiMenu clientSideMerchant called"));
         MerchantOffers offers = new MerchantOffers();
         offers.add(new MerchantOffer(
             new ItemCost(Items.OAK_LOG, 1),
@@ -39,7 +39,7 @@ public class SteveAiMenu extends MerchantMenu {
 
         merchant.overrideOffers(offers);
         
-        LOGGER.info("SteveAiMenu offers count = " + merchant.getOffers().size());
+        LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAiMenu offers count = " + merchant.getOffers().size()));
         return merchant;
     }
 }
