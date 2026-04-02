@@ -5,32 +5,32 @@
  * Defines oldTickExplore functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code OldTickExplore(...)}:
+ *    Purpose: Performs old tick explore.
  *    Input: none.
- *    Output: OldTickExplore() {}.
- * 2) {@code radius)(...)}:
- *    Purpose: Implements radius) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code countNearbyVillagers(...)}:
+ *    Purpose: Performs count nearby villagers.
  *    Input: ServerLevel serverLevel, Villager steveAi, double radius.
  *    Output: int.
  * 3) {@code stopExploreTask(...)}:
- *    Purpose: Implements stopExploreTask logic in this file.
+ *    Purpose: Stops stop explore task.
  *    Input: none.
  *    Output: void.
- * 4) {@code steveAi)(...)}:
- *    Purpose: Implements steveAi) logic in this file.
+ * 4) {@code tickExplore(...)}:
+ *    Purpose: Performs tick explore.
  *    Input: ServerLevel serverLevel, Villager steveAi.
  *    Output: void.
- * 5) {@code serverLevel)(...)}:
- *    Purpose: Implements serverLevel) logic in this file.
+ * 5) {@code pickNextExploreTarget(...)}:
+ *    Purpose: Performs pick next explore target.
  *    Input: ServerLevel serverLevel.
  *    Output: BlockPos.
- * 6) {@code target)(...)}:
- *    Purpose: Implements target) logic in this file.
+ * 6) {@code reachedExploreTarget(...)}:
+ *    Purpose: Performs reached explore target.
  *    Input: Villager steveAi, BlockPos target.
  *    Output: boolean.
- * 7) {@code pos)(...)}:
- *    Purpose: Implements pos) logic in this file.
+ * 7) {@code isGoodExploreTarget(...)}:
+ *    Purpose: Checks whether is good explore target.
  *    Input: ServerLevel serverLevel, BlockPos pos.
  *    Output: boolean.
  */

@@ -5,36 +5,36 @@
  * Defines ClientHackEvents functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 1) {@code onClientTick(...)}:
+ *    Purpose: Performs on client tick.
  *    Input: TickEvent.ClientTickEvent.Post event.
  *    Output: void.
- * 2) {@code mc)(...)}:
- *    Purpose: Implements mc) logic in this file.
+ * 2) {@code refreshHintState(...)}:
+ *    Purpose: Performs refresh hint state.
  *    Input: Minecraft mc.
  *    Output: void.
- * 3) {@code mc)(...)}:
- *    Purpose: Implements mc) logic in this file.
+ * 3) {@code markHintSeen(...)}:
+ *    Purpose: Performs mark hint seen.
  *    Input: Minecraft mc.
  *    Output: void.
- * 4) {@code mc)(...)}:
- *    Purpose: Implements mc) logic in this file.
+ * 4) {@code hasSeenHintForCurrentWorld(...)}:
+ *    Purpose: Checks whether has seen hint for current world.
  *    Input: Minecraft mc.
  *    Output: boolean.
- * 5) {@code mc)(...)}:
- *    Purpose: Implements mc) logic in this file.
+ * 5) {@code isSingleplayerWorld(...)}:
+ *    Purpose: Checks whether is singleplayer world.
  *    Input: Minecraft mc.
  *    Output: boolean.
- * 6) {@code mc)(...)}:
- *    Purpose: Implements mc) logic in this file.
+ * 6) {@code getWorldHintKey(...)}:
+ *    Purpose: Returns get world hint key.
  *    Input: Minecraft mc.
  *    Output: String.
- * 7) {@code mc)(...)}:
- *    Purpose: Implements mc) logic in this file.
+ * 7) {@code getHintFile(...)}:
+ *    Purpose: Returns get hint file.
  *    Input: Minecraft mc.
  *    Output: java.nio.file.Path.
- * 8) {@code mc)(...)}:
- *    Purpose: Implements mc) logic in this file.
+ * 8) {@code isLookingAtSteveAi(...)}:
+ *    Purpose: Checks whether is looking at steve ai.
  *    Input: Minecraft mc.
  *    Output: boolean.
  */

@@ -5,16 +5,16 @@
  * Defines Config functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code obj)(...)}:
- *    Purpose: Implements obj) logic in this file.
+ * 1) {@code validateItemName(...)}:
+ *    Purpose: Validates validate item name.
  *    Input: final Object obj.
  *    Output: boolean.
- * 2) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 2) {@code onLoad(...)}:
+ *    Purpose: Performs on load.
  *    Input: final ModConfigEvent event.
  *    Output: void.
- * 3) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 3) {@code onReload(...)}:
+ *    Purpose: Performs on reload.
  *    Input: final ModConfigEvent.Reloading event.
  *    Output: void.
  */

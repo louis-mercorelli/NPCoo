@@ -5,12 +5,12 @@
  * Defines SteveAiTime functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code SteveAiTime(...)}:
+ *    Purpose: Constructs SteveAiTime.
  *    Input: none.
- *    Output: SteveAiTime() {}.
+ *    Output: none (constructor).
  * 2) {@code scanTs(...)}:
- *    Purpose: Implements scanTs logic in this file.
+ *    Purpose: Scans scan ts.
  *    Input: none.
  *    Output: String.
  */

@@ -5,20 +5,24 @@
  * Defines CEHGuiInventory functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHGuiInventory(...)}:
+ *    Purpose: Constructs CEHGuiInventory.
  *    Input: none.
- *    Output: CEHGuiInventory() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleOpenGui(...)}:
+ *    Purpose: Handles handle open gui.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  * 3) {@code getDisplayName(...)}:
- *    Purpose: Implements getDisplayName logic in this file.
+ *    Purpose: Returns get display name.
  *    Input: none.
  *    Output: Component.
- * 4) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 4) {@code createMenu(...)}:
+ *    Purpose: Creates create menu.
+ *    Input: int containerId, net.minecraft.world.entity.player.Inventory playerInventory, net.minecraft.world.entity.player.Player pPlayer.
+ *    Output: net.minecraft.world.inventory.AbstractContainerMenu.
+ * 5) {@code handleInv(...)}:
+ *    Purpose: Handles handle inv.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

@@ -5,20 +5,20 @@
  * Defines SteveAiLocator functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code SteveAiLocator(...)}:
+ *    Purpose: Constructs SteveAiLocator.
  *    Input: none.
- *    Output: SteveAiLocator() {}.
- * 2) {@code entity)(...)}:
- *    Purpose: Implements entity) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code isSteveAi(...)}:
+ *    Purpose: Checks whether is steve ai.
  *    Input: Entity entity.
  *    Output: boolean.
- * 3) {@code serverLevel)(...)}:
- *    Purpose: Implements serverLevel) logic in this file.
+ * 3) {@code findSteveAi(...)}:
+ *    Purpose: Finds find steve ai.
  *    Input: ServerLevel serverLevel.
  *    Output: Villager.
- * 4) {@code serverLevel)(...)}:
- *    Purpose: Implements serverLevel) logic in this file.
+ * 4) {@code findSteveAiAnywhere(...)}:
+ *    Purpose: Finds find steve ai anywhere.
  *    Input: ServerLevel serverLevel.
  *    Output: Entity.
  */

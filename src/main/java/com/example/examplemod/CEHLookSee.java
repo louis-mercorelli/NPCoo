@@ -5,20 +5,20 @@
  * Defines CEHLookSee functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHLookSee(...)}:
+ *    Purpose: Constructs CEHLookSee.
  *    Input: none.
- *    Output: CEHLookSee() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleLookSee(...)}:
+ *    Purpose: Handles handle look see.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 3) {@code grouped)(...)}:
- *    Purpose: Implements grouped) logic in this file.
+ * 3) {@code totalCount(...)}:
+ *    Purpose: Performs total count.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> grouped.
  *    Output: int.
- * 4) {@code key)(...)}:
- *    Purpose: Implements key) logic in this file.
+ * 4) {@code entryCount(...)}:
+ *    Purpose: Performs entry count.
  *    Input: Map<String, SteveAiCollectors.SeenSummary> grouped, String key.
  *    Output: int.
  */

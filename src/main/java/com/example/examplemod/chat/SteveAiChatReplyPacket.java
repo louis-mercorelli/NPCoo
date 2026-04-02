@@ -5,20 +5,20 @@
  * Defines SteveAiChatReplyPacket functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code reply)(...)}:
- *    Purpose: Implements reply) logic in this file.
+ * 1) {@code SteveAiChatReplyPacket(...)}:
+ *    Purpose: Constructs SteveAiChatReplyPacket.
  *    Input: String prompt, String reply.
- *    Output: SteveAiChatReplyPacket(String prompt, String reply).
- * 2) {@code buf)(...)}:
- *    Purpose: Implements buf) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code encode(...)}:
+ *    Purpose: Performs encode.
  *    Input: SteveAiChatReplyPacket pkt, FriendlyByteBuf buf.
  *    Output: void.
- * 3) {@code buf)(...)}:
- *    Purpose: Implements buf) logic in this file.
+ * 3) {@code decode(...)}:
+ *    Purpose: Performs decode.
  *    Input: FriendlyByteBuf buf.
  *    Output: SteveAiChatReplyPacket.
- * 4) {@code ctx)(...)}:
- *    Purpose: Implements ctx) logic in this file.
+ * 4) {@code handle(...)}:
+ *    Purpose: Performs handle.
  *    Input: SteveAiChatReplyPacket pkt, CustomPayloadEvent.Context ctx.
  *    Output: void.
  */

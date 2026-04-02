@@ -5,8 +5,8 @@
  * Defines OpenAiService functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code prompt)(...)}:
- *    Purpose: Implements prompt) logic in this file.
+ * 1) {@code ask(...)}:
+ *    Purpose: Performs ask.
  *    Input: String prompt.
  *    Output: String.
  */

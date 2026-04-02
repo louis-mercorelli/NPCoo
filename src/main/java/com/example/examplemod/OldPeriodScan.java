@@ -5,60 +5,68 @@
  * Defines OldPeriodScan functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code OldPeriodScan(...)}:
+ *    Purpose: Constructs OldPeriodScan.
  *    Input: none.
- *    Output: OldPeriodScan() {}.
- * 2) {@code server)(...)}:
- *    Purpose: Implements server) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code sendLookSeeSection(...)}:
+ *    Purpose: Performs send look see section.
+ *    Input: CommandSourceStack source, String sectionTitle, java.util.Map<String, SteveAiCollectors.SeenSummary> grouped, String kind.
+ *    Output: void.
+ * 3) {@code forceStartPeriodicScanNow(...)}:
+ *    Purpose: Forces force start periodic scan now.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
- * 3) {@code server)(...)}:
- *    Purpose: Implements server) logic in this file.
+ * 4) {@code maybeStartPeriodicScan(...)}:
+ *    Purpose: Performs maybe start periodic scan.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
- * 4) {@code server)(...)}:
- *    Purpose: Implements server) logic in this file.
+ * 5) {@code enqueuePeriodicScanJobs(...)}:
+ *    Purpose: Performs enqueue periodic scan jobs.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: int.
- * 5) {@code forced)(...)}:
- *    Purpose: Implements forced) logic in this file.
+ * 6) {@code startPeriodicScanCycle(...)}:
+ *    Purpose: Starts start periodic scan cycle.
  *    Input: int queued, boolean forced.
  *    Output: void.
- * 6) {@code queuedJobs)(...)}:
- *    Purpose: Implements queuedJobs) logic in this file.
+ * 7) {@code notifyPeriodicScanStarted(...)}:
+ *    Purpose: Performs notify periodic scan started.
  *    Input: int queuedJobs.
  *    Output: void.
- * 7) {@code processPeriodicScanQueue(...)}:
- *    Purpose: Implements processPeriodicScanQueue logic in this file.
+ * 8) {@code processPeriodicScanQueue(...)}:
+ *    Purpose: Processes process periodic scan queue.
  *    Input: none.
  *    Output: void.
- * 8) {@code notifyPeriodicScanFinished(...)}:
- *    Purpose: Implements notifyPeriodicScanFinished logic in this file.
+ * 9) {@code notifyPeriodicScanFinished(...)}:
+ *    Purpose: Performs notify periodic scan finished.
  *    Input: none.
  *    Output: void.
- * 9) {@code msg)(...)}:
- *    Purpose: Implements msg) logic in this file.
+ * 10) {@code sendScanProgressBar(...)}:
+ *    Purpose: Performs send scan progress bar.
  *    Input: String msg.
  *    Output: void.
- * 10) {@code msg)(...)}:
- *    Purpose: Implements msg) logic in this file.
+ * 11) {@code sendScanStatusToTrackedPlayer(...)}:
+ *    Purpose: Performs send scan status to tracked player.
  *    Input: String msg.
  *    Output: void.
- * 11) {@code msg)(...)}:
- *    Purpose: Implements msg) logic in this file.
+ * 12) {@code sendStatusToPlayer(...)}:
+ *    Purpose: Performs send status to player.
  *    Input: java.util.UUID playerUuid, String msg.
  *    Output: void.
- * 12) {@code steveAiEntity)(...)}:
- *    Purpose: Implements steveAiEntity) logic in this file.
+ * 13) {@code writePeriodicScanFiles(...)}:
+ *    Purpose: Writes write periodic scan files.
+ *    Input: ServerLevel serverLevel, java.util.UUID playerUuid, Entity steveAiEntity, java.util.Map<String, SteveAiCollectors.SeenSummary> groupedBlocks, java.util.Map<String, SteveAiCollectors.SeenSummary> groupedEntities, java.util.Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities.
+ *    Output: void.
+ * 14) {@code appendWorldInfo(...)}:
+ *    Purpose: Appends append world info.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity.
  *    Output: void.
- * 13) {@code line)(...)}:
- *    Purpose: Implements line) logic in this file.
+ * 15) {@code appendSteveAiLine(...)}:
+ *    Purpose: Appends append steve ai line.
  *    Input: ServerLevel serverLevel, java.util.UUID playerUuid, String line.
  *    Output: void.
- * 14) {@code job)(...)}:
- *    Purpose: Implements job) logic in this file.
+ * 16) {@code processPeriodicScanJobPhase(...)}:
+ *    Purpose: Processes process periodic scan job phase.
  *    Input: CommandEvents.PeriodicScanJob job.
  *    Output: void.
  */

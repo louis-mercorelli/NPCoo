@@ -5,20 +5,20 @@
  * Defines CommandEvents functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 1) {@code onCommandsRegister(...)}:
+ *    Purpose: Performs on commands register.
  *    Input: RegisterCommandsEvent event.
  *    Output: void.
- * 2) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 2) {@code onServerTick(...)}:
+ *    Purpose: Performs on server tick.
  *    Input: net.minecraftforge.event.TickEvent.ServerTickEvent.Pre event.
  *    Output: void.
- * 3) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 3) {@code onServerTick(...)}:
+ *    Purpose: Performs on server tick.
  *    Input: net.minecraftforge.event.TickEvent.ServerTickEvent.Post event.
  *    Output: void.
- * 4) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 4) {@code onPlayerLoggedIn(...)}:
+ *    Purpose: Performs on player logged in.
  *    Input: PlayerEvent.PlayerLoggedInEvent event.
  *    Output: void.
  */

@@ -5,16 +5,16 @@
  * Defines ExampleMod functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 1) {@code ExampleMod(...)}:
+ *    Purpose: Constructs ExampleMod.
  *    Input: FMLJavaModLoadingContext context.
- *    Output: ExampleMod(FMLJavaModLoadingContext context).
- * 2) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code commonSetup(...)}:
+ *    Purpose: Performs common setup.
  *    Input: final FMLCommonSetupEvent event.
  *    Output: void.
- * 3) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 3) {@code addCreative(...)}:
+ *    Purpose: Adds add creative.
  *    Input: BuildCreativeModeTabContentsEvent event.
  *    Output: void.
  */

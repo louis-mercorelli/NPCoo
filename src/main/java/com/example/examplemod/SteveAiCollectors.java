@@ -5,46 +5,114 @@
  * Defines SteveAiCollectors functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code z)(...)}:
- *    Purpose: Implements z) logic in this file.
+ * 1) {@code SeenSummary(...)}:
+ *    Purpose: Performs seen summary.
  *    Input: int x, int y, int z.
- *    Output: SeenSummary(int x, int y, int z).
- * 2) {@code storeAllLocations)(...)}:
- *    Purpose: Implements storeAllLocations) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code SeenSummary(...)}:
+ *    Purpose: Performs seen summary.
  *    Input: int x, int y, int z, boolean storeAllLocations.
- *    Output: SeenSummary(int x, int y, int z, boolean storeAllLocations).
+ *    Output: none (constructor).
  * 3) {@code increment(...)}:
- *    Purpose: Implements increment logic in this file.
+ *    Purpose: Performs increment.
  *    Input: none.
  *    Output: void.
- * 4) {@code pos)(...)}:
- *    Purpose: Implements pos) logic in this file.
+ * 4) {@code addLocation(...)}:
+ *    Purpose: Adds add location.
  *    Input: BlockPos pos.
  *    Output: void.
- * 5) {@code distance)(...)}:
- *    Purpose: Implements distance) logic in this file.
+ * 5) {@code setMinDistanceFromCenter(...)}:
+ *    Purpose: Sets set min distance from center.
  *    Input: double distance.
  *    Output: void.
  * 6) {@code storesAllLocations(...)}:
- *    Purpose: Implements storesAllLocations logic in this file.
+ *    Purpose: Performs stores all locations.
  *    Input: none.
  *    Output: boolean.
  * 7) {@code toString(...)}:
- *    Purpose: Implements toString logic in this file.
+ *    Purpose: Performs to string.
  *    Input: none.
  *    Output: String.
- * 8) {@code pos)(...)}:
- *    Purpose: Implements pos) logic in this file.
+ * 8) {@code DetailedEntry(...)}:
+ *    Purpose: Performs detailed entry.
  *    Input: String typeName, BlockPos pos.
- *    Output: DetailedEntry(String typeName, BlockPos pos).
+ *    Output: none (constructor).
  * 9) {@code toString(...)}:
- *    Purpose: Implements toString logic in this file.
+ *    Purpose: Performs to string.
  *    Input: none.
  *    Output: String.
- * 10) {@code blockName)(...)}:
- *    Purpose: Implements blockName) logic in this file.
+ * 10) {@code shouldStoreAllLocationsForBlock(...)}:
+ *    Purpose: Checks whether should store all locations for block.
  *    Input: String blockName.
  *    Output: boolean.
+ * 11) {@code collectNearbyEntities(...)}:
+ *    Purpose: Performs collect nearby entities.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, double radius, Predicate<Entity> filter.
+ *    Output: Map<String, SeenSummary>.
+ * 12) {@code collectNearbyEntities(...)}:
+ *    Purpose: Performs collect nearby entities.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, double radius.
+ *    Output: Map<String, SeenSummary>.
+ * 13) {@code collectNearbyEntitiesFiltered(...)}:
+ *    Purpose: Performs collect nearby entities filtered.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, double radius, Set<String> targetEntityIds.
+ *    Output: Map<String, SeenSummary>.
+ * 14) {@code collectNearbyBlocks(...)}:
+ *    Purpose: Performs collect nearby blocks.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius, Predicate<BlockState> filter.
+ *    Output: Map<String, SeenSummary>.
+ * 15) {@code collectNearbyBlocks(...)}:
+ *    Purpose: Performs collect nearby blocks.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius.
+ *    Output: Map<String, SeenSummary>.
+ * 16) {@code collectNearbyBlocksFiltered(...)}:
+ *    Purpose: Performs collect nearby blocks filtered.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, int horizontalRadius, int verticalRadius, Set<String> targetBlockIds.
+ *    Output: Map<String, SeenSummary>.
+ * 17) {@code collectNearbyBlockEntities(...)}:
+ *    Purpose: Performs collect nearby block entities.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks.
+ *    Output: Map<String, SeenSummary>.
+ * 18) {@code collectNearbyBlockEntities(...)}:
+ *    Purpose: Performs collect nearby block entities.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks, Predicate<BlockEntity> filter.
+ *    Output: Map<String, SeenSummary>.
+ * 19) {@code collectNearbyBlockEntitiesFiltered(...)}:
+ *    Purpose: Performs collect nearby block entities filtered.
+ *    Input: ServerLevel serverLevel, Entity steveAiEntity, int radiusBlocks, Set<String> targetBlockEntityIds.
+ *    Output: Map<String, SeenSummary>.
+ * 20) {@code collectEntitiesInTile(...)}:
+ *    Purpose: Performs collect entities in tile.
+ *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yCenter, int yRadius.
+ *    Output: Map<String, SeenSummary>.
+ * 21) {@code collectBlocksInTile(...)}:
+ *    Purpose: Performs collect blocks in tile.
+ *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yMin, int yMax, java.util.function.Predicate<net.minecraft.world.level.block.state.BlockState> filter.
+ *    Output: Map<String, SeenSummary>.
+ * 22) {@code collectBlockEntitiesInTile(...)}:
+ *    Purpose: Performs collect block entities in tile.
+ *    Input: ServerLevel serverLevel, int minX, int minZ, int maxX, int maxZ, int yMin, int yMax.
+ *    Output: Map<String, SeenSummary>.
+ * 23) {@code mergeInto(...)}:
+ *    Purpose: Performs merge into.
+ *    Input: Map<String, SeenSummary> target, Map<String, SeenSummary> source.
+ *    Output: void.
+ * 24) {@code annotateDistanceFromCenter(...)}:
+ *    Purpose: Performs annotate distance from center.
+ *    Input: Map<String, SeenSummary> grouped, BlockPos center.
+ *    Output: void.
+ * 25) {@code collectDetailedBlocksAt(...)}:
+ *    Purpose: Performs collect detailed blocks at.
+ *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
+ *    Output: List<DetailedEntry>.
+ * 26) {@code collectDetailedBlockEntitiesAt(...)}:
+ *    Purpose: Performs collect detailed block entities at.
+ *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
+ *    Output: List<DetailedEntry>.
+ * 27) {@code collectDetailedEntitiesAt(...)}:
+ *    Purpose: Performs collect detailed entities at.
+ *    Input: ServerLevel serverLevel, BlockPos center, int radiusBlocks.
+ *    Output: List<DetailedEntry>.
  */
 package com.example.examplemod;
 

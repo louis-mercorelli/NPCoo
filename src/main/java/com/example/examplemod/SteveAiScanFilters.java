@@ -5,12 +5,12 @@
  * Defines SteveAiScanFilters functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code SteveAiScanFilters(...)}:
+ *    Purpose: Constructs SteveAiScanFilters.
  *    Input: none.
- *    Output: SteveAiScanFilters() {}.
- * 2) {@code state)(...)}:
- *    Purpose: Implements state) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code isInterestingLookSeeBlock(...)}:
+ *    Purpose: Checks whether is interesting look see block.
  *    Input: BlockState state.
  *    Output: boolean.
  */

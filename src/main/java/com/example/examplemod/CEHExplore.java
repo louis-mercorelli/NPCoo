@@ -5,24 +5,24 @@
  * Defines CEHExplore functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHExplore(...)}:
+ *    Purpose: Constructs CEHExplore.
  *    Input: none.
- *    Output: CEHExplore() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleExplorePoi(...)}:
+ *    Purpose: Handles handle explore poi.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 3) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 3) {@code handleExploreStop(...)}:
+ *    Purpose: Handles handle explore stop.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 4) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 4) {@code handleExploreStatus(...)}:
+ *    Purpose: Handles handle explore status.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 5) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 5) {@code mapExplorePoiToPoiType(...)}:
+ *    Purpose: Maps map explore poi to poi type.
  *    Input: String poi.
  *    Output: String.
  */

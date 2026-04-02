@@ -5,12 +5,12 @@
  * Defines CEHDebug functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHDebug(...)}:
+ *    Purpose: Constructs CEHDebug.
  *    Input: none.
- *    Output: CEHDebug() {}.
- * 2) {@code enabled)(...)}:
- *    Purpose: Implements enabled) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleDebugScreenToggle(...)}:
+ *    Purpose: Handles handle debug screen toggle.
  *    Input: CommandContext<CommandSourceStack> context, boolean enabled.
  *    Output: int.
  */

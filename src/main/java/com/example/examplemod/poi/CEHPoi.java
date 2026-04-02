@@ -5,20 +5,20 @@
  * Defines CEHPoi functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHPoi(...)}:
+ *    Purpose: Constructs CEHPoi.
  *    Input: none.
- *    Output: CEHPoi() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handlePoiUpdate(...)}:
+ *    Purpose: Handles handle poi update.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 3) {@code limit)(...)}:
- *    Purpose: Implements limit) logic in this file.
+ * 3) {@code handlePoiConfirmCandidates(...)}:
+ *    Purpose: Handles handle poi confirm candidates.
  *    Input: CommandContext<CommandSourceStack> context, int limit.
  *    Output: int.
- * 4) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 4) {@code handlePoiReset(...)}:
+ *    Purpose: Handles handle poi reset.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

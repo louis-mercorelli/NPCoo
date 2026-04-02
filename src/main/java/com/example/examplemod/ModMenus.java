@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code createSteveAiMenuType(...)}:
- *    Purpose: Implements createSteveAiMenuType logic in this file.
+ *    Purpose: Creates create steve ai menu type.
  *    Input: none.
  *    Output: MenuType<SteveAiMenu>.
  * 2) {@code ModMenus(...)}:
- *    Purpose: Implements ModMenus logic in this file.
+ *    Purpose: Constructs ModMenus.
  *    Input: none.
  *    Output: none (constructor).
  */

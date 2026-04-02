@@ -5,32 +5,36 @@
  * Defines CEHWrite functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHWrite(...)}:
+ *    Purpose: Constructs CEHWrite.
  *    Input: none.
- *    Output: CEHWrite() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleWriteNow(...)}:
+ *    Purpose: Handles handle write now.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 3) {@code msg)(...)}:
- *    Purpose: Implements msg) logic in this file.
+ * 3) {@code writeSteveAiSummary(...)}:
+ *    Purpose: Writes write steve ai summary.
+ *    Input: ServerLevel serverLevel, UUID playerUuid, Entity steveAiEntity, java.util.List<String> poiSummaryLines.
+ *    Output: void.
+ * 4) {@code contextSendStatusToPlayer(...)}:
+ *    Purpose: Performs context send status to player.
  *    Input: UUID playerUuid, String msg.
  *    Output: void.
- * 4) {@code maxLines)(...)}:
- *    Purpose: Implements maxLines) logic in this file.
+ * 5) {@code logFileTail(...)}:
+ *    Purpose: Performs log file tail.
  *    Input: String logPrefix, Path file, int maxLines.
  *    Output: void.
- * 5) {@code title)(...)}:
- *    Purpose: Implements title) logic in this file.
+ * 6) {@code mapToText(...)}:
+ *    Purpose: Maps map to text.
  *    Input: java.util.Map<String, SteveAiCollectors.SeenSummary> map, String title.
  *    Output: String.
- * 6) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 7) {@code handleWriteT(...)}:
+ *    Purpose: Handles handle write t.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 7) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 8) {@code handleWriteTD(...)}:
+ *    Purpose: Handles handle write td.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

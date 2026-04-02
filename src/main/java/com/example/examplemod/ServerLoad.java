@@ -6,99 +6,99 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code ServerLoad(...)}:
- *    Purpose: Implements ServerLoad logic in this file.
+ *    Purpose: Constructs ServerLoad.
  *    Input: none.
  *    Output: none (constructor).
  * 2) {@code isWarmingUp(...)}:
- *    Purpose: Implements isWarmingUp logic in this file.
+ *    Purpose: Checks whether is warming up.
  *    Input: none.
  *    Output: boolean.
  * 3) {@code isHeartbeatLoggingEnabled(...)}:
- *    Purpose: Implements isHeartbeatLoggingEnabled logic in this file.
+ *    Purpose: Checks whether is heartbeat logging enabled.
  *    Input: none.
  *    Output: boolean.
- * 4) {@code enabled)(...)}:
- *    Purpose: Implements enabled) logic in this file.
+ * 4) {@code setHeartbeatLoggingEnabled(...)}:
+ *    Purpose: Sets set heartbeat logging enabled.
  *    Input: boolean enabled.
  *    Output: void.
  * 5) {@code getLoadEmaAlpha(...)}:
- *    Purpose: Implements getLoadEmaAlpha logic in this file.
+ *    Purpose: Returns get load ema alpha.
  *    Input: none.
  *    Output: double.
  * 6) {@code getIdleMaxMspt(...)}:
- *    Purpose: Implements getIdleMaxMspt logic in this file.
+ *    Purpose: Returns get idle max mspt.
  *    Input: none.
  *    Output: double.
  * 7) {@code getBusyMaxMspt(...)}:
- *    Purpose: Implements getBusyMaxMspt logic in this file.
+ *    Purpose: Returns get busy max mspt.
  *    Input: none.
  *    Output: double.
  * 8) {@code getBehindLagDebtMs(...)}:
- *    Purpose: Implements getBehindLagDebtMs logic in this file.
+ *    Purpose: Returns get behind lag debt ms.
  *    Input: none.
  *    Output: double.
- * 9) {@code emaAlpha)(...)}:
- *    Purpose: Implements emaAlpha) logic in this file.
+ * 9) {@code tune(...)}:
+ *    Purpose: Performs tune.
  *    Input: double idleMspt, double busyMspt, double behindDebtMs, double emaAlpha.
  *    Output: void.
  * 10) {@code resetTune(...)}:
- *    Purpose: Implements resetTune logic in this file.
+ *    Purpose: Resets reset tune.
  *    Input: none.
  *    Output: void.
  * 11) {@code onServerTickPre(...)}:
- *    Purpose: Implements onServerTickPre logic in this file.
+ *    Purpose: Performs on server tick pre.
  *    Input: none.
  *    Output: void.
- * 12) {@code server)(...)}:
- *    Purpose: Implements server) logic in this file.
+ * 12) {@code onServerTickPost(...)}:
+ *    Purpose: Performs on server tick post.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
- * 13) {@code includeTune)(...)}:
- *    Purpose: Implements includeTune) logic in this file.
+ * 13) {@code buildServerLoadMessage(...)}:
+ *    Purpose: Builds build server load message.
  *    Input: ServerLevel level, boolean includeTune.
  *    Output: String.
  * 14) {@code updateServerLoadMetrics(...)}:
- *    Purpose: Implements updateServerLoadMetrics logic in this file.
+ *    Purpose: Updates update server load metrics.
  *    Input: none.
  *    Output: void.
- * 15) {@code server)(...)}:
- *    Purpose: Implements server) logic in this file.
+ * 15) {@code maybeSendServerLoadStatus(...)}:
+ *    Purpose: Performs maybe send server load status.
  *    Input: net.minecraft.server.MinecraftServer server.
  *    Output: void.
- * 16) {@code currentLagDebtMs)(...)}:
- *    Purpose: Implements currentLagDebtMs) logic in this file.
+ * 16) {@code classifyServerLoadState(...)}:
+ *    Purpose: Classifies classify server load state.
  *    Input: double mspt, double currentLagDebtMs.
  *    Output: String.
- * 17) {@code state)(...)}:
- *    Purpose: Implements state) logic in this file.
+ * 17) {@code colorForServerLoadState(...)}:
+ *    Purpose: Performs color for server load state.
  *    Input: String state.
  *    Output: String.
- * 18) {@code behind)(...)}:
- *    Purpose: Implements behind) logic in this file.
+ * 18) {@code buildBehindPart(...)}:
+ *    Purpose: Builds build behind part.
  *    Input: double mspt, double currentLagDebtMs, boolean behind.
  *    Output: String.
- * 19) {@code state)(...)}:
- *    Purpose: Implements state) logic in this file.
+ * 19) {@code recordServerLoadState(...)}:
+ *    Purpose: Performs record server load state.
  *    Input: String state.
  *    Output: void.
  * 20) {@code buildServerLoadSummaryMessage(...)}:
- *    Purpose: Implements buildServerLoadSummaryMessage logic in this file.
+ *    Purpose: Builds build server load summary message.
  *    Input: none.
  *    Output: String.
- * 21) {@code windowSeconds)(...)}:
- *    Purpose: Implements windowSeconds) logic in this file.
+ * 21) {@code summarizeRecentServerLoadStates(...)}:
+ *    Purpose: Performs summarize recent server load states.
  *    Input: int windowSeconds.
  *    Output: String.
- * 22) {@code text)(...)}:
- *    Purpose: Implements text) logic in this file.
+ * 22) {@code stripMinecraftColorCodes(...)}:
+ *    Purpose: Performs strip minecraft color codes.
  *    Input: String text.
  *    Output: String.
- * 23) {@code state)(...)}:
- *    Purpose: Implements state) logic in this file.
+ * 23) {@code add(...)}:
+ *    Purpose: Performs add.
  *    Input: String state.
  *    Output: void.
- * 24) {@code windowSeconds)(...)}:
- *    Purpose: Implements windowSeconds) logic in this file.
+ * 24) {@code format(...)}:
+ *    Purpose: Performs format.
  *    Input: int windowSeconds.
  *    Output: String.
  */

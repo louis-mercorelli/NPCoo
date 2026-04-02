@@ -5,32 +5,32 @@
  * Defines InventoryService functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code villager)(...)}:
- *    Purpose: Implements villager) logic in this file.
+ * 1) {@code getInventorySummary(...)}:
+ *    Purpose: Returns get inventory summary.
  *    Input: Villager villager.
  *    Output: String.
- * 2) {@code itemName)(...)}:
- *    Purpose: Implements itemName) logic in this file.
+ * 2) {@code findItemByName(...)}:
+ *    Purpose: Finds find item by name.
  *    Input: String itemName.
  *    Output: Item.
- * 3) {@code toAdd)(...)}:
- *    Purpose: Implements toAdd) logic in this file.
+ * 3) {@code addItemToInventory(...)}:
+ *    Purpose: Adds add item to inventory.
  *    Input: Villager villager, ItemStack toAdd.
  *    Output: boolean.
- * 4) {@code count)(...)}:
- *    Purpose: Implements count) logic in this file.
+ * 4) {@code removeItemFromInventory(...)}:
+ *    Purpose: Removes remove item from inventory.
  *    Input: Villager villager, Item item, int count.
  *    Output: ItemStack.
- * 5) {@code stack)(...)}:
- *    Purpose: Implements stack) logic in this file.
+ * 5) {@code dropItem(...)}:
+ *    Purpose: Drops drop item.
  *    Input: ServerLevel serverLevel, Villager villager, ItemStack stack.
  *    Output: void.
- * 6) {@code count)(...)}:
- *    Purpose: Implements count) logic in this file.
+ * 6) {@code handleInvAdd(...)}:
+ *    Purpose: Handles handle inv add.
  *    Input: CommandContext<CommandSourceStack> context, int count.
  *    Output: int.
- * 7) {@code count)(...)}:
- *    Purpose: Implements count) logic in this file.
+ * 7) {@code handleInvDrop(...)}:
+ *    Purpose: Handles handle inv drop.
  *    Input: CommandContext<CommandSourceStack> context, int count.
  *    Output: int.
  */

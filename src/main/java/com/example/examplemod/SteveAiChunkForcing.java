@@ -5,16 +5,16 @@
  * Defines SteveAiChunkForcing functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code SteveAiChunkForcing(...)}:
+ *    Purpose: Constructs SteveAiChunkForcing.
  *    Input: none.
- *    Output: SteveAiChunkForcing() {}.
- * 2) {@code steveAiEntity)(...)}:
- *    Purpose: Implements steveAiEntity) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code updateForcedChunkForSteveAi(...)}:
+ *    Purpose: Updates update forced chunk for steve ai.
  *    Input: ServerLevel serverLevel, Entity steveAiEntity.
  *    Output: void.
- * 3) {@code serverLevel)(...)}:
- *    Purpose: Implements serverLevel) logic in this file.
+ * 3) {@code clearForcedSteveAiChunk(...)}:
+ *    Purpose: Clears clear forced steve ai chunk.
  *    Input: ServerLevel serverLevel.
  *    Output: void.
  */

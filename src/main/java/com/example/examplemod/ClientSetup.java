@@ -5,12 +5,12 @@
  * Defines ClientSetup functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 1) {@code onClientSetup(...)}:
+ *    Purpose: Performs on client setup.
  *    Input: FMLClientSetupEvent event.
  *    Output: void.
  * 2) {@code steveAiMenuType(...)}:
- *    Purpose: Implements steveAiMenuType logic in this file.
+ *    Purpose: Performs steve ai menu type.
  *    Input: none.
  *    Output: MenuType<MerchantMenu>.
  */

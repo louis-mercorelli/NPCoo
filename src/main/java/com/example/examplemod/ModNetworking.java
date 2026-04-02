@@ -6,7 +6,7 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code register(...)}:
- *    Purpose: Implements register logic in this file.
+ *    Purpose: Performs register.
  *    Input: none.
  *    Output: void.
  */

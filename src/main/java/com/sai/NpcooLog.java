@@ -6,11 +6,11 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code NpcooLog(...)}:
- *    Purpose: Implements NpcooLog logic in this file.
+ *    Purpose: Constructs NpcooLog.
  *    Input: none.
  *    Output: none (constructor).
- * 2) {@code message)(...)}:
- *    Purpose: Implements message) logic in this file.
+ * 2) {@code tag(...)}:
+ *    Purpose: Performs tag.
  *    Input: String message.
  *    Output: String.
  */

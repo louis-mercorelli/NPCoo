@@ -5,32 +5,32 @@
  * Defines CEHNavigationChunk functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHNavigationChunk(...)}:
+ *    Purpose: Constructs CEHNavigationChunk.
  *    Input: none.
- *    Output: CEHNavigationChunk() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleForceChunkOn(...)}:
+ *    Purpose: Handles handle force chunk on.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 3) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 3) {@code handleForceChunkOff(...)}:
+ *    Purpose: Handles handle force chunk off.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 4) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 4) {@code handleWhereRu(...)}:
+ *    Purpose: Handles handle where ru.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 5) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 5) {@code handleTele(...)}:
+ *    Purpose: Handles handle tele.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 6) {@code player)(...)}:
- *    Purpose: Implements player) logic in this file.
+ * 6) {@code findSafeTeleportPosNearPlayer(...)}:
+ *    Purpose: Finds find safe teleport pos near player.
  *    Input: ServerLevel serverLevel, ServerPlayer player.
  *    Output: BlockPos.
- * 7) {@code nearPos)(...)}:
- *    Purpose: Implements nearPos) logic in this file.
+ * 7) {@code findSafeStandingPos(...)}:
+ *    Purpose: Finds find safe standing pos.
  *    Input: ServerLevel serverLevel, BlockPos nearPos.
  *    Output: BlockPos.
  */

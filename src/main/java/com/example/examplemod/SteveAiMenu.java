@@ -5,12 +5,12 @@
  * Defines SteveAiMenu functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code playerInventory)(...)}:
- *    Purpose: Implements playerInventory) logic in this file.
+ * 1) {@code SteveAiMenu(...)}:
+ *    Purpose: Constructs SteveAiMenu.
  *    Input: int containerId, Inventory playerInventory.
- *    Output: SteveAiMenu(int containerId, Inventory playerInventory).
- * 2) {@code playerInventory)(...)}:
- *    Purpose: Implements playerInventory) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code createMerchant(...)}:
+ *    Purpose: Creates create merchant.
  *    Input: Inventory playerInventory.
  *    Output: ClientSideMerchant.
  */

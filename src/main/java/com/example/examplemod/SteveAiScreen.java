@@ -6,91 +6,91 @@
  *
  * Methods (what each does, with input/output):
  * 1) {@code label(...)}:
- *    Purpose: Implements label logic in this file.
+ *    Purpose: Performs label.
  *    Input: none.
  *    Output: String.
  * 2) {@code scrollChatToBottom(...)}:
- *    Purpose: Implements scrollChatToBottom logic in this file.
+ *    Purpose: Performs scroll chat to bottom.
  *    Input: none.
  *    Output: void.
- * 3) {@code title)(...)}:
- *    Purpose: Implements title) logic in this file.
+ * 3) {@code SteveAiScreen(...)}:
+ *    Purpose: Constructs SteveAiScreen.
  *    Input: SteveAiMenu menu, Inventory playerInventory, Component title.
- *    Output: SteveAiScreen(SteveAiMenu menu, Inventory playerInventory, Component title).
+ *    Output: none (constructor).
  * 4) {@code init(...)}:
- *    Purpose: Implements init logic in this file.
+ *    Purpose: Performs init.
  *    Input: none.
  *    Output: void.
- * 5) {@code partialTick)(...)}:
- *    Purpose: Implements partialTick) logic in this file.
+ * 5) {@code render(...)}:
+ *    Purpose: Performs render.
  *    Input: GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick.
  *    Output: void.
- * 6) {@code mouseY)(...)}:
- *    Purpose: Implements mouseY) logic in this file.
+ * 6) {@code renderLabels(...)}:
+ *    Purpose: Performs render labels.
  *    Input: GuiGraphics guiGraphics, int mouseX, int mouseY.
  *    Output: void.
- * 7) {@code guiGraphics)(...)}:
- *    Purpose: Implements guiGraphics) logic in this file.
+ * 7) {@code drawMainPanel(...)}:
+ *    Purpose: Performs draw main panel.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
- * 8) {@code guiGraphics)(...)}:
- *    Purpose: Implements guiGraphics) logic in this file.
+ * 8) {@code drawCustomLabels(...)}:
+ *    Purpose: Performs draw custom labels.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
- * 9) {@code guiGraphics)(...)}:
- *    Purpose: Implements guiGraphics) logic in this file.
+ * 9) {@code drawTabs(...)}:
+ *    Purpose: Performs draw tabs.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
- * 10) {@code tab)(...)}:
- *    Purpose: Implements tab) logic in this file.
+ * 10) {@code drawTab(...)}:
+ *    Purpose: Performs draw tab.
  *    Input: GuiGraphics guiGraphics, int x, int y, int width, Tab tab.
  *    Output: void.
- * 11) {@code guiGraphics)(...)}:
- *    Purpose: Implements guiGraphics) logic in this file.
+ * 11) {@code drawPlaceholderContent(...)}:
+ *    Purpose: Performs draw placeholder content.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
- * 12) {@code guiGraphics)(...)}:
- *    Purpose: Implements guiGraphics) logic in this file.
+ * 12) {@code drawChatTab(...)}:
+ *    Purpose: Performs draw chat tab.
  *    Input: GuiGraphics guiGraphics.
  *    Output: void.
- * 13) {@code color)(...)}:
- *    Purpose: Implements color) logic in this file.
+ * 13) {@code drawWrappedText(...)}:
+ *    Purpose: Performs draw wrapped text.
  *    Input: GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color.
  *    Output: void.
  * 14) {@code updateTabVisibility(...)}:
- *    Purpose: Implements updateTabVisibility logic in this file.
+ *    Purpose: Updates update tab visibility.
  *    Input: none.
  *    Output: void.
- * 15) {@code consumed)(...)}:
- *    Purpose: Implements consumed) logic in this file.
+ * 15) {@code mouseClicked(...)}:
+ *    Purpose: Performs mouse clicked.
  *    Input: MouseButtonEvent event, boolean consumed.
  *    Output: boolean.
- * 16) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 16) {@code keyPressed(...)}:
+ *    Purpose: Performs key pressed.
  *    Input: KeyEvent event.
  *    Output: boolean.
- * 17) {@code deltaY)(...)}:
- *    Purpose: Implements deltaY) logic in this file.
+ * 17) {@code mouseScrolled(...)}:
+ *    Purpose: Performs mouse scrolled.
  *    Input: double mouseX, double mouseY, double deltaX, double deltaY.
  *    Output: boolean.
  * 18) {@code onClose(...)}:
- *    Purpose: Implements onClose logic in this file.
+ *    Purpose: Performs on close.
  *    Input: none.
  *    Output: void.
- * 19) {@code reply)(...)}:
- *    Purpose: Implements reply) logic in this file.
+ * 19) {@code receiveServerReply(...)}:
+ *    Purpose: Performs receive server reply.
  *    Input: String prompt, String reply.
  *    Output: void.
  * 20) {@code removed(...)}:
- *    Purpose: Implements removed logic in this file.
+ *    Purpose: Performs removed.
  *    Input: none.
  *    Output: void.
- * 21) {@code event)(...)}:
- *    Purpose: Implements event) logic in this file.
+ * 21) {@code charTyped(...)}:
+ *    Purpose: Performs char typed.
  *    Input: CharacterEvent event.
  *    Output: boolean.
- * 22) {@code width)(...)}:
- *    Purpose: Implements width) logic in this file.
+ * 22) {@code isTabClicked(...)}:
+ *    Purpose: Checks whether is tab clicked.
  *    Input: double mouseX, double mouseY, int x, int y, int width.
  *    Output: boolean.
  */

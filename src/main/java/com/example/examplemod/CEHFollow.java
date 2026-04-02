@@ -5,24 +5,24 @@
  * Defines CEHFollow functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHFollow(...)}:
+ *    Purpose: Constructs CEHFollow.
  *    Input: none.
- *    Output: CEHFollow() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleFollowMe(...)}:
+ *    Purpose: Handles handle follow me.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 3) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 3) {@code handleFindMe(...)}:
+ *    Purpose: Handles handle find me.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 4) {@code speed)(...)}:
- *    Purpose: Implements speed) logic in this file.
+ * 4) {@code moveSteveAiTowardPlayer(...)}:
+ *    Purpose: Moves move steve ai toward player.
  *    Input: ServerLevel serverLevel, ServerPlayer player, double speed.
  *    Output: boolean.
- * 5) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 5) {@code handleStopFollow(...)}:
+ *    Purpose: Handles handle stop follow.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

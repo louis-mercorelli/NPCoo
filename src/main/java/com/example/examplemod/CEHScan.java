@@ -5,25 +5,37 @@
  * Defines CEHScan functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHScan(...)}:
+ *    Purpose: Constructs CEHScan.
  *    Input: none.
- *    Output: CEHScan() {}.
- * 2) {@code defaultChunkRadius)(...)}:
- *    Purpose: Implements defaultChunkRadius) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code parseScanSaiArgs(...)}:
+ *    Purpose: Parses parse scan sai args.
  *    Input: String tail, int defaultChunkRadius.
  *    Output: ParsedScanSaiArgs.
- * 3) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 3) {@code handleScanSaiArgs(...)}:
+ *    Purpose: Handles handle scan sai args.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 4) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 4) {@code handleScanSai(...)}:
+ *    Purpose: Handles handle scan sai.
+ *    Input: CommandContext<CommandSourceStack> context, String rawScanInput, int chunkRadius, boolean fastMode.
+ *    Output: int.
+ * 5) {@code handleScanStatus(...)}:
+ *    Purpose: Handles handle scan status.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 5) {@code radius)(...)}:
- *    Purpose: Implements radius) logic in this file.
+ * 6) {@code handleDirectCenteredScan(...)}:
+ *    Purpose: Handles handle direct centered scan.
+ *    Input: CommandContext<CommandSourceStack> context, String mode, BlockPos center, int chunkRadius, boolean forceLoad.
+ *    Output: int.
+ * 7) {@code handleDetailSaiAtSteve(...)}:
+ *    Purpose: Handles handle detail sai at steve.
  *    Input: CommandContext<CommandSourceStack> context, int radius.
+ *    Output: int.
+ * 8) {@code handleDetailSaiAtPos(...)}:
+ *    Purpose: Handles handle detail sai at pos.
+ *    Input: CommandContext<CommandSourceStack> context, BlockPos center, int radius.
  *    Output: int.
  */
 package com.example.examplemod;

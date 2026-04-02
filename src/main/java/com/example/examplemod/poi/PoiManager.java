@@ -5,168 +5,176 @@
  * Defines PoiManager functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code evidenceType)(...)}:
- *    Purpose: Implements evidenceType) logic in this file.
+ * 1) {@code Poi(...)}:
+ *    Purpose: Constructs Poi.
  *    Input: String type, BlockPos pos, String evidenceType.
- *    Output: Poi(String type, BlockPos pos, String evidenceType).
- * 2) {@code isBlockEvidence)(...)}:
- *    Purpose: Implements isBlockEvidence) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code Poi(...)}:
+ *    Purpose: Constructs Poi.
  *    Input: String type, BlockPos pos, String evidenceType, boolean isBlockEvidence.
- *    Output: Poi(String type, BlockPos pos, String evidenceType, boolean isBlockEvidence).
- * 3) {@code evidenceType)(...)}:
- *    Purpose: Implements evidenceType) logic in this file.
+ *    Output: none (constructor).
+ * 3) {@code add(...)}:
+ *    Purpose: Performs add.
  *    Input: BlockPos pos, String evidenceType.
  *    Output: boolean.
- * 4) {@code isBlockEvidence)(...)}:
- *    Purpose: Implements isBlockEvidence) logic in this file.
+ * 4) {@code add(...)}:
+ *    Purpose: Performs add.
  *    Input: BlockPos pos, String evidenceType, boolean isBlockEvidence.
  *    Output: boolean.
  * 5) {@code isConfirmed(...)}:
- *    Purpose: Implements isConfirmed logic in this file.
+ *    Purpose: Checks whether is confirmed.
  *    Input: none.
  *    Output: boolean.
- * 6) {@code other)(...)}:
- *    Purpose: Implements other) logic in this file.
+ * 6) {@code mergeFrom(...)}:
+ *    Purpose: Performs merge from.
  *    Input: Poi other.
  *    Output: void.
  * 7) {@code recomputeCenter(...)}:
- *    Purpose: Implements recomputeCenter logic in this file.
+ *    Purpose: Recomputes recompute center.
  *    Input: none.
  *    Output: void.
  * 8) {@code getBounds(...)}:
- *    Purpose: Implements getBounds logic in this file.
+ *    Purpose: Returns get bounds.
  *    Input: none.
  *    Output: int[].
- * 9) {@code scene)(...)}:
- *    Purpose: Implements scene) logic in this file.
+ * 9) {@code VillageAssignment(...)}:
+ *    Purpose: Constructs VillageAssignment.
  *    Input: String personality, String scene.
- *    Output: VillageAssignment(String personality, String scene).
- * 10) {@code pos)(...)}:
- *    Purpose: Implements pos) logic in this file.
+ *    Output: none (constructor).
+ * 10) {@code processBlockEntity(...)}:
+ *    Purpose: Processes process block entity.
  *    Input: String typeName, BlockPos pos.
  *    Output: boolean.
- * 11) {@code allowMerge)(...)}:
- *    Purpose: Implements allowMerge) logic in this file.
+ * 11) {@code processBlockEntity(...)}:
+ *    Purpose: Processes process block entity.
  *    Input: String typeName, BlockPos pos, boolean allowMerge.
  *    Output: boolean.
- * 12) {@code pos)(...)}:
- *    Purpose: Implements pos) logic in this file.
+ * 12) {@code processEntity(...)}:
+ *    Purpose: Processes process entity.
  *    Input: String typeName, BlockPos pos.
  *    Output: boolean.
- * 13) {@code allowMerge)(...)}:
- *    Purpose: Implements allowMerge) logic in this file.
+ * 13) {@code processEntity(...)}:
+ *    Purpose: Processes process entity.
  *    Input: String typeName, BlockPos pos, boolean allowMerge.
  *    Output: boolean.
- * 14) {@code pos)(...)}:
- *    Purpose: Implements pos) logic in this file.
+ * 14) {@code processBlock(...)}:
+ *    Purpose: Processes process block.
  *    Input: String typeName, BlockPos pos.
  *    Output: boolean.
- * 15) {@code allowMerge)(...)}:
- *    Purpose: Implements allowMerge) logic in this file.
+ * 15) {@code processBlock(...)}:
+ *    Purpose: Processes process block.
  *    Input: String typeName, BlockPos pos, boolean allowMerge.
  *    Output: boolean.
- * 16) {@code type)(...)}:
- *    Purpose: Implements type) logic in this file.
+ * 16) {@code ingestFastScanSummaries(...)}:
+ *    Purpose: Performs ingest fast scan summaries.
+ *    Input: Map<String, SteveAiCollectors.SeenSummary> scannedEntities, Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities.
+ *    Output: int.
+ * 17) {@code ingestScanSummaries(...)}:
+ *    Purpose: Performs ingest scan summaries.
+ *    Input: Map<String, SteveAiCollectors.SeenSummary> scannedBlocks, Map<String, SteveAiCollectors.SeenSummary> scannedEntities, Map<String, SteveAiCollectors.SeenSummary> scannedBlockEntities.
+ *    Output: int.
+ * 18) {@code normalizeEvidence(...)}:
+ *    Purpose: Normalizes normalize evidence.
  *    Input: String type.
  *    Output: String.
- * 17) {@code type)(...)}:
- *    Purpose: Implements type) logic in this file.
+ * 19) {@code mapToPoi(...)}:
+ *    Purpose: Maps map to poi.
  *    Input: String type.
  *    Output: String.
- * 18) {@code evidence)(...)}:
- *    Purpose: Implements evidence) logic in this file.
+ * 20) {@code getMergeDistance(...)}:
+ *    Purpose: Returns get merge distance.
  *    Input: String poiType, String evidence.
  *    Output: int.
- * 19) {@code allowMerge)(...)}:
- *    Purpose: Implements allowMerge) logic in this file.
+ * 21) {@code addOrMerge(...)}:
+ *    Purpose: Adds add or merge.
  *    Input: String type, BlockPos pos, String evidence, boolean isBlockEvidence, boolean allowMerge.
  *    Output: boolean.
- * 20) {@code consolidateStage2Duplicates(...)}:
- *    Purpose: Implements consolidateStage2Duplicates logic in this file.
+ * 22) {@code consolidateStage2Duplicates(...)}:
+ *    Purpose: Performs consolidate stage2 duplicates.
  *    Input: none.
  *    Output: int.
- * 21) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 23) {@code getPoiMergeDistance(...)}:
+ *    Purpose: Returns get poi merge distance.
  *    Input: Poi poi.
  *    Output: int.
- * 22) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 24) {@code hasAnyVillageWorkstation(...)}:
+ *    Purpose: Checks whether has any village workstation.
  *    Input: Poi poi.
  *    Output: boolean.
- * 23) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 25) {@code hasTrialChamberCore(...)}:
+ *    Purpose: Checks whether has trial chamber core.
  *    Input: Poi poi.
  *    Output: boolean.
- * 24) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 26) {@code hasTrialChamberSupport(...)}:
+ *    Purpose: Checks whether has trial chamber support.
  *    Input: Poi poi.
  *    Output: boolean.
- * 25) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 27) {@code isUndergroundLike(...)}:
+ *    Purpose: Checks whether is underground like.
  *    Input: Poi poi.
  *    Output: boolean.
- * 26) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 28) {@code isLikelyInWater(...)}:
+ *    Purpose: Checks whether is likely in water.
  *    Input: Poi poi.
  *    Output: boolean.
- * 27) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 29) {@code classifyPoiType(...)}:
+ *    Purpose: Classifies classify poi type.
  *    Input: Poi poi.
  *    Output: String.
- * 28) {@code buildSummaryLines(...)}:
- *    Purpose: Implements buildSummaryLines logic in this file.
+ * 30) {@code buildSummaryLines(...)}:
+ *    Purpose: Builds build summary lines.
  *    Input: none.
  *    Output: List<String>.
- * 29) {@code center)(...)}:
- *    Purpose: Implements center) logic in this file.
+ * 31) {@code personalityKey(...)}:
+ *    Purpose: Performs personality key.
  *    Input: BlockPos center.
  *    Output: String.
- * 30) {@code poi)(...)}:
- *    Purpose: Implements poi) logic in this file.
+ * 32) {@code getOrAssignVillageAssignment(...)}:
+ *    Purpose: Returns get or assign village assignment.
  *    Input: Poi poi.
  *    Output: VillageAssignment.
- * 31) {@code choosePersonality(...)}:
- *    Purpose: Implements choosePersonality logic in this file.
+ * 33) {@code choosePersonality(...)}:
+ *    Purpose: Chooses choose personality.
  *    Input: none.
  *    Output: String.
- * 32) {@code personality)(...)}:
- *    Purpose: Implements personality) logic in this file.
+ * 34) {@code chooseSceneForPersonality(...)}:
+ *    Purpose: Chooses choose scene for personality.
  *    Input: String personality.
  *    Output: String.
- * 33) {@code personality)(...)}:
- *    Purpose: Implements personality) logic in this file.
+ * 35) {@code getPersonalityCharacters(...)}:
+ *    Purpose: Returns get personality characters.
  *    Input: String personality.
  *    Output: String.
- * 34) {@code file)(...)}:
- *    Purpose: Implements file) logic in this file.
+ * 36) {@code loadPersonalitiesFromFile(...)}:
+ *    Purpose: Loads load personalities from file.
  *    Input: Path file.
  *    Output: void.
- * 35) {@code file)(...)}:
- *    Purpose: Implements file) logic in this file.
+ * 37) {@code savePersonalitiesToFile(...)}:
+ *    Purpose: Saves save personalities to file.
  *    Input: Path file.
  *    Output: void.
- * 36) {@code finalType)(...)}:
- *    Purpose: Implements finalType) logic in this file.
+ * 38) {@code getConfidence(...)}:
+ *    Purpose: Returns get confidence.
  *    Input: Poi poi, String finalType.
  *    Output: String.
- * 37) {@code clear(...)}:
- *    Purpose: Implements clear logic in this file.
+ * 39) {@code clear(...)}:
+ *    Purpose: Performs clear.
  *    Input: none.
  *    Output: void.
- * 38) {@code getPoiCount(...)}:
- *    Purpose: Implements getPoiCount logic in this file.
+ * 40) {@code getPoiCount(...)}:
+ *    Purpose: Returns get poi count.
  *    Input: none.
  *    Output: int.
- * 39) {@code maxCount)(...)}:
- *    Purpose: Implements maxCount) logic in this file.
+ * 41) {@code getCandidateCenters(...)}:
+ *    Purpose: Returns get candidate centers.
  *    Input: int maxCount.
  *    Output: List<BlockPos>.
- * 40) {@code fromPos)(...)}:
- *    Purpose: Implements fromPos) logic in this file.
+ * 42) {@code findNearestPoiCenter(...)}:
+ *    Purpose: Finds find nearest poi center.
  *    Input: String type, BlockPos fromPos.
  *    Output: BlockPos.
- * 41) {@code fromPos)(...)}:
- *    Purpose: Implements fromPos) logic in this file.
+ * 43) {@code findNearestVillageForExplore(...)}:
+ *    Purpose: Finds find nearest village for explore.
  *    Input: BlockPos fromPos.
  *    Output: BlockPos.
  */

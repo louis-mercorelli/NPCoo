@@ -5,28 +5,28 @@
  * Defines CEHServerLoad functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
+ * 1) {@code CEHServerLoad(...)}:
+ *    Purpose: Constructs CEHServerLoad.
  *    Input: none.
- *    Output: CEHServerLoad() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code handleServerLoadStatus(...)}:
+ *    Purpose: Handles handle server load status.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 3) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 3) {@code handleServerLoadTune(...)}:
+ *    Purpose: Handles handle server load tune.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 4) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 4) {@code handleServerLoadStreamStatus(...)}:
+ *    Purpose: Handles handle server load stream status.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
- * 5) {@code enabled)(...)}:
- *    Purpose: Implements enabled) logic in this file.
+ * 5) {@code handleServerLoadStreamToggle(...)}:
+ *    Purpose: Handles handle server load stream toggle.
  *    Input: CommandContext<CommandSourceStack> context, boolean enabled.
  *    Output: int.
- * 6) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 6) {@code handleServerLoadReset(...)}:
+ *    Purpose: Handles handle server load reset.
  *    Input: CommandContext<CommandSourceStack> context.
  *    Output: int.
  */

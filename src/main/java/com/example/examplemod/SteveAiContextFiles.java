@@ -5,30 +5,46 @@
  * Defines SteveAiContextFiles functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code tailLines)(...)}:
- *    Purpose: Implements tailLines) logic in this file.
+ * 1) {@code getSteveAiDataDir(...)}:
+ *    Purpose: Returns get steve ai data dir.
+ *    Input: ServerLevel serverLevel.
+ *    Output: Path.
+ * 2) {@code buildChatContext(...)}:
+ *    Purpose: Builds build chat context.
  *    Input: ServerLevel serverLevel, UUID playerUuid, int tailLines.
  *    Output: String.
- * 2) {@code line)(...)}:
- *    Purpose: Implements line) logic in this file.
+ * 3) {@code appendChatLine(...)}:
+ *    Purpose: Appends append chat line.
  *    Input: ServerLevel serverLevel, UUID playerUuid, String line.
  *    Output: void.
- * 3) {@code buildLivePoiSummaryText(...)}:
- *    Purpose: Implements buildLivePoiSummaryText logic in this file.
+ * 4) {@code readWholeFile(...)}:
+ *    Purpose: Reads read whole file.
+ *    Input: Path file.
+ *    Output: String.
+ * 5) {@code buildLivePoiSummaryText(...)}:
+ *    Purpose: Builds build live poi summary text.
  *    Input: none.
  *    Output: String.
- * 4) {@code playerUuid)(...)}:
- *    Purpose: Implements playerUuid) logic in this file.
+ * 6) {@code startChatSession(...)}:
+ *    Purpose: Starts start chat session.
  *    Input: ServerLevel serverLevel, UUID playerUuid.
  *    Output: void.
- * 5) {@code playerUuid)(...)}:
- *    Purpose: Implements playerUuid) logic in this file.
+ * 7) {@code endChatSession(...)}:
+ *    Purpose: Performs end chat session.
  *    Input: UUID playerUuid.
  *    Output: void.
- * 6) {@code maxLines)(...)}:
- *    Purpose: Implements maxLines) logic in this file.
+ * 8) {@code findLatestMatchingFile(...)}:
+ *    Purpose: Finds find latest matching file.
+ *    Input: Path dir, String globPattern.
+ *    Output: Path.
+ * 9) {@code logFileTail(...)}:
+ *    Purpose: Performs log file tail.
  *    Input: String logPrefix, Path file, int maxLines.
  *    Output: void.
+ * 10) {@code readLastNLines(...)}:
+ *    Purpose: Reads read last nlines.
+ *    Input: Path file, int maxLines.
+ *    Output: String.
  */
 package com.example.examplemod;
 

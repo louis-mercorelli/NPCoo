@@ -5,20 +5,20 @@
  * Defines SteveAiChatRequestPacket functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code message)(...)}:
- *    Purpose: Implements message) logic in this file.
+ * 1) {@code SteveAiChatRequestPacket(...)}:
+ *    Purpose: Constructs SteveAiChatRequestPacket.
  *    Input: String message.
- *    Output: SteveAiChatRequestPacket(String message).
- * 2) {@code buf)(...)}:
- *    Purpose: Implements buf) logic in this file.
+ *    Output: none (constructor).
+ * 2) {@code encode(...)}:
+ *    Purpose: Performs encode.
  *    Input: SteveAiChatRequestPacket pkt, FriendlyByteBuf buf.
  *    Output: void.
- * 3) {@code buf)(...)}:
- *    Purpose: Implements buf) logic in this file.
+ * 3) {@code decode(...)}:
+ *    Purpose: Performs decode.
  *    Input: FriendlyByteBuf buf.
  *    Output: SteveAiChatRequestPacket.
- * 4) {@code ctx)(...)}:
- *    Purpose: Implements ctx) logic in this file.
+ * 4) {@code handle(...)}:
+ *    Purpose: Performs handle.
  *    Input: SteveAiChatRequestPacket pkt, CustomPayloadEvent.Context ctx.
  *    Output: void.
  */

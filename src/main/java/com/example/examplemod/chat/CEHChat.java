@@ -5,30 +5,27 @@
  * Defines CEHChat functionality for the NPCoo mod codebase.
  *
  * Methods (what each does, with input/output):
- * 1) {@code {}(...)}:
- *    Purpose: Implements {} logic in this file.
- *    Input: none.
- *    Output: CEHChat() {}.
- * 2) {@code context)(...)}:
- *    Purpose: Implements context) logic in this file.
+ * 1) {@code handleSteveAiChat(...)}:
+ *    Purpose: Handles chat commands directed to Steve AI.
  *    Input: CommandContext<CommandSourceStack> context.
- *    Output: int.
- * 3) {@code line)(...)}:
- *    Purpose: Implements line) logic in this file.
+ *    Output: int.  
+ * 2) {@code appendSteveAiChatLine(...)}:
+ *    Purpose: Appends a chat line to the player's Steve AI chat log file.
  *    Input: ServerLevel serverLevel, UUID playerUuid, String line.
  *    Output: void.
- * 4) {@code chatTs(...)}:
- *    Purpose: Implements chatTs logic in this file.
+ * 3) {@code chatTs(...)}:
+ *    Purpose: Generates a timestamp string for chat log entries.
  *    Input: none.
  *    Output: String.
- * 5) {@code s)(...)}:
- *    Purpose: Implements s) logic in this file.
+ * 4) {@code oneLine(...)}:
+ *    Purpose: Normalizes text into a single line by removing newlines and trimming.
  *    Input: String s.
  *    Output: String.
- * 6) {@code message)(...)}:
- *    Purpose: Implements message) logic in this file.
+ * 5) {@code askSteveAi(...)}:
+ *    Purpose: Builds context, calls OpenAI, stores transcript lines, and returns reply text.
  *    Input: ServerLevel serverLevel, UUID playerUuid, String message.
  *    Output: String.
+  
  */
 package com.example.examplemod.chat;
 
