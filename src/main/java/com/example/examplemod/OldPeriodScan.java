@@ -1,5 +1,6 @@
 package com.example.examplemod;
 
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -17,6 +18,32 @@ import net.minecraft.world.entity.Entity;
 class OldPeriodScan {
 
     private OldPeriodScan() {}
+
+    private static void sendLookSeeSection(
+        CommandSourceStack source,
+        String sectionTitle,
+        java.util.Map<String, SteveAiCollectors.SeenSummary> grouped,
+        String kind
+    ) {
+        if (grouped == null || grouped.isEmpty()) {
+            source.sendSuccess(() -> Component.literal(sectionTitle + ": none"), false);
+            return;
+        }
+        source.sendSuccess(() -> Component.literal(sectionTitle + ":"), false);
+        int shown = 0;
+        for (var entry : grouped.entrySet()) {
+            if (shown >= 12) {
+                int remaining = grouped.size() - shown;
+                source.sendSuccess(() -> Component.literal("... +" + remaining + " more"), false);
+                break;
+            }
+            String name = entry.getKey();
+            SteveAiCollectors.SeenSummary s = entry.getValue();
+            String line = String.format(" - %s=%s firstLoc=(%d,%d,%d) cnt=%d", kind, name, s.x, s.y, s.z, s.count);
+            source.sendSuccess(() -> Component.literal(line), false);
+            shown++;
+        }
+    }
 
     static void forceStartPeriodicScanNow(net.minecraft.server.MinecraftServer server) {
         if (server == null || server.overworld() == null) {
