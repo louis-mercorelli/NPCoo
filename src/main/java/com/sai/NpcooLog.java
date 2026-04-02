@@ -1,4 +1,4 @@
-package com.example.examplemod;
+package com.sai;
 
 public final class NpcooLog {
     private static final String PREFIX = "[NPCoo] ";

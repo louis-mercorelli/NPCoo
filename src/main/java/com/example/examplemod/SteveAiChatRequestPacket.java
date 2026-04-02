@@ -32,7 +32,7 @@ public class SteveAiChatRequestPacket {
             String reply;
 
             try {
-                reply = CommandEvents.askSteveAi(serverLevel, player.getUUID(), pkt.message);
+                reply = CommandHandler.askSteveAi(serverLevel, player.getUUID(), pkt.message);
             } catch (Exception e) {
                 reply = "Something went wrong.";
             }

@@ -14,18 +14,18 @@ public final class ModMenus {
     public static final DeferredRegister<MenuType<?>> 
         MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, ExampleMod.MODID);
         static {
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("ModMenus ### class initialized"));
+            LOGGER.info(com.sai.NpcooLog.tag("ModMenus ### class initialized"));
         }
     
     public static final RegistryObject<MenuType<SteveAiMenu>> 
         STEVE_AI_MENU = MENUS.register("steve_ai_menu",
                     ModMenus::createSteveAiMenuType);
         static {
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("ModMenus ###steve_ai_menu registered"));
+            LOGGER.info(com.sai.NpcooLog.tag("ModMenus ###steve_ai_menu registered"));
         }
 
     private static MenuType<SteveAiMenu> createSteveAiMenuType() {
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("ModMenus ### SteveAiMenu setting up "));
+        LOGGER.info(com.sai.NpcooLog.tag("ModMenus ### SteveAiMenu setting up "));
         return new MenuType<>(SteveAiMenu::new, FeatureFlags.DEFAULT_FLAGS);
     }
 

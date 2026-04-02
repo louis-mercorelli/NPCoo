@@ -18,10 +18,10 @@ public class ClientSetup {
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("### HELLO ClientSetup onClientSetup fired ###"));
+        LOGGER.info(com.sai.NpcooLog.tag("### HELLO ClientSetup onClientSetup fired ###"));
 
         event.enqueueWork(() -> {
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("### HELLO Registering SteveAiScreen ###"));
+            LOGGER.info(com.sai.NpcooLog.tag("### HELLO Registering SteveAiScreen ###"));
 
             MenuScreens.register(
                 (MenuType) steveAiMenuType(),
@@ -33,7 +33,7 @@ public class ClientSetup {
     }
 
     private static MenuType<MerchantMenu> steveAiMenuType() {
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("### HELLO ClientSetup MenuType<MerchantMenu> fired ###"));
+        LOGGER.info(com.sai.NpcooLog.tag("### HELLO ClientSetup MenuType<MerchantMenu> fired ###"));
         return (MenuType<MerchantMenu>) (MenuType<?>) ModMenus.STEVE_AI_MENU.get();
     }
 }

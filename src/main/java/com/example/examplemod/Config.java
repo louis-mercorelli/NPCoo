@@ -47,17 +47,17 @@ public class Config {
     public static Set<Item> items;
 
     private static boolean validateItemName(final Object obj) {
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("Config.validateItemName START"));
+        LOGGER.info(com.sai.NpcooLog.tag("Config.validateItemName START"));
         try {
             return obj instanceof final String itemName && ForgeRegistries.ITEMS.containsKey(Identifier.tryParse(itemName));
         } finally {
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("Config.validateItemName FINISH value={}"), obj);
+            LOGGER.info(com.sai.NpcooLog.tag("Config.validateItemName FINISH value={}"), obj);
         }
   }
 
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("Config.onLoad START"));
+        LOGGER.info(com.sai.NpcooLog.tag("Config.onLoad START"));
         try {
                 logDirtBlock = LOG_DIRT_BLOCK.get();
                 magicNumber = MAGIC_NUMBER.get();
@@ -68,21 +68,21 @@ public class Config {
                         .map(itemName -> ForgeRegistries.ITEMS.getValue(Identifier.tryParse(itemName)))
                         .collect(Collectors.toSet());
                 
-                LOGGER.info(com.example.examplemod.NpcooLog.tag("Config loaded: logDirtBlock={}, magicNumber={}, itemCount={}"),
+                LOGGER.info(com.sai.NpcooLog.tag("Config loaded: logDirtBlock={}, magicNumber={}, itemCount={}"),
                     logDirtBlock, magicNumber, items.size());
         } finally {
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("Config.onLoad FINISH"));
+            LOGGER.info(com.sai.NpcooLog.tag("Config.onLoad FINISH"));
         }
     }
 
      @SubscribeEvent
      static void onReload(final ModConfigEvent.Reloading event) {
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("Config.onReload START"));
+        LOGGER.info(com.sai.NpcooLog.tag("Config.onReload START"));
         try {
             // You could add code here to do something when the config is reloaded, such as clearing caches or updating values in other classes
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("Config reloaded"));
+            LOGGER.info(com.sai.NpcooLog.tag("Config reloaded"));
         } finally {
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("Config.onReload FINISH"));
+            LOGGER.info(com.sai.NpcooLog.tag("Config.onReload FINISH"));
         }
      }
 }

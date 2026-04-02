@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 @Mod(ExampleMod.MODID)
 public final class ExampleMod {
     //private static final Logger LOGGER = LogUtils.getLogger();
-    // LOGGER.info(com.example.examplemod.NpcooLog.tag("ExampleMod.java START"));
+    // LOGGER.info(com.sai.NpcooLog.tag("ExampleMod.java START"));
     // Define mod id in a common place for everything to reference
     public static final String MODID = "examplemod";
     // Directly reference a slf4j logger
@@ -74,7 +74,7 @@ public final class ExampleMod {
 
     public ExampleMod(FMLJavaModLoadingContext context) {
         var modBusGroup = context.getModBusGroup();
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("HELLO FROM exampleMod and busGroup START"));
+        LOGGER.info(com.sai.NpcooLog.tag("HELLO FROM exampleMod and busGroup START"));
         // Register menu types for this mod.
         ModMenus.MENUS.register(modBusGroup);
 
@@ -90,19 +90,19 @@ public final class ExampleMod {
 
         // Register our mod's ForgeConfigSpec so that Forge can create and load the config file for us
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("HELLO FROM exampleMod and busGroup FINISH"));
+        LOGGER.info(com.sai.NpcooLog.tag("HELLO FROM exampleMod and busGroup FINISH"));
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         // Some common setup code
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("HELLO FROM COMMON SETUP"));
+        LOGGER.info(com.sai.NpcooLog.tag("HELLO FROM COMMON SETUP"));
         event.enqueueWork(ModNetworking::register);
         
         if (Config.logDirtBlock)
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("DIRT BLOCK >> {}"), ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
+            LOGGER.info(com.sai.NpcooLog.tag("DIRT BLOCK >> {}"), ForgeRegistries.BLOCKS.getKey(Blocks.DIRT));
 
         LOGGER.info(Config.magicNumberIntroduction + Config.magicNumber);
-        Config.items.forEach((item) -> LOGGER.info(com.example.examplemod.NpcooLog.tag("ITEM >> {}"), item.toString()));
+        Config.items.forEach((item) -> LOGGER.info(com.sai.NpcooLog.tag("ITEM >> {}"), item.toString()));
     }
 
     // Add the example block item to the building blocks tab

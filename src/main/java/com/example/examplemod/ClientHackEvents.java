@@ -46,7 +46,7 @@ public class ClientHackEvents {
         // fire once per click, not continuously while held down
         if (shiftRightClickDown && !wasShiftRightClickDown) {
             //if (isLookingAtSteveAi(mc)) {
-                LOGGER.info(com.example.examplemod.NpcooLog.tag("### ClientHackEvents opening SteveAiScreen from SHIFT-right-click ###"));
+                LOGGER.info(com.sai.NpcooLog.tag("### ClientHackEvents opening SteveAiScreen from SHIFT-right-click ###"));
 
                 markHintSeen(mc);
 
@@ -94,7 +94,7 @@ public class ClientHackEvents {
                 java.nio.file.StandardOpenOption.WRITE
             );
         } catch (Exception ex) {
-            LOGGER.warn(com.example.examplemod.NpcooLog.tag("Failed to persist SteveAI chat hint state"), ex);
+            LOGGER.warn(com.sai.NpcooLog.tag("Failed to persist SteveAI chat hint state"), ex);
         }
     }
 
@@ -107,7 +107,7 @@ public class ClientHackEvents {
             java.nio.file.Path hintFile = getHintFile(mc);
             return hintFile != null && java.nio.file.Files.exists(hintFile);
         } catch (Exception ex) {
-            LOGGER.warn(com.example.examplemod.NpcooLog.tag("Failed checking SteveAI chat hint state"), ex);
+            LOGGER.warn(com.sai.NpcooLog.tag("Failed checking SteveAI chat hint state"), ex);
             return false;
         }
     }
@@ -121,7 +121,7 @@ public class ClientHackEvents {
             try {
                 return mc.getSingleplayerServer().getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize().toString();
             } catch (Exception ex) {
-                LOGGER.warn(com.example.examplemod.NpcooLog.tag("Failed to compute world hint key"), ex);
+                LOGGER.warn(com.sai.NpcooLog.tag("Failed to compute world hint key"), ex);
             }
         }
 

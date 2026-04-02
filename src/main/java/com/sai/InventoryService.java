@@ -1,9 +1,8 @@
 package com.sai;
 
-import com.example.examplemod.CommandEvents;
+import com.example.examplemod.SteveAiLocator;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.logging.LogUtils;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -66,7 +65,7 @@ public class InventoryService {
 
                 if (slot.isEmpty()) {
                     inv.setItem(i, toAdd.copy());
-                    LOGGER.info(com.example.examplemod.NpcooLog.tag("Added {} x{} to SteveAI inventory slot {}"),
+                    LOGGER.info(com.sai.NpcooLog.tag("Added {} x{} to SteveAI inventory slot {}"),
                         toAdd.getItem(), toAdd.getCount(), i);
                     return true;
                 }
@@ -78,7 +77,7 @@ public class InventoryService {
                     slot.grow(move);
                     toAdd.shrink(move);
 
-                    LOGGER.info(com.example.examplemod.NpcooLog.tag("Stacked {} of {} into SteveAI inventory slot {}"),
+                    LOGGER.info(com.sai.NpcooLog.tag("Stacked {} of {} into SteveAI inventory slot {}"),
                         move, slot.getItem(), i);
 
                     if (toAdd.isEmpty()) {
@@ -87,11 +86,11 @@ public class InventoryService {
                 }
             }
 
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI inventory full; could not add {}"), toAdd.getItem());
+            LOGGER.info(com.sai.NpcooLog.tag("SteveAI inventory full; could not add {}"), toAdd.getItem());
             return false;
 
         } catch (Exception e) {
-            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed adding item to SteveAI inventory"), e);
+            LOGGER.error(com.sai.NpcooLog.tag("Failed adding item to SteveAI inventory"), e);
             return false;
         }
     }
@@ -136,7 +135,7 @@ public class InventoryService {
             return removedTotal.isEmpty() ? ItemStack.EMPTY : removedTotal;
 
         } catch (Exception e) {
-            LOGGER.error(com.example.examplemod.NpcooLog.tag("Failed removing item from SteveAI inventory"), e);
+            LOGGER.error(com.sai.NpcooLog.tag("Failed removing item from SteveAI inventory"), e);
             return ItemStack.EMPTY;
         }
     }
@@ -172,7 +171,7 @@ public class InventoryService {
             return 0;
         }
 
-        Villager steveAi = CommandEvents.findSteveAi(serverLevel);
+        Villager steveAi = SteveAiLocator.findSteveAi(serverLevel);
         if (steveAi == null) {
             source.sendFailure(Component.literal("SteveAI not found."));
             return 0;
@@ -195,7 +194,7 @@ public class InventoryService {
                 () -> Component.literal("Added " + count + " " + displayName + " to SteveAI. " + summary),
                 false
             );
-            LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI invAdd -> {} x{} ; {}"), itemName, count, summary);
+            LOGGER.info(com.sai.NpcooLog.tag("SteveAI invAdd -> {} x{} ; {}"), itemName, count, summary);
             return 1;
         } else {
             source.sendFailure(Component.literal("SteveAI inventory full."));
@@ -211,7 +210,7 @@ public class InventoryService {
             return 0;
         }
 
-        Villager steveAi = CommandEvents.findSteveAi(serverLevel);
+        Villager steveAi = SteveAiLocator.findSteveAi(serverLevel);
         if (steveAi == null) {
             source.sendFailure(Component.literal("SteveAI not found."));
             return 0;
@@ -243,7 +242,7 @@ public class InventoryService {
             false
         );
 
-        LOGGER.info(com.example.examplemod.NpcooLog.tag("SteveAI invDrop -> item={} requested={} dropped={} ; {}"),
+        LOGGER.info(com.sai.NpcooLog.tag("SteveAI invDrop -> item={} requested={} dropped={} ; {}"),
             itemName, count, removed.getCount(), summary);
 
         return 1;
