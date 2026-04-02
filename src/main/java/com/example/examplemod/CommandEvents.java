@@ -110,10 +110,14 @@ public class CommandEvents {
     private static int periodicScanCycleCount = 0;
     private static final double SERVER_TICK_BUDGET_MS = 50.0;
     private static final double LOAD_EMA_ALPHA_DEFAULT = 0.08;
-    private static final double IDLE_MAX_MSPT_DEFAULT = 7.5;
-    private static final double BUSY_MAX_MSPT_DEFAULT = 40.0;
-    private static final double BEHIND_LAG_DEBT_MS_DEFAULT = 150.0;
-    private static final long SERVER_LOAD_NOTIFY_INTERVAL_TICKS = 1200L;
+    private static final double IDLE_MAX_MSPT_DEFAULT = 12.0;
+    private static final double BUSY_MAX_MSPT_DEFAULT = 20.0;
+    private static final double BEHIND_LAG_DEBT_MS_DEFAULT = 100.0;
+    private static final double BEHIND_LOAD_MULTIPLIER = 1.5;
+    private static final long SERVER_LOAD_SAMPLE_INTERVAL_TICKS = 20L;
+    private static final long SERVER_LOAD_SUMMARY_INTERVAL_TICKS = 1200L;
+    private static final int SERVER_LOAD_HISTORY_MAX_SAMPLES = 60;
+    private static final int[] SERVER_LOAD_SUMMARY_WINDOWS = {60, 30, 20, 10};
     private static double loadEmaAlpha = LOAD_EMA_ALPHA_DEFAULT;
     private static double idleMaxMspt = IDLE_MAX_MSPT_DEFAULT;
     private static double busyMaxMspt = BUSY_MAX_MSPT_DEFAULT;
@@ -123,7 +127,9 @@ public class CommandEvents {
     private static long measuredTickSamples = 0L;
     private static double rollingMspt = 0.0;
     private static double lagDebtMs = 0.0;
-    private static long nextServerLoadNotifyGameTime = 0L;
+    private static long nextServerLoadSampleGameTime = 0L;
+    private static long nextServerLoadSummaryGameTime = 0L;
+    private static final Deque<String> recentServerLoadStates = new ArrayDeque<>();
 
     private enum PeriodicScanPhase {
         LOCATION_AND_WORLD,
@@ -131,6 +137,36 @@ public class CommandEvents {
         BLOCKS,
         BLOCK_ENTITIES,
         SUMMARY
+    }
+
+    private static final class ServerLoadWindowCounts {
+        private int idle;
+        private int busy;
+        private int veryBusy;
+        private int behind;
+
+        private void add(String state) {
+            switch (state) {
+                case "IDLE" -> idle++;
+                case "BUSY" -> busy++;
+                case "VERY_BUSY" -> veryBusy++;
+                case "BEHIND" -> behind++;
+                default -> {
+                }
+            }
+        }
+
+        private String format(int windowSeconds) {
+            return String.format(
+                Locale.ROOT,
+                "%ds(IDLE=%d BUSY=%d VERY_BUSY=%d BEHIND=%d)",
+                windowSeconds,
+                idle,
+                busy,
+                veryBusy,
+                behind
+            );
+        }
     }
 
     private static final class PeriodicScanJob {
@@ -935,13 +971,27 @@ public class CommandEvents {
         }
 
         long now = level.getGameTime();
-        if (now < nextServerLoadNotifyGameTime) {
-            return;
+        if (nextServerLoadSampleGameTime == 0L) {
+            nextServerLoadSampleGameTime = now;
         }
-        nextServerLoadNotifyGameTime = now + SERVER_LOAD_NOTIFY_INTERVAL_TICKS;
+        if (nextServerLoadSummaryGameTime == 0L) {
+            nextServerLoadSummaryGameTime = now + SERVER_LOAD_SUMMARY_INTERVAL_TICKS;
+        }
 
-        String heartbeat = buildServerLoadMessage(level, false);
-        LOGGER.info(com.example.examplemod.NpcooLog.tag(stripMinecraftColorCodes(heartbeat)));
+        if (now >= nextServerLoadSampleGameTime) {
+            nextServerLoadSampleGameTime = now + SERVER_LOAD_SAMPLE_INTERVAL_TICKS;
+
+            String state = classifyServerLoadState(rollingMspt, lagDebtMs);
+            recordServerLoadState(state);
+
+            String heartbeat = buildServerLoadMessage(level, false);
+            LOGGER.info(com.example.examplemod.NpcooLog.tag(stripMinecraftColorCodes(heartbeat)));
+        }
+
+        if (now >= nextServerLoadSummaryGameTime) {
+            nextServerLoadSummaryGameTime = now + SERVER_LOAD_SUMMARY_INTERVAL_TICKS;
+            LOGGER.info(com.example.examplemod.NpcooLog.tag(buildServerLoadSummaryMessage()));
+        }
     }
 
     private static String buildServerLoadMessage(ServerLevel level, boolean includeTune) {
@@ -949,39 +999,9 @@ public class CommandEvents {
 
         double mspt = rollingMspt;
         double loadPct = Math.min(999.0, (mspt / SERVER_TICK_BUDGET_MS) * 100.0);
-        boolean behind = mspt >= SERVER_TICK_BUDGET_MS || lagDebtMs >= behindLagDebtMs;
-        boolean idle = !behind && mspt <= idleMaxMspt;
-
-        String state;
-        if (behind) {
-            state = "BEHIND";
-        } else if (idle) {
-            state = "IDLE";
-        } else if (mspt <= busyMaxMspt) {
-            state = "BUSY";
-        } else {
-            state = "VERY_BUSY";
-        }
-
-        String color = switch (state) {
-            case "IDLE" -> "§a";
-            case "BUSY" -> "§e";
-            case "VERY_BUSY" -> "§6";
-            default -> "§c";
-        };
-
-        String behindPart;
-        if (!behind && lagDebtMs <= 1.0) {
-            behindPart = "behindEst=0ms";
-        } else {
-            double sparePerSecond = Math.max(0.0, (SERVER_TICK_BUDGET_MS - mspt) * 20.0);
-            if (sparePerSecond > 0.0 && lagDebtMs > 0.0) {
-                double catchupSec = lagDebtMs / sparePerSecond;
-                behindPart = String.format(Locale.ROOT, "behindEst=%.0fms catchUp~=%.1fs", lagDebtMs, catchupSec);
-            } else {
-                behindPart = String.format(Locale.ROOT, "behindEst=%.0fms catchUp~=not_while_over_budget", lagDebtMs);
-            }
-        }
+        String state = classifyServerLoadState(mspt, lagDebtMs);
+        String color = colorForServerLoadState(state);
+        String behindPart = buildBehindPart(mspt, lagDebtMs, "BEHIND".equals(state));
 
         if (includeTune) {
             return String.format(
@@ -1012,6 +1032,84 @@ public class CommandEvents {
             playerCount,
             behindPart
         );
+    }
+
+    private static String classifyServerLoadState(double mspt, double currentLagDebtMs) {
+        double behindLoadMsptThreshold = SERVER_TICK_BUDGET_MS * BEHIND_LOAD_MULTIPLIER;
+        boolean behind = mspt > behindLoadMsptThreshold || currentLagDebtMs > behindLagDebtMs;
+        if (behind) {
+            return "BEHIND";
+        }
+        if (mspt <= idleMaxMspt) {
+            return "IDLE";
+        }
+        if (mspt <= busyMaxMspt) {
+            return "BUSY";
+        }
+        return "VERY_BUSY";
+    }
+
+    private static String colorForServerLoadState(String state) {
+        return switch (state) {
+            case "IDLE" -> "§a";
+            case "BUSY" -> "§e";
+            case "VERY_BUSY" -> "§6";
+            default -> "§c";
+        };
+    }
+
+    private static String buildBehindPart(double mspt, double currentLagDebtMs, boolean behind) {
+        if (!behind && currentLagDebtMs <= 1.0) {
+            return "behindEst=0ms";
+        }
+
+        double sparePerSecond = Math.max(0.0, (SERVER_TICK_BUDGET_MS - mspt) * 20.0);
+        if (sparePerSecond > 0.0 && currentLagDebtMs > 0.0) {
+            double catchupSec = currentLagDebtMs / sparePerSecond;
+            return String.format(Locale.ROOT, "behindEst=%.0fms catchUp~=%.1fs", currentLagDebtMs, catchupSec);
+        }
+
+        return String.format(Locale.ROOT, "behindEst=%.0fms catchUp~=not_while_over_budget", currentLagDebtMs);
+    }
+
+    private static void recordServerLoadState(String state) {
+        recentServerLoadStates.addLast(state);
+        while (recentServerLoadStates.size() > SERVER_LOAD_HISTORY_MAX_SAMPLES) {
+            recentServerLoadStates.removeFirst();
+        }
+    }
+
+    private static String buildServerLoadSummaryMessage() {
+        if (recentServerLoadStates.isEmpty()) {
+            return "[serverLoadSummary] no samples collected yet";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("[serverLoadSummary] samples=")
+            .append(recentServerLoadStates.size());
+
+        for (int window : SERVER_LOAD_SUMMARY_WINDOWS) {
+            sb.append(' ')
+                .append(summarizeRecentServerLoadStates(window));
+        }
+
+        return sb.toString();
+    }
+
+    private static String summarizeRecentServerLoadStates(int windowSeconds) {
+        ServerLoadWindowCounts counts = new ServerLoadWindowCounts();
+        int available = Math.min(windowSeconds, recentServerLoadStates.size());
+        int skip = recentServerLoadStates.size() - available;
+        int index = 0;
+
+        for (String state : recentServerLoadStates) {
+            if (index++ < skip) {
+                continue;
+            }
+            counts.add(state);
+        }
+
+        return counts.format(windowSeconds);
     }
 
     private static String stripMinecraftColorCodes(String text) {
