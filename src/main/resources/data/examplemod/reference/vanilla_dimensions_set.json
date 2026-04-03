@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "source": "vanilla_structures_pois.json",
+    "description": "Dimension set derived from structures/POIs reference"
+  },
+  "from_structures": [
+    "end",
+    "nether",
+    "overworld"
+  ],
+  "vanilla_java_dimensions": [
+    "end",
+    "nether",
+    "overworld"
+  ],
+  "combined_unique": [
+    "end",
+    "nether",
+    "overworld"
+  ],
+  "counts": {
+    "from_structures": 3,
+    "combined_unique": 3
+  }
+}

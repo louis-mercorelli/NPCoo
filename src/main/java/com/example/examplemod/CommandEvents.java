@@ -241,6 +241,18 @@ public class CommandEvents {
                                             .executes(ctx -> CEHScan.handleScanSai4AtPos(ctx,
                                                 new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
                                                 IntegerArgumentType.getInteger(ctx, "chunkRadius"), true))))))))
+                    .then(Commands.literal("scanSAIBroad")
+                        .then(Commands.argument("x", IntegerArgumentType.integer())
+                            .then(Commands.argument("y", IntegerArgumentType.integer())
+                                .then(Commands.argument("z", IntegerArgumentType.integer())
+                                    .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(0))
+                                        .executes(ctx -> CEHScan.handleScanSaiBroadAtPos(ctx,
+                                            new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                            IntegerArgumentType.getInteger(ctx, "chunkRadius"), false))
+                                        .then(Commands.literal("ForceLoad")
+                                            .executes(ctx -> CEHScan.handleScanSaiBroadAtPos(ctx,
+                                                new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"), true))))))))
                     .then(Commands.literal("scanStatus").executes(CEHScan::handleScanStatus))
                     .then(Commands.literal("serverLoad")
                         .executes(CEHServerLoad::handleServerLoadStatus)

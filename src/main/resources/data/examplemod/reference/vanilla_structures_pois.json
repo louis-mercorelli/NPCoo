@@ -1,0 +1,969 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "game_family": "minecraft_java_vanilla",
+    "target_version": "1.21.x",
+    "coverage": "major vanilla generated structures, structure-like features relevant to scouting, and vanilla POIs",
+    "notes": [
+      "Biome lists use current Java Edition names where practical.",
+      "Typical Y values are heuristic ranges for scouting, not exact generation rules.",
+      "blocks lists are signature blocks useful for detection, not exhaustive block inventories.",
+      "entities and block_entities lists focus on naturally associated signals useful for scan heuristics.",
+      "POI entries describe naturally occurring appearances first; many POI blocks are also player-placeable anywhere."
+    ]
+  },
+  "structures": [
+    {
+      "id": "minecraft:ancient_city",
+      "name": "Ancient City",
+      "dimension": "overworld",
+      "category": "underground_structure",
+      "biomes": [
+        "deep_dark"
+      ],
+      "typical_y": {
+        "min": -56,
+        "max": -40,
+        "common": -51
+      },
+      "entities": [
+        "minecraft:warden"
+      ],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:reinforced_deepslate",
+        "minecraft:sculk_shrieker",
+        "minecraft:sculk_sensor",
+        "minecraft:sculk_catalyst",
+        "minecraft:deepslate_tiles",
+        "minecraft:gray_wool"
+      ]
+    },
+    {
+      "id": "minecraft:buried_treasure",
+      "name": "Buried Treasure",
+      "dimension": "overworld",
+      "category": "underground_structure",
+      "biomes": [
+        "beach",
+        "snowy_beach",
+        "stony_shore"
+      ],
+      "typical_y": {
+        "min": 50,
+        "max": 64,
+        "common": 58
+      },
+      "entities": [],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:sand",
+        "minecraft:gravel",
+        "minecraft:sandstone",
+        "minecraft:stone"
+      ]
+    },
+    {
+      "id": "minecraft:mineshaft",
+      "name": "Mineshaft",
+      "dimension": "overworld",
+      "category": "underground_structure",
+      "biomes": [
+        "any_overworld_except_deep_dark"
+      ],
+      "typical_y": {
+        "min": -32,
+        "max": 48,
+        "common": 20
+      },
+      "entities": [
+        "minecraft:cave_spider"
+      ],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:spawner"
+      ],
+      "blocks": [
+        "minecraft:oak_planks",
+        "minecraft:dark_oak_planks",
+        "minecraft:oak_fence",
+        "minecraft:rail",
+        "minecraft:cobweb",
+        "minecraft:torch"
+      ]
+    },
+    {
+      "id": "minecraft:stronghold",
+      "name": "Stronghold",
+      "dimension": "overworld",
+      "category": "underground_structure",
+      "biomes": [
+        "any_overworld"
+      ],
+      "typical_y": {
+        "min": -48,
+        "max": 0,
+        "common": -24
+      },
+      "entities": [
+        "minecraft:silverfish"
+      ],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:spawner"
+      ],
+      "blocks": [
+        "minecraft:end_portal_frame",
+        "minecraft:stone_bricks",
+        "minecraft:mossy_stone_bricks",
+        "minecraft:cracked_stone_bricks",
+        "minecraft:infested_stone_bricks",
+        "minecraft:bookshelf"
+      ]
+    },
+    {
+      "id": "minecraft:trail_ruins",
+      "name": "Trail Ruins",
+      "dimension": "overworld",
+      "category": "underground_structure",
+      "biomes": [
+        "jungle",
+        "old_growth_birch_forest",
+        "old_growth_pine_taiga",
+        "old_growth_spruce_taiga",
+        "snowy_taiga",
+        "taiga"
+      ],
+      "typical_y": {
+        "min": 48,
+        "max": 96,
+        "common": 70
+      },
+      "entities": [],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:suspicious_gravel",
+        "minecraft:terracotta",
+        "minecraft:glazed_terracotta",
+        "minecraft:mud_bricks",
+        "minecraft:packed_mud",
+        "minecraft:gravel"
+      ]
+    },
+    {
+      "id": "minecraft:trial_chambers",
+      "name": "Trial Chambers",
+      "dimension": "overworld",
+      "category": "underground_structure",
+      "biomes": [
+        "any_overworld_except_deep_dark"
+      ],
+      "typical_y": {
+        "min": -40,
+        "max": -8,
+        "common": -24
+      },
+      "entities": [
+        "minecraft:breeze"
+      ],
+      "block_entities": [
+        "minecraft:trial_spawner",
+        "minecraft:vault",
+        "minecraft:barrel",
+        "minecraft:dispenser",
+        "minecraft:hopper",
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:tuff",
+        "minecraft:polished_tuff",
+        "minecraft:tuff_bricks",
+        "minecraft:chiseled_tuff",
+        "minecraft:chiseled_tuff_bricks",
+        "minecraft:waxed_copper_grate",
+        "minecraft:copper_bulb"
+      ]
+    },
+    {
+      "id": "minecraft:desert_pyramid",
+      "name": "Desert Pyramid",
+      "dimension": "overworld",
+      "category": "surface_structure",
+      "biomes": [
+        "desert"
+      ],
+      "typical_y": {
+        "min": 60,
+        "max": 90,
+        "common": 68
+      },
+      "entities": [],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:trapped_chest"
+      ],
+      "blocks": [
+        "minecraft:cut_sandstone",
+        "minecraft:orange_terracotta",
+        "minecraft:blue_terracotta",
+        "minecraft:tnt",
+        "minecraft:sandstone",
+        "minecraft:suspicious_sand"
+      ]
+    },
+    {
+      "id": "minecraft:igloo",
+      "name": "Igloo",
+      "dimension": "overworld",
+      "category": "surface_structure",
+      "biomes": [
+        "snowy_plains",
+        "snowy_taiga",
+        "snowy_slopes"
+      ],
+      "typical_y": {
+        "min": 62,
+        "max": 110,
+        "common": 72
+      },
+      "entities": [
+        "minecraft:villager",
+        "minecraft:zombie_villager"
+      ],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:brewing_stand",
+        "minecraft:cauldron"
+      ],
+      "blocks": [
+        "minecraft:snow_block",
+        "minecraft:red_bed",
+        "minecraft:ice",
+        "minecraft:spruce_trapdoor",
+        "minecraft:iron_bars",
+        "minecraft:carpet"
+      ]
+    },
+    {
+      "id": "minecraft:jungle_pyramid",
+      "name": "Jungle Pyramid",
+      "dimension": "overworld",
+      "category": "surface_structure",
+      "biomes": [
+        "jungle",
+        "bamboo_jungle"
+      ],
+      "typical_y": {
+        "min": 64,
+        "max": 96,
+        "common": 74
+      },
+      "entities": [],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:dispenser"
+      ],
+      "blocks": [
+        "minecraft:cobblestone",
+        "minecraft:mossy_cobblestone",
+        "minecraft:tripwire_hook",
+        "minecraft:redstone_wire",
+        "minecraft:lever",
+        "minecraft:vine"
+      ]
+    },
+    {
+      "id": "minecraft:pillager_outpost",
+      "name": "Pillager Outpost",
+      "dimension": "overworld",
+      "category": "surface_structure",
+      "biomes": [
+        "plains",
+        "sunflower_plains",
+        "desert",
+        "savanna",
+        "taiga",
+        "snowy_plains",
+        "grove",
+        "meadow",
+        "cherry_grove",
+        "snowy_slopes"
+      ],
+      "typical_y": {
+        "min": 62,
+        "max": 110,
+        "common": 74
+      },
+      "entities": [
+        "minecraft:pillager",
+        "minecraft:iron_golem",
+        "minecraft:allay"
+      ],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:dark_oak_log",
+        "minecraft:dark_oak_planks",
+        "minecraft:cobblestone",
+        "minecraft:white_wool",
+        "minecraft:target",
+        "minecraft:oak_cage"
+      ]
+    },
+    {
+      "id": "minecraft:swamp_hut",
+      "name": "Swamp Hut",
+      "dimension": "overworld",
+      "category": "surface_structure",
+      "biomes": [
+        "swamp"
+      ],
+      "typical_y": {
+        "min": 62,
+        "max": 71,
+        "common": 66
+      },
+      "entities": [
+        "minecraft:witch",
+        "minecraft:cat"
+      ],
+      "block_entities": [
+        "minecraft:cauldron"
+      ],
+      "blocks": [
+        "minecraft:spruce_planks",
+        "minecraft:oak_log",
+        "minecraft:crafting_table",
+        "minecraft:potted_red_mushroom",
+        "minecraft:spruce_fence"
+      ]
+    },
+    {
+      "id": "minecraft:village",
+      "name": "Village",
+      "dimension": "overworld",
+      "category": "surface_structure",
+      "biomes": [
+        "plains",
+        "meadow",
+        "desert",
+        "savanna",
+        "taiga",
+        "snowy_plains"
+      ],
+      "typical_y": {
+        "min": 62,
+        "max": 110,
+        "common": 74
+      },
+      "entities": [
+        "minecraft:villager",
+        "minecraft:iron_golem",
+        "minecraft:cat",
+        "minecraft:zombie_villager"
+      ],
+      "block_entities": [
+        "minecraft:blast_furnace",
+        "minecraft:brewing_stand",
+        "minecraft:smoker",
+        "minecraft:barrel",
+        "minecraft:composter",
+        "minecraft:lectern",
+        "minecraft:grindstone",
+        "minecraft:loom",
+        "minecraft:stonecutter",
+        "minecraft:smithing_table",
+        "minecraft:fletching_table",
+        "minecraft:cartography_table",
+        "minecraft:cauldron",
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:bell",
+        "minecraft:bed",
+        "minecraft:hay_block",
+        "minecraft:farmland",
+        "minecraft:lantern",
+        "minecraft:path_block"
+      ]
+    },
+    {
+      "id": "minecraft:woodland_mansion",
+      "name": "Woodland Mansion",
+      "dimension": "overworld",
+      "category": "surface_structure",
+      "biomes": [
+        "dark_forest",
+        "pale_garden"
+      ],
+      "typical_y": {
+        "min": 64,
+        "max": 110,
+        "common": 78
+      },
+      "entities": [
+        "minecraft:evoker",
+        "minecraft:vindicator",
+        "minecraft:allay"
+      ],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:dark_oak_planks",
+        "minecraft:dark_oak_log",
+        "minecraft:cobblestone",
+        "minecraft:carpet",
+        "minecraft:bookshelf",
+        "minecraft:birch_planks"
+      ]
+    },
+    {
+      "id": "minecraft:ruined_portal_overworld",
+      "name": "Ruined Portal (Overworld)",
+      "dimension": "overworld",
+      "category": "surface_or_cave_structure",
+      "biomes": [
+        "any_overworld_except_deep_dark"
+      ],
+      "typical_y": {
+        "min": -32,
+        "max": 90,
+        "common": 55
+      },
+      "entities": [],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:obsidian",
+        "minecraft:crying_obsidian",
+        "minecraft:netherrack",
+        "minecraft:magma_block",
+        "minecraft:gold_block",
+        "minecraft:lava"
+      ]
+    },
+    {
+      "id": "minecraft:ocean_monument",
+      "name": "Ocean Monument",
+      "dimension": "overworld",
+      "category": "underwater_structure",
+      "biomes": [
+        "deep_ocean",
+        "deep_cold_ocean",
+        "deep_frozen_ocean",
+        "deep_lukewarm_ocean"
+      ],
+      "typical_y": {
+        "min": 35,
+        "max": 62,
+        "common": 50
+      },
+      "entities": [
+        "minecraft:guardian",
+        "minecraft:elder_guardian"
+      ],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:prismarine",
+        "minecraft:prismarine_bricks",
+        "minecraft:dark_prismarine",
+        "minecraft:sea_lantern",
+        "minecraft:gold_block",
+        "minecraft:wet_sponge"
+      ]
+    },
+    {
+      "id": "minecraft:ocean_ruins",
+      "name": "Ocean Ruins",
+      "dimension": "overworld",
+      "category": "underwater_structure",
+      "biomes": [
+        "ocean",
+        "cold_ocean",
+        "frozen_ocean",
+        "lukewarm_ocean",
+        "warm_ocean",
+        "deep_ocean",
+        "deep_cold_ocean",
+        "deep_frozen_ocean",
+        "deep_lukewarm_ocean"
+      ],
+      "typical_y": {
+        "min": 30,
+        "max": 63,
+        "common": 48
+      },
+      "entities": [
+        "minecraft:drowned"
+      ],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:stone_bricks",
+        "minecraft:mossy_stone_bricks",
+        "minecraft:sandstone",
+        "minecraft:suspicious_sand",
+        "minecraft:suspicious_gravel",
+        "minecraft:magma_block"
+      ]
+    },
+    {
+      "id": "minecraft:shipwreck",
+      "name": "Shipwreck",
+      "dimension": "overworld",
+      "category": "underwater_or_shore_structure",
+      "biomes": [
+        "ocean",
+        "cold_ocean",
+        "frozen_ocean",
+        "lukewarm_ocean",
+        "warm_ocean",
+        "deep_ocean",
+        "deep_cold_ocean",
+        "deep_frozen_ocean",
+        "deep_lukewarm_ocean",
+        "beach",
+        "snowy_beach"
+      ],
+      "typical_y": {
+        "min": 35,
+        "max": 68,
+        "common": 55
+      },
+      "entities": [],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:barrel"
+      ],
+      "blocks": [
+        "minecraft:oak_planks",
+        "minecraft:spruce_planks",
+        "minecraft:oak_log",
+        "minecraft:oak_trapdoor",
+        "minecraft:mossy_stone_bricks",
+        "minecraft:water"
+      ]
+    },
+    {
+      "id": "minecraft:bastion_remnant",
+      "name": "Bastion Remnant",
+      "dimension": "nether",
+      "category": "nether_structure",
+      "biomes": [
+        "nether_wastes",
+        "crimson_forest",
+        "warped_forest",
+        "soul_sand_valley"
+      ],
+      "typical_y": {
+        "min": 32,
+        "max": 80,
+        "common": 54
+      },
+      "entities": [
+        "minecraft:piglin",
+        "minecraft:piglin_brute",
+        "minecraft:hoglin"
+      ],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:barrel"
+      ],
+      "blocks": [
+        "minecraft:blackstone",
+        "minecraft:polished_blackstone_bricks",
+        "minecraft:chain",
+        "minecraft:gold_block",
+        "minecraft:lava",
+        "minecraft:basalt"
+      ]
+    },
+    {
+      "id": "minecraft:fortress",
+      "name": "Nether Fortress",
+      "dimension": "nether",
+      "category": "nether_structure",
+      "biomes": [
+        "all_nether_biomes"
+      ],
+      "typical_y": {
+        "min": 48,
+        "max": 78,
+        "common": 64
+      },
+      "entities": [
+        "minecraft:blaze",
+        "minecraft:wither_skeleton"
+      ],
+      "block_entities": [
+        "minecraft:spawner",
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:nether_bricks",
+        "minecraft:nether_brick_fence",
+        "minecraft:nether_wart",
+        "minecraft:soul_sand",
+        "minecraft:lava"
+      ]
+    },
+    {
+      "id": "minecraft:nether_fossil",
+      "name": "Nether Fossil",
+      "dimension": "nether",
+      "category": "nether_structure",
+      "biomes": [
+        "soul_sand_valley"
+      ],
+      "typical_y": {
+        "min": 32,
+        "max": 96,
+        "common": 64
+      },
+      "entities": [],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:bone_block",
+        "minecraft:soul_sand",
+        "minecraft:soul_soil",
+        "minecraft:basalt"
+      ]
+    },
+    {
+      "id": "minecraft:ruined_portal_nether",
+      "name": "Ruined Portal (Nether)",
+      "dimension": "nether",
+      "category": "nether_structure",
+      "biomes": [
+        "all_nether_biomes"
+      ],
+      "typical_y": {
+        "min": 32,
+        "max": 96,
+        "common": 64
+      },
+      "entities": [],
+      "block_entities": [
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:obsidian",
+        "minecraft:crying_obsidian",
+        "minecraft:blackstone",
+        "minecraft:magma_block",
+        "minecraft:gold_block",
+        "minecraft:lava"
+      ]
+    },
+    {
+      "id": "minecraft:end_city",
+      "name": "End City",
+      "dimension": "end",
+      "category": "end_structure",
+      "biomes": [
+        "end_highlands",
+        "end_midlands"
+      ],
+      "typical_y": {
+        "min": 60,
+        "max": 110,
+        "common": 78
+      },
+      "entities": [
+        "minecraft:shulker"
+      ],
+      "block_entities": [
+        "minecraft:chest",
+        "minecraft:ender_chest"
+      ],
+      "blocks": [
+        "minecraft:purpur_block",
+        "minecraft:purpur_pillar",
+        "minecraft:end_stone_bricks",
+        "minecraft:magenta_stained_glass",
+        "minecraft:dragon_head"
+      ]
+    },
+    {
+      "id": "minecraft:amethyst_geode",
+      "name": "Amethyst Geode",
+      "dimension": "overworld",
+      "category": "structure_like_feature",
+      "biomes": [
+        "all_overworld_biomes"
+      ],
+      "typical_y": {
+        "min": -58,
+        "max": 30,
+        "common": -18
+      },
+      "entities": [],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:budding_amethyst",
+        "minecraft:amethyst_block",
+        "minecraft:calcite",
+        "minecraft:smooth_basalt"
+      ]
+    },
+    {
+      "id": "minecraft:monster_room",
+      "name": "Monster Room",
+      "dimension": "overworld",
+      "category": "structure_like_feature",
+      "biomes": [
+        "all_overworld_biomes"
+      ],
+      "typical_y": {
+        "min": -58,
+        "max": 48,
+        "common": 8
+      },
+      "entities": [
+        "minecraft:zombie",
+        "minecraft:skeleton",
+        "minecraft:spider"
+      ],
+      "block_entities": [
+        "minecraft:spawner",
+        "minecraft:chest"
+      ],
+      "blocks": [
+        "minecraft:cobblestone",
+        "minecraft:mossy_cobblestone"
+      ]
+    },
+    {
+      "id": "minecraft:fossil",
+      "name": "Fossil",
+      "dimension": "overworld",
+      "category": "structure_like_feature",
+      "biomes": [
+        "desert",
+        "swamp",
+        "mangrove_swamp"
+      ],
+      "typical_y": {
+        "min": -8,
+        "max": 64,
+        "common": 24
+      },
+      "entities": [],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:bone_block",
+        "minecraft:coal_ore",
+        "minecraft:diamond_ore"
+      ]
+    },
+    {
+      "id": "minecraft:desert_well",
+      "name": "Desert Well",
+      "dimension": "overworld",
+      "category": "structure_like_feature",
+      "biomes": [
+        "desert"
+      ],
+      "typical_y": {
+        "min": 62,
+        "max": 78,
+        "common": 67
+      },
+      "entities": [],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:sandstone",
+        "minecraft:water",
+        "minecraft:suspicious_sand"
+      ]
+    }
+  ],
+  "pois": [
+    {
+      "id": "minecraft:home",
+      "name": "Home",
+      "block": "minecraft:bed",
+      "natural_biomes": [
+        "plains",
+        "meadow",
+        "desert",
+        "savanna",
+        "taiga",
+        "snowy_plains",
+        "snowy_taiga",
+        "snowy_slopes"
+      ],
+      "typical_y": {
+        "min": 62,
+        "max": 110,
+        "common": 74
+      },
+      "entities": [
+        "minecraft:villager"
+      ],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:bed"
+      ]
+    },
+    {
+      "id": "minecraft:meeting",
+      "name": "Meeting Point",
+      "block": "minecraft:bell",
+      "natural_biomes": [
+        "plains",
+        "meadow",
+        "desert",
+        "savanna",
+        "taiga",
+        "snowy_plains"
+      ],
+      "typical_y": {
+        "min": 62,
+        "max": 110,
+        "common": 74
+      },
+      "entities": [
+        "minecraft:villager",
+        "minecraft:iron_golem",
+        "minecraft:cat"
+      ],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:bell"
+      ]
+    },
+    {
+      "id": "minecraft:bee_nest",
+      "name": "Bee Nest",
+      "block": "minecraft:bee_nest",
+      "natural_biomes": [
+        "plains",
+        "sunflower_plains",
+        "flower_forest",
+        "forest",
+        "meadow",
+        "cherry_grove",
+        "birch_forest"
+      ],
+      "typical_y": {
+        "min": 64,
+        "max": 110,
+        "common": 72
+      },
+      "entities": [
+        "minecraft:bee"
+      ],
+      "block_entities": [
+        "minecraft:bee_nest"
+      ],
+      "blocks": [
+        "minecraft:bee_nest",
+        "minecraft:oak_log",
+        "minecraft:birch_log",
+        "minecraft:cherry_log"
+      ]
+    },
+    {
+      "id": "minecraft:beehive",
+      "name": "Beehive",
+      "block": "minecraft:beehive",
+      "natural_biomes": [],
+      "typical_y": {
+        "min": 0,
+        "max": 320,
+        "common": 70
+      },
+      "entities": [
+        "minecraft:bee"
+      ],
+      "block_entities": [
+        "minecraft:beehive"
+      ],
+      "blocks": [
+        "minecraft:beehive"
+      ]
+    },
+    {
+      "id": "minecraft:nether_portal",
+      "name": "Nether Portal POI",
+      "block": "minecraft:nether_portal",
+      "natural_biomes": [
+        "any_overworld_except_deep_dark",
+        "all_nether_biomes"
+      ],
+      "typical_y": {
+        "min": 32,
+        "max": 90,
+        "common": 60
+      },
+      "entities": [],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:nether_portal",
+        "minecraft:obsidian",
+        "minecraft:crying_obsidian"
+      ]
+    },
+    {
+      "id": "minecraft:lodestone",
+      "name": "Lodestone",
+      "block": "minecraft:lodestone",
+      "natural_biomes": [],
+      "typical_y": {
+        "min": 0,
+        "max": 320,
+        "common": 64
+      },
+      "entities": [],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:lodestone"
+      ]
+    },
+    {
+      "id": "minecraft:lightning_rod",
+      "name": "Lightning Rod",
+      "block": "minecraft:lightning_rod",
+      "natural_biomes": [],
+      "typical_y": {
+        "min": 0,
+        "max": 320,
+        "common": 80
+      },
+      "entities": [
+        "minecraft:lightning_bolt"
+      ],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:lightning_rod"
+      ]
+    },
+    {
+      "id": "minecraft:test_instance",
+      "name": "Test Instance Block",
+      "block": "minecraft:test_instance_block",
+      "natural_biomes": [],
+      "typical_y": {
+        "min": 0,
+        "max": 320,
+        "common": 64
+      },
+      "entities": [],
+      "block_entities": [],
+      "blocks": [
+        "minecraft:test_instance_block"
+      ]
+    }
+  ]
+}

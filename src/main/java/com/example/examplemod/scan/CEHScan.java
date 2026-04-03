@@ -467,6 +467,57 @@ public final class CEHScan {
         return 1;
     }
 
+    public static int handleScanSaiBroadAtPos(
+        CommandContext<CommandSourceStack> context,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        long startNs = System.nanoTime();
+        try {
+            SteveAiScanManager.scanSAIBroad(serverLevel, center, chunkRadius, forceLoad);
+        } catch (IllegalArgumentException e) {
+            long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+            CommandEvents.LOGGER.info(
+                "scanSAIBroad failed thread={} center={} chunkRadius={} forceLoad={} elapsedMs={} reason={}",
+                Thread.currentThread().getName(),
+                center.toShortString(),
+                chunkRadius,
+                forceLoad,
+                elapsedMs,
+                e.getMessage()
+            );
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        int groupedCount =
+            SteveAiScanManager.getScannedEntities().size()
+            + SteveAiScanManager.getScannedBlockEntities().size();
+
+        int consideredChunks = (2 * chunkRadius + 1) * (2 * chunkRadius + 1);
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+
+        source.sendSuccess(() -> Component.literal(
+            "scanSAIBroad complete: center=" + center.toShortString()
+                + " chunkRadius=" + chunkRadius
+                + " forceLoad=" + forceLoad
+                + " consideredChunks=" + consideredChunks
+                + " groupedCount=" + groupedCount
+                + " time=" + elapsedMs + "ms"
+                + " (E+BE only; use scanSAI4 to confirm candidates)"
+        ), false);
+
+        return 1;
+    }
+
     public static int handleDetailSaiAtSteve(CommandContext<CommandSourceStack> context, int radius) {
         CommandSourceStack source = context.getSource();
 
