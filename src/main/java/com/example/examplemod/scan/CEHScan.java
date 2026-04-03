@@ -37,6 +37,18 @@
  *    Purpose: Runs a detailed scan centered on the requested block position.
  *    Input: CommandContext<CommandSourceStack> context, BlockPos center, int radius.
  *    Output: int.
+ * 9) {@code handleScanSai3AtPos(...)}:
+ *    Purpose: Runs scanSAI3 at an explicit position with chunk-radius input and optional force-load behavior.
+ *    Input: CommandContext<CommandSourceStack> context, BlockPos center, int chunkRadius, boolean forceLoad.
+ *    Output: int.
+ * 10) {@code handleScanSai2AtPos(...)}:
+ *    Purpose: Runs scanSAI2 radius-mode at an explicit position with optional cache and force-load behavior.
+ *    Input: CommandContext<CommandSourceStack> context, BlockPos center, int chunkRadius, boolean useCache, boolean forceLoad.
+ *    Output: int.
+ * 11) {@code handleScanSai4AtPos(...)}:
+ *    Purpose: Runs scanSAI4 at an explicit position using 1-based chunk radius and vertical clipping around Y.
+ *    Input: CommandContext<CommandSourceStack> context, BlockPos center, int chunkRadius, boolean forceLoad.
+ *    Output: int.
  */
 package com.example.examplemod.scan;
 
@@ -328,21 +340,6 @@ public final class CEHScan {
         int blockRadius = 8 + ((chunkRadius - 1) * 16);
 
         long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
-        CommandEvents.LOGGER.info(
-            "BENCH_SCAN phase=command scan=scanSAI3 thread={} center={} chunkRadius={} blockRadius={} useCache={} forceLoad={} scannedChunks={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
-            Thread.currentThread().getName(),
-            center.toShortString(),
-            chunkRadius,
-            blockRadius,
-            false,
-            forceLoad,
-            -1,
-            SteveAiScanManager.getScannedBlocks().size(),
-            SteveAiScanManager.getScannedEntities().size(),
-            SteveAiScanManager.getScannedBlockEntities().size(),
-            groupedCount,
-            elapsedMs
-        );
 
         source.sendSuccess(() -> Component.literal(
             "scanSAI3 complete: center=" + center.toShortString()
@@ -399,21 +396,6 @@ public final class CEHScan {
         int scannedChunks = (2 * effectiveChunkRadius + 1) * (2 * effectiveChunkRadius + 1);
 
         long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
-        CommandEvents.LOGGER.info(
-            "BENCH_SCAN phase=command scan=scanSAI2 thread={} center={} chunkRadius={} effectiveChunkRadius={} useCache={} forceLoad={} scannedChunks={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
-            Thread.currentThread().getName(),
-            center.toShortString(),
-            chunkRadius,
-            effectiveChunkRadius,
-            useCache,
-            forceLoad,
-            scannedChunks,
-            SteveAiScanManager.getScannedBlocks().size(),
-            SteveAiScanManager.getScannedEntities().size(),
-            SteveAiScanManager.getScannedBlockEntities().size(),
-            groupedCount,
-            elapsedMs
-        );
 
         source.sendSuccess(() -> Component.literal(
             "scanSAI2Radius complete: center=" + center.toShortString()
@@ -470,21 +452,6 @@ public final class CEHScan {
         int scannedChunks = (2 * effectiveChunkRadius + 1) * (2 * effectiveChunkRadius + 1);
 
         long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
-        CommandEvents.LOGGER.info(
-            "BENCH_SCAN phase=command scan=scanSAI4 thread={} center={} chunkRadius={} effectiveChunkRadius={} useCache={} forceLoad={} scannedChunks={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
-            Thread.currentThread().getName(),
-            center.toShortString(),
-            chunkRadius,
-            effectiveChunkRadius,
-            false,
-            forceLoad,
-            scannedChunks,
-            SteveAiScanManager.getScannedBlocks().size(),
-            SteveAiScanManager.getScannedEntities().size(),
-            SteveAiScanManager.getScannedBlockEntities().size(),
-            groupedCount,
-            elapsedMs
-        );
 
         source.sendSuccess(() -> Component.literal(
             "scanSAI4 complete: center=" + center.toShortString()

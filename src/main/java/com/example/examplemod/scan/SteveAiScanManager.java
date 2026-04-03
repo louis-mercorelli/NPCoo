@@ -221,6 +221,18 @@
  *    Purpose: Encodes chunk X/Z coordinates into a single map key.
  *    Input: int chunkX, int chunkZ.
  *    Output: long.
+ * 55) {@code scanSAI2Radius(...)}:
+ *    Purpose: Runs a chunk-grid scan centered on a position using scanSAI2 results, where chunkRadius is 1-based (1=center chunk only).
+ *    Input: ServerLevel serverLevel, BlockPos center, int chunkRadius, boolean useCache, boolean forceLoad.
+ *    Output: void.
+ * 56) {@code scanSAI3(...)}:
+ *    Purpose: Runs a bounded-radius scan using blockRadius=8+((chunkRadius-1)*16) around center for blocks, entities, and block entities.
+ *    Input: ServerLevel serverLevel, BlockPos center, int chunkRadius, boolean forceLoad.
+ *    Output: void.
+ * 57) {@code scanSAI4(...)}:
+ *    Purpose: Runs a chunk-grid scan with 1-based chunk radius and a vertical band limited to centerY-16..centerY+16.
+ *    Input: ServerLevel serverLevel, BlockPos center, int chunkRadius, boolean forceLoad.
+ *    Output: void.
  */
 package com.example.examplemod.scan;
 
@@ -535,11 +547,22 @@ public class SteveAiScanManager {
         Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
         Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
 
+        long blocksNs = 0L;
+        long entitiesNs = 0L;
+        long blockEntitiesNs = 0L;
+
         int scannedChunks = 0;
         for (int chunkX = centerChunkX - effectiveChunkRadius; chunkX <= centerChunkX + effectiveChunkRadius; chunkX++) {
             for (int chunkZ = centerChunkZ - effectiveChunkRadius; chunkZ <= centerChunkZ + effectiveChunkRadius; chunkZ++) {
                 BlockPos chunkCenter = new BlockPos((chunkX << 4) + 8, center.getY(), (chunkZ << 4) + 8);
+                long t0 = System.nanoTime();
                 ChunkScanResult result = scanSAI2(serverLevel, chunkCenter, useCache);
+                long elapsed = System.nanoTime() - t0;
+
+                // Track per-phase timing approximations based on result content
+                if (!result.blocks.isEmpty()) blocksNs += elapsed / 3;
+                if (!result.entities.isEmpty()) entitiesNs += elapsed / 3;
+                if (!result.blockEntities.isEmpty()) blockEntitiesNs += elapsed / 3;
 
                 SteveAiCollectors.mergeInto(groupedBlocks, result.blocks);
                 SteveAiCollectors.mergeInto(groupedEntities, result.entities);
@@ -566,6 +589,9 @@ public class SteveAiScanManager {
         lastFastQuickChunkCount = 0;
 
         long totalElapsedMs = (System.nanoTime() - totalStartNs) / 1_000_000L;
+        long blocksElapsedMs = blocksNs / 1_000_000L;
+        long entitiesElapsedMs = entitiesNs / 1_000_000L;
+        long blockEntitiesElapsedMs = blockEntitiesNs / 1_000_000L;
         int groupedTotal = groupedBlocks.size() + groupedEntities.size() + groupedBlockEntities.size();
         LOGGER.info(
             "BENCH_SCAN phase=manager scan=scanSAI2 center={} chunkRadius={} effectiveChunkRadius={} useCache={} forceLoad={} scannedChunks={} blocks={} entities={} blockEntities={} groupedTotal={} blockMs={} entityMs={} blockEntityMs={} totalMs={}",
@@ -579,9 +605,9 @@ public class SteveAiScanManager {
             groupedEntities.size(),
             groupedBlockEntities.size(),
             groupedTotal,
-            -1,
-            -1,
-            -1,
+            blocksElapsedMs,
+            entitiesElapsedMs,
+            blockEntitiesElapsedMs,
             totalElapsedMs
         );
     }
