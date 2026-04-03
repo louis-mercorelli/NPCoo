@@ -42,10 +42,10 @@ public final class CEHPoi {
 
     public static int handlePoiUpdate(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        int updates = SteveAiScanManager.updatePoiMapFromCurrentScanFast();
+        int updates = SteveAiScanManager.updatePoiMapFromCurrentScan();
         int poiCount = PoiManager.getPoiCount();
         source.sendSuccess(() -> Component.literal(
-            "POI map updated from current scan (fast E+BE stage): updates=" + updates + " totalPois=" + poiCount
+            "POI map updated from current scan (B+E+BE stage): updates=" + updates + " totalPois=" + poiCount
         ), false);
         return 1;
     }

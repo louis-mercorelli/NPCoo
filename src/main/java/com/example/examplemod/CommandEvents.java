@@ -57,6 +57,7 @@ import com.example.examplemod.gui.CEHGuiInventory;
 import com.sai.InventoryService;
 import com.example.examplemod.chat.CEHChat;
 import com.example.examplemod.poi.CEHPoi;
+import com.example.examplemod.scan.CEHLookSee;
 import com.example.examplemod.scan.CEHScan;
 import com.example.examplemod.scan.SteveAiCollectors;
 import com.example.examplemod.steveAI.CEHExplore;

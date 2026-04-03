@@ -22,11 +22,9 @@
  *    Input: Map<String, SteveAiCollectors.SeenSummary> grouped, String key.
  *    Output: int.
  */
-package com.example.examplemod;
+package com.example.examplemod.scan;
 
 import com.mojang.brigadier.context.CommandContext;
-import com.example.examplemod.scan.SteveAiCollectors;
-import com.example.examplemod.scan.SteveAiScanManager;
 import com.example.examplemod.steveAI.SteveAiLocator;
 
 import java.util.Map;
@@ -37,11 +35,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.npc.villager.Villager;
 
-final class CEHLookSee {
+public final class CEHLookSee {
 
     private CEHLookSee() {}
 
-    static int handleLookSee(CommandContext<CommandSourceStack> context) {
+    public static int handleLookSee(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
 
         if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
