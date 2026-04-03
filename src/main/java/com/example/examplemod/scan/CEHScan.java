@@ -290,6 +290,216 @@ public final class CEHScan {
         return 1;
     }
 
+    public static int handleScanSai3AtPos(
+        CommandContext<CommandSourceStack> context,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        long startNs = System.nanoTime();
+        try {
+            SteveAiScanManager.scanSAI3(serverLevel, center, chunkRadius, forceLoad);
+        } catch (IllegalArgumentException e) {
+            long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+            CommandEvents.LOGGER.info(
+                "scanSAI3 failed thread={} center={} chunkRadius={} forceLoad={} elapsedMs={} reason={}",
+                Thread.currentThread().getName(),
+                center.toShortString(),
+                chunkRadius,
+                forceLoad,
+                elapsedMs,
+                e.getMessage()
+            );
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        int groupedCount =
+            SteveAiScanManager.getScannedBlocks().size()
+            + SteveAiScanManager.getScannedEntities().size()
+            + SteveAiScanManager.getScannedBlockEntities().size();
+        int blockRadius = 8 + ((chunkRadius - 1) * 16);
+
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+        CommandEvents.LOGGER.info(
+            "BENCH_SCAN phase=command scan=scanSAI3 thread={} center={} chunkRadius={} blockRadius={} useCache={} forceLoad={} scannedChunks={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
+            Thread.currentThread().getName(),
+            center.toShortString(),
+            chunkRadius,
+            blockRadius,
+            false,
+            forceLoad,
+            -1,
+            SteveAiScanManager.getScannedBlocks().size(),
+            SteveAiScanManager.getScannedEntities().size(),
+            SteveAiScanManager.getScannedBlockEntities().size(),
+            groupedCount,
+            elapsedMs
+        );
+
+        source.sendSuccess(() -> Component.literal(
+            "scanSAI3 complete: center=" + center.toShortString()
+                + " chunkRadius=" + chunkRadius
+                + " blockRadius=" + blockRadius
+                + " forceLoad=" + forceLoad
+                + " groupedCount=" + groupedCount
+                + " time=" + elapsedMs + "ms"
+                + " (see server log for block/entity/blockEntity timing breakdown)"
+        ), false);
+
+        return 1;
+    }
+
+    public static int handleScanSai2AtPos(
+        CommandContext<CommandSourceStack> context,
+        BlockPos center,
+        int chunkRadius,
+        boolean useCache,
+        boolean forceLoad
+    ) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        long startNs = System.nanoTime();
+        try {
+            SteveAiScanManager.scanSAI2Radius(serverLevel, center, chunkRadius, useCache, forceLoad);
+        } catch (IllegalArgumentException e) {
+            long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+            CommandEvents.LOGGER.info(
+                "scanSAI2Radius failed thread={} center={} chunkRadius={} useCache={} forceLoad={} elapsedMs={} reason={}",
+                Thread.currentThread().getName(),
+                center.toShortString(),
+                chunkRadius,
+                useCache,
+                forceLoad,
+                elapsedMs,
+                e.getMessage()
+            );
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        int groupedCount =
+            SteveAiScanManager.getScannedBlocks().size()
+            + SteveAiScanManager.getScannedEntities().size()
+            + SteveAiScanManager.getScannedBlockEntities().size();
+
+        int effectiveChunkRadius = Math.max(0, chunkRadius - 1);
+        int scannedChunks = (2 * effectiveChunkRadius + 1) * (2 * effectiveChunkRadius + 1);
+
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+        CommandEvents.LOGGER.info(
+            "BENCH_SCAN phase=command scan=scanSAI2 thread={} center={} chunkRadius={} effectiveChunkRadius={} useCache={} forceLoad={} scannedChunks={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
+            Thread.currentThread().getName(),
+            center.toShortString(),
+            chunkRadius,
+            effectiveChunkRadius,
+            useCache,
+            forceLoad,
+            scannedChunks,
+            SteveAiScanManager.getScannedBlocks().size(),
+            SteveAiScanManager.getScannedEntities().size(),
+            SteveAiScanManager.getScannedBlockEntities().size(),
+            groupedCount,
+            elapsedMs
+        );
+
+        source.sendSuccess(() -> Component.literal(
+            "scanSAI2Radius complete: center=" + center.toShortString()
+                + " chunkRadius=" + chunkRadius
+                + " effectiveChunkRadius=" + effectiveChunkRadius
+                + " useCache=" + useCache
+                + " forceLoad=" + forceLoad
+                + " scannedChunks=" + scannedChunks
+                + " groupedCount=" + groupedCount
+                + " time=" + elapsedMs + "ms"
+                + " (see server log for timing details)"
+        ), false);
+
+        return 1;
+    }
+
+    public static int handleScanSai4AtPos(
+        CommandContext<CommandSourceStack> context,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        long startNs = System.nanoTime();
+        try {
+            SteveAiScanManager.scanSAI4(serverLevel, center, chunkRadius, forceLoad);
+        } catch (IllegalArgumentException e) {
+            long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+            CommandEvents.LOGGER.info(
+                "scanSAI4 failed thread={} center={} chunkRadius={} forceLoad={} elapsedMs={} reason={}",
+                Thread.currentThread().getName(),
+                center.toShortString(),
+                chunkRadius,
+                forceLoad,
+                elapsedMs,
+                e.getMessage()
+            );
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        int groupedCount =
+            SteveAiScanManager.getScannedBlocks().size()
+            + SteveAiScanManager.getScannedEntities().size()
+            + SteveAiScanManager.getScannedBlockEntities().size();
+
+        int effectiveChunkRadius = Math.max(0, chunkRadius - 1);
+        int scannedChunks = (2 * effectiveChunkRadius + 1) * (2 * effectiveChunkRadius + 1);
+
+        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000L;
+        CommandEvents.LOGGER.info(
+            "BENCH_SCAN phase=command scan=scanSAI4 thread={} center={} chunkRadius={} effectiveChunkRadius={} useCache={} forceLoad={} scannedChunks={} groupedBlocks={} groupedEntities={} groupedBlockEntities={} groupedTotal={} elapsedMs={}",
+            Thread.currentThread().getName(),
+            center.toShortString(),
+            chunkRadius,
+            effectiveChunkRadius,
+            false,
+            forceLoad,
+            scannedChunks,
+            SteveAiScanManager.getScannedBlocks().size(),
+            SteveAiScanManager.getScannedEntities().size(),
+            SteveAiScanManager.getScannedBlockEntities().size(),
+            groupedCount,
+            elapsedMs
+        );
+
+        source.sendSuccess(() -> Component.literal(
+            "scanSAI4 complete: center=" + center.toShortString()
+                + " chunkRadius=" + chunkRadius
+                + " effectiveChunkRadius=" + effectiveChunkRadius
+                + " forceLoad=" + forceLoad
+                + " scannedChunks=" + scannedChunks
+                + " groupedCount=" + groupedCount
+                + " time=" + elapsedMs + "ms"
+                + " (y-range is centerY-16..centerY+16; see server log for timing details)"
+        ), false);
+
+        return 1;
+    }
+
     public static int handleDetailSaiAtSteve(CommandContext<CommandSourceStack> context, int radius) {
         CommandSourceStack source = context.getSource();
 

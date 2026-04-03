@@ -197,6 +197,50 @@ public class CommandEvents {
                                             .executes(ctx -> CEHScan.handleDirectCenteredScan(ctx, "scanBE",
                                                 new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
                                                 IntegerArgumentType.getInteger(ctx, "chunkRadius"), true))))))))
+                    .then(Commands.literal("scanSAI3")
+                        .then(Commands.argument("x", IntegerArgumentType.integer())
+                            .then(Commands.argument("y", IntegerArgumentType.integer())
+                                .then(Commands.argument("z", IntegerArgumentType.integer())
+                                    .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> CEHScan.handleScanSai3AtPos(ctx,
+                                            new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                            IntegerArgumentType.getInteger(ctx, "chunkRadius"), false))
+                                        .then(Commands.literal("ForceLoad")
+                                            .executes(ctx -> CEHScan.handleScanSai3AtPos(ctx,
+                                                new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"), true))))))))
+                    .then(Commands.literal("scanSAI2")
+                        .then(Commands.argument("x", IntegerArgumentType.integer())
+                            .then(Commands.argument("y", IntegerArgumentType.integer())
+                                .then(Commands.argument("z", IntegerArgumentType.integer())
+                                    .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> CEHScan.handleScanSai2AtPos(ctx,
+                                            new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                            IntegerArgumentType.getInteger(ctx, "chunkRadius"), false, false))
+                                        .then(Commands.literal("UseCache")
+                                            .executes(ctx -> CEHScan.handleScanSai2AtPos(ctx,
+                                                new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"), true, false))
+                                            .then(Commands.literal("ForceLoad")
+                                                .executes(ctx -> CEHScan.handleScanSai2AtPos(ctx,
+                                                    new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                                    IntegerArgumentType.getInteger(ctx, "chunkRadius"), true, true))))
+                                        .then(Commands.literal("ForceLoad")
+                                            .executes(ctx -> CEHScan.handleScanSai2AtPos(ctx,
+                                                new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"), false, true))))))))
+                    .then(Commands.literal("scanSAI4")
+                        .then(Commands.argument("x", IntegerArgumentType.integer())
+                            .then(Commands.argument("y", IntegerArgumentType.integer())
+                                .then(Commands.argument("z", IntegerArgumentType.integer())
+                                    .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
+                                        .executes(ctx -> CEHScan.handleScanSai4AtPos(ctx,
+                                            new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                            IntegerArgumentType.getInteger(ctx, "chunkRadius"), false))
+                                        .then(Commands.literal("ForceLoad")
+                                            .executes(ctx -> CEHScan.handleScanSai4AtPos(ctx,
+                                                new BlockPos(IntegerArgumentType.getInteger(ctx, "x"), IntegerArgumentType.getInteger(ctx, "y"), IntegerArgumentType.getInteger(ctx, "z")),
+                                                IntegerArgumentType.getInteger(ctx, "chunkRadius"), true))))))))
                     .then(Commands.literal("scanStatus").executes(CEHScan::handleScanStatus))
                     .then(Commands.literal("serverLoad")
                         .executes(CEHServerLoad::handleServerLoadStatus)

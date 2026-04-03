@@ -240,7 +240,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SteveAiScanManager {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SteveAiScanManager.class);
 
     private static final int MAX_STORED_BLOCK_LOCATIONS_PER_TYPE = 20;
     private static final int FORCE_LOAD_MAX_CHUNK_RADIUS = 4;
@@ -494,6 +499,93 @@ public class SteveAiScanManager {
         return result;
     }
 
+    public static void scanSAI2Radius(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int chunkRadius,
+        boolean useCache,
+        boolean forceLoad
+    ) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (center == null) {
+            throw new IllegalArgumentException("center is null");
+        }
+        if (chunkRadius < 1) {
+            throw new IllegalArgumentException("chunkRadius must be >= 1");
+        }
+
+        int effectiveChunkRadius = chunkRadius - 1;
+        if (forceLoad && effectiveChunkRadius > FORCE_LOAD_MAX_CHUNK_RADIUS) {
+            throw new IllegalArgumentException(
+                "scanSAI2 ForceLoad supports max chunkRadius=" + (FORCE_LOAD_MAX_CHUNK_RADIUS + 1)
+            );
+        }
+
+        if (forceLoad && effectiveChunkRadius > 0) {
+            forceLoadChunks(serverLevel, center, effectiveChunkRadius);
+        }
+
+        long totalStartNs = System.nanoTime();
+        int centerChunkX = center.getX() >> 4;
+        int centerChunkZ = center.getZ() >> 4;
+
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlocks = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
+
+        int scannedChunks = 0;
+        for (int chunkX = centerChunkX - effectiveChunkRadius; chunkX <= centerChunkX + effectiveChunkRadius; chunkX++) {
+            for (int chunkZ = centerChunkZ - effectiveChunkRadius; chunkZ <= centerChunkZ + effectiveChunkRadius; chunkZ++) {
+                BlockPos chunkCenter = new BlockPos((chunkX << 4) + 8, center.getY(), (chunkZ << 4) + 8);
+                ChunkScanResult result = scanSAI2(serverLevel, chunkCenter, useCache);
+
+                SteveAiCollectors.mergeInto(groupedBlocks, result.blocks);
+                SteveAiCollectors.mergeInto(groupedEntities, result.entities);
+                SteveAiCollectors.mergeInto(groupedBlockEntities, result.blockEntities);
+                scannedChunks++;
+            }
+        }
+
+        replaceScanResults(
+            "all_sai2_radius",
+            chunkRadius,
+            center,
+            serverLevel.getGameTime(),
+            groupedBlocks,
+            groupedEntities,
+            groupedBlockEntities
+        );
+
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, center);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, center);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, center);
+
+        lastFastDetailedChunkCount = 0;
+        lastFastQuickChunkCount = 0;
+
+        long totalElapsedMs = (System.nanoTime() - totalStartNs) / 1_000_000L;
+        int groupedTotal = groupedBlocks.size() + groupedEntities.size() + groupedBlockEntities.size();
+        LOGGER.info(
+            "BENCH_SCAN phase=manager scan=scanSAI2 center={} chunkRadius={} effectiveChunkRadius={} useCache={} forceLoad={} scannedChunks={} blocks={} entities={} blockEntities={} groupedTotal={} blockMs={} entityMs={} blockEntityMs={} totalMs={}",
+            center.toShortString(),
+            chunkRadius,
+            effectiveChunkRadius,
+            useCache,
+            forceLoad,
+            scannedChunks,
+            groupedBlocks.size(),
+            groupedEntities.size(),
+            groupedBlockEntities.size(),
+            groupedTotal,
+            -1,
+            -1,
+            -1,
+            totalElapsedMs
+        );
+    }
+
     private static void validateScanRadius(int chunkRadius, boolean forceLoad) {
         if (chunkRadius < 1) {
             throw new IllegalArgumentException("chunkRadius must be >= 1");
@@ -685,6 +777,298 @@ public class SteveAiScanManager {
         SteveAiCollectors.annotateDistanceFromCenter(grouped, center);
 
         return grouped;
+    }
+
+    public static void scanSAI3(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (center == null) {
+            throw new IllegalArgumentException("center is null");
+        }
+        if (chunkRadius < 1) {
+            throw new IllegalArgumentException("chunkRadius must be >= 1");
+        }
+
+        int blockRadius = 8 + ((chunkRadius - 1) * 16);
+        int minX = center.getX() - blockRadius;
+        int maxX = center.getX() + blockRadius;
+        int minZ = center.getZ() - blockRadius;
+        int maxZ = center.getZ() + blockRadius;
+        int minY = Math.max(serverLevel.getMinY(), center.getY() - blockRadius);
+        int maxY = Math.min(serverLevel.getMaxY(), center.getY() + blockRadius);
+
+        if (forceLoad) {
+            int minChunkX = minX >> 4;
+            int maxChunkX = maxX >> 4;
+            int minChunkZ = minZ >> 4;
+            int maxChunkZ = maxZ >> 4;
+            for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+                for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                    serverLevel.getChunk(chunkX, chunkZ);
+                }
+            }
+        }
+
+        long totalStartNs = System.nanoTime();
+
+        long blocksStartNs = System.nanoTime();
+        Map<String, SteveAiCollectors.SeenSummary> blocks = new LinkedHashMap<>();
+        int centerChunkX = center.getX() >> 4;
+        int centerChunkZ = center.getZ() >> 4;
+        for (int y = minY; y <= maxY; y++) {
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    BlockPos pos = new BlockPos(x, y, z);
+                    net.minecraft.world.level.block.state.BlockState state = serverLevel.getBlockState(pos);
+                    if (state.isAir()) {
+                        continue;
+                    }
+
+                    String blockName = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+                    SteveAiCollectors.SeenSummary summary = blocks.get(blockName);
+                    if (summary == null) {
+                        blocks.put(blockName, new SteveAiCollectors.SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+                    } else {
+                        summary.increment();
+                        int posChunkX = pos.getX() >> 4;
+                        int posChunkZ = pos.getZ() >> 4;
+                        boolean isInCenterChunk = posChunkX == centerChunkX && posChunkZ == centerChunkZ;
+                        if (isInCenterChunk && summary.allLocations.size() < MAX_STORED_BLOCK_LOCATIONS_PER_TYPE) {
+                            summary.allLocations.add(pos.immutable());
+                        }
+                    }
+                }
+            }
+        }
+        long blocksElapsedMs = (System.nanoTime() - blocksStartNs) / 1_000_000L;
+
+        long entitiesStartNs = System.nanoTime();
+        net.minecraft.world.phys.AABB box = new net.minecraft.world.phys.AABB(
+            minX,
+            minY,
+            minZ,
+            maxX + 1,
+            maxY + 1,
+            maxZ + 1
+        );
+        Map<String, SteveAiCollectors.SeenSummary> entities = new LinkedHashMap<>();
+        var nearbyEntities = serverLevel.getEntities((Entity) null, box, e -> e != null && e.isAlive());
+        for (Entity nearby : nearbyEntities) {
+            String typeName = BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
+            BlockPos pos = nearby.blockPosition();
+            SteveAiCollectors.SeenSummary summary = entities.get(typeName);
+            if (summary == null) {
+                entities.put(typeName, new SteveAiCollectors.SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+            } else {
+                summary.addLocation(pos);
+            }
+        }
+        long entitiesElapsedMs = (System.nanoTime() - entitiesStartNs) / 1_000_000L;
+
+        long blockEntitiesStartNs = System.nanoTime();
+        Map<String, SteveAiCollectors.SeenSummary> blockEntities = new LinkedHashMap<>();
+        BlockPos min = new BlockPos(minX, minY, minZ);
+        BlockPos max = new BlockPos(maxX, maxY, maxZ);
+        for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+            net.minecraft.world.level.block.entity.BlockEntity be = serverLevel.getBlockEntity(pos);
+            if (be == null) {
+                continue;
+            }
+
+            Identifier key = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(be.getType());
+            if (key == null) {
+                continue;
+            }
+
+            String typeName = key.toString();
+            SteveAiCollectors.SeenSummary summary = blockEntities.get(typeName);
+            if (summary == null) {
+                blockEntities.put(typeName, new SteveAiCollectors.SeenSummary(pos.getX(), pos.getY(), pos.getZ(), true));
+            } else {
+                summary.addLocation(pos.immutable());
+            }
+        }
+        long blockEntitiesElapsedMs = (System.nanoTime() - blockEntitiesStartNs) / 1_000_000L;
+
+        replaceScanResults(
+            "all_sai3",
+            chunkRadius,
+            center,
+            serverLevel.getGameTime(),
+            blocks,
+            entities,
+            blockEntities
+        );
+
+        lastFastDetailedChunkCount = 0;
+        lastFastQuickChunkCount = 0;
+
+        long totalElapsedMs = (System.nanoTime() - totalStartNs) / 1_000_000L;
+        int groupedTotal = blocks.size() + entities.size() + blockEntities.size();
+        LOGGER.info(
+            "BENCH_SCAN phase=manager scan=scanSAI3 center={} chunkRadius={} blockRadius={} useCache={} forceLoad={} scannedChunks={} blocks={} entities={} blockEntities={} groupedTotal={} blockMs={} entityMs={} blockEntityMs={} totalMs={}",
+            center.toShortString(),
+            chunkRadius,
+            blockRadius,
+            false,
+            forceLoad,
+            -1,
+            blocks.size(),
+            entities.size(),
+            blockEntities.size(),
+            groupedTotal,
+            blocksElapsedMs,
+            entitiesElapsedMs,
+            blockEntitiesElapsedMs,
+            totalElapsedMs
+        );
+    }
+
+    public static void scanSAI4(
+        ServerLevel serverLevel,
+        BlockPos center,
+        int chunkRadius,
+        boolean forceLoad
+    ) {
+        if (serverLevel == null) {
+            throw new IllegalArgumentException("serverLevel is null");
+        }
+        if (center == null) {
+            throw new IllegalArgumentException("center is null");
+        }
+        if (chunkRadius < 1) {
+            throw new IllegalArgumentException("chunkRadius must be >= 1");
+        }
+
+        int effectiveChunkRadius = chunkRadius - 1;
+        if (forceLoad && effectiveChunkRadius > FORCE_LOAD_MAX_CHUNK_RADIUS) {
+            throw new IllegalArgumentException(
+                "scanSAI4 ForceLoad supports max chunkRadius=" + (FORCE_LOAD_MAX_CHUNK_RADIUS + 1)
+            );
+        }
+
+        if (forceLoad && effectiveChunkRadius > 0) {
+            forceLoadChunks(serverLevel, center, effectiveChunkRadius);
+        }
+
+        long totalStartNs = System.nanoTime();
+        long blocksNs = 0L;
+        long entitiesNs = 0L;
+        long blockEntitiesNs = 0L;
+
+        int centerChunkX = center.getX() >> 4;
+        int centerChunkZ = center.getZ() >> 4;
+        int yMin = Math.max(serverLevel.getMinY(), center.getY() - 16);
+        int yMax = Math.min(serverLevel.getMaxY(), center.getY() + 16);
+        int yCenter = Math.max(yMin, Math.min(center.getY(), yMax));
+        int yRadius = Math.max(0, Math.max(yCenter - yMin, yMax - yCenter));
+
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlocks = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
+        Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
+
+        int scannedChunks = 0;
+        for (int chunkX = centerChunkX - effectiveChunkRadius; chunkX <= centerChunkX + effectiveChunkRadius; chunkX++) {
+            for (int chunkZ = centerChunkZ - effectiveChunkRadius; chunkZ <= centerChunkZ + effectiveChunkRadius; chunkZ++) {
+                serverLevel.getChunk(chunkX, chunkZ);
+
+                int minX = chunkX << 4;
+                int minZ = chunkZ << 4;
+                int maxX = minX + 15;
+                int maxZ = minZ + 15;
+
+                long t0 = System.nanoTime();
+                Map<String, SteveAiCollectors.SeenSummary> blocks = SteveAiCollectors.collectBlocksInTile(
+                    serverLevel,
+                    minX,
+                    minZ,
+                    maxX,
+                    maxZ,
+                    yMin,
+                    yMax,
+                    null
+                );
+                blocksNs += (System.nanoTime() - t0);
+
+                t0 = System.nanoTime();
+                Map<String, SteveAiCollectors.SeenSummary> entities = SteveAiCollectors.collectEntitiesInTile(
+                    serverLevel,
+                    minX,
+                    minZ,
+                    maxX,
+                    maxZ,
+                    yCenter,
+                    yRadius
+                );
+                entitiesNs += (System.nanoTime() - t0);
+
+                t0 = System.nanoTime();
+                Map<String, SteveAiCollectors.SeenSummary> blockEntities = SteveAiCollectors.collectBlockEntitiesInTile(
+                    serverLevel,
+                    minX,
+                    minZ,
+                    maxX,
+                    maxZ,
+                    yMin,
+                    yMax
+                );
+                blockEntitiesNs += (System.nanoTime() - t0);
+
+                SteveAiCollectors.mergeInto(groupedBlocks, blocks);
+                SteveAiCollectors.mergeInto(groupedEntities, entities);
+                SteveAiCollectors.mergeInto(groupedBlockEntities, blockEntities);
+                scannedChunks++;
+            }
+        }
+
+        replaceScanResults(
+            "all_sai4",
+            chunkRadius,
+            center,
+            serverLevel.getGameTime(),
+            groupedBlocks,
+            groupedEntities,
+            groupedBlockEntities
+        );
+
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, center);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, center);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, center);
+
+        lastFastDetailedChunkCount = 0;
+        lastFastQuickChunkCount = 0;
+
+        long totalElapsedMs = (System.nanoTime() - totalStartNs) / 1_000_000L;
+        long blocksElapsedMs = blocksNs / 1_000_000L;
+        long entitiesElapsedMs = entitiesNs / 1_000_000L;
+        long blockEntitiesElapsedMs = blockEntitiesNs / 1_000_000L;
+        int groupedTotal = groupedBlocks.size() + groupedEntities.size() + groupedBlockEntities.size();
+
+        LOGGER.info(
+            "BENCH_SCAN phase=manager scan=scanSAI4 center={} chunkRadius={} effectiveChunkRadius={} useCache={} forceLoad={} scannedChunks={} blocks={} entities={} blockEntities={} groupedTotal={} blockMs={} entityMs={} blockEntityMs={} totalMs={} yMin={} yMax={}",
+            center.toShortString(),
+            chunkRadius,
+            effectiveChunkRadius,
+            false,
+            forceLoad,
+            scannedChunks,
+            groupedBlocks.size(),
+            groupedEntities.size(),
+            groupedBlockEntities.size(),
+            groupedTotal,
+            blocksElapsedMs,
+            entitiesElapsedMs,
+            blockEntitiesElapsedMs,
+            totalElapsedMs,
+            yMin,
+            yMax
+        );
     }
 
     public static void scanSAIFast(
