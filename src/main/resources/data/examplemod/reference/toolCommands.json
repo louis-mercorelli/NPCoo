@@ -1,0 +1,586 @@
+[
+  {
+    "tool": "testmod",
+    "description": "Root command — confirms the mod command system is live.",
+    "syntax": "/testmod",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "lookSee",
+    "description": "Reports what SteveAI is currently looking at / can see from its position.",
+    "syntax": "/testmod lookSee",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "debugON",
+    "description": "Enables the on-screen debug overlay for SteveAI state.",
+    "syntax": "/testmod debugON",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "debugOFF",
+    "description": "Disables the on-screen debug overlay. Default on world entry.",
+    "syntax": "/testmod debugOFF",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanSAI",
+    "description": "Runs the primary SteveAI grouped scan around SteveAI's current position. Scans blocks, entities, and block-entities and emits grouped counts. Default mode=all, radius=2 chunks.",
+    "syntax": "/testmod scanSAI [scanArgs]",
+    "parameters": {
+      "scanArgs": {
+        "type": "string (greedy, optional)",
+        "description": "Free-form override. Accepted forms: 'all', '<type>', '[type1,type2] <radius>', '<type> <radius>', 'fast', '<type> fast'. Type tokens match SteveAI entity/block group names.",
+        "default": "all radius=2"
+      }
+    },
+    "subcommands": {
+      "detail": {
+        "description": "Runs a detailed scan at an explicit world position.",
+        "syntax": "/testmod scanSAI detail <x> <y> <z> <radius>",
+        "parameters": {
+          "x": {
+            "type": "int"
+          },
+          "y": {
+            "type": "int"
+          },
+          "z": {
+            "type": "int"
+          },
+          "radius": {
+            "type": "int (min 1)",
+            "description": "Block radius around the position."
+          }
+        }
+      },
+      "detailSAI": {
+        "description": "Runs a detailed scan centered on SteveAI's current position.",
+        "syntax": "/testmod scanSAI detailSAI [radius]",
+        "parameters": {
+          "radius": {
+            "type": "int (min 1, optional)",
+            "default": 1
+          }
+        }
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanB",
+    "description": "Scans blocks only in a chunk-radius box centered on explicit coordinates. Optionally force-loads chunks.",
+    "syntax": "/testmod scanB <x> <y> <z> <chunkRadius> [ForceLoad]",
+    "parameters": {
+      "x": {
+        "type": "int",
+        "description": "Center X coordinate."
+      },
+      "y": {
+        "type": "int",
+        "description": "Center Y coordinate."
+      },
+      "z": {
+        "type": "int",
+        "description": "Center Z coordinate."
+      },
+      "chunkRadius": {
+        "type": "int (min 1)",
+        "description": "Chunk radius around center."
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)",
+        "description": "Force-load chunks before scanning."
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanE",
+    "description": "Scans entities only in a chunk-radius box centered on explicit coordinates. Optionally force-loads chunks.",
+    "syntax": "/testmod scanE <x> <y> <z> <chunkRadius> [ForceLoad]",
+    "parameters": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "z": {
+        "type": "int"
+      },
+      "chunkRadius": {
+        "type": "int (min 1)"
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanBE",
+    "description": "Scans block-entities only in a chunk-radius box centered on explicit coordinates. Optionally force-loads chunks.",
+    "syntax": "/testmod scanBE <x> <y> <z> <chunkRadius> [ForceLoad]",
+    "parameters": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "z": {
+        "type": "int"
+      },
+      "chunkRadius": {
+        "type": "int (min 1)"
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanSAI2",
+    "description": "Stage-2 deep structural scan at explicit coordinates. Runs signature matching (SAI2 rules) across the chunk-radius. Returns likely structure IDs with evidence. Optionally uses a previously cached scan result and/or force-loads chunks.",
+    "syntax": "/testmod scanSAI2 <x> <y> <z> <chunkRadius> [UseCache [ForceLoad]] [ForceLoad]",
+    "parameters": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "z": {
+        "type": "int"
+      },
+      "chunkRadius": {
+        "type": "int (min 1)"
+      },
+      "UseCache": {
+        "type": "flag (literal, optional)",
+        "description": "Reuse last cached block/entity data instead of rescanning."
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)",
+        "description": "Force-load chunks before scanning."
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanSAI2Likely",
+    "description": "Runs SAI2 signature matching at a single explicit chunk position and returns the ranked likely structure IDs with evidence items. Lighter than scanSAI2 — no radius loop.",
+    "syntax": "/testmod scanSAI2Likely <x> <y> <z> [UseCache]",
+    "parameters": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "z": {
+        "type": "int"
+      },
+      "UseCache": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanSAI3",
+    "description": "Stage-3 scan at explicit coordinates. Runs a finer-grained SAI3 pass over the chunk-radius.",
+    "syntax": "/testmod scanSAI3 <x> <y> <z> <chunkRadius> [ForceLoad]",
+    "parameters": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "z": {
+        "type": "int"
+      },
+      "chunkRadius": {
+        "type": "int (min 1)"
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanSAI4",
+    "description": "Stage-4 scan at explicit coordinates with 1-based chunk radius and vertical clipping around the Y value.",
+    "syntax": "/testmod scanSAI4 <x> <y> <z> <chunkRadius> [ForceLoad]",
+    "parameters": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "z": {
+        "type": "int"
+      },
+      "chunkRadius": {
+        "type": "int (min 1)"
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanSAIBroad",
+    "description": "Broad, lightweight SAI scan at explicit coordinates. Collects coarse evidence hints across a large radius (0 means current chunk only). Used as stage-1 pass in POIfind.",
+    "syntax": "/testmod scanSAIBroad <x> <y> <z> <chunkRadius> [ForceLoad]",
+    "parameters": {
+      "x": {
+        "type": "int"
+      },
+      "y": {
+        "type": "int"
+      },
+      "z": {
+        "type": "int"
+      },
+      "chunkRadius": {
+        "type": "int (min 0)",
+        "description": "0 = single chunk, >0 = radius in chunks."
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "scanStatus",
+    "description": "Reports the current scan manager state from the most recent scan (counts, chunk info, timing).",
+    "syntax": "/testmod scanStatus",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "POIfind",
+    "description": "Full POI discovery pipeline. Runs a broad scan over chunkRadius, then deep-scans up to scanLimit chunks that have broad evidence hits. Writes a POIfind_*.txt report with ranked structure/ore candidates and merged evidence. Auto-triggered on chat-window open.",
+    "syntax": "/testmod POIfind [chunkRadius [scanLimit [UseCache|ForceLoad]]]",
+    "parameters": {
+      "chunkRadius": {
+        "type": "int (0–64, optional)",
+        "default": 8,
+        "description": "Radius in chunks to sweep for broad evidence."
+      },
+      "scanLimit": {
+        "type": "int (1–128, optional)",
+        "default": 100,
+        "description": "Max number of candidate chunks to deep-scan."
+      },
+      "UseCache": {
+        "type": "flag (literal, optional)",
+        "description": "Reuse cached chunk data for deep scan phase."
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)",
+        "description": "Force-load chunks during deep scan phase."
+      }
+    },
+    "subcommands": {
+      "status": {
+        "description": "Reports the progress/state of an in-flight POIfind run.",
+        "syntax": "/testmod POIfind status"
+      },
+      "reset": {
+        "description": "Cancels and resets any in-flight POIfind state.",
+        "syntax": "/testmod POIfind reset"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "POImap",
+    "description": "Prints the current in-memory POI map — all confirmed POI centers with their types and coordinates.",
+    "syntax": "/testmod POImap",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "POIfindu",
+    "description": "Focused POI find for a specific POI type. Scans chunks within chunkRadius and reports only matches for the given type.",
+    "syntax": "/testmod POIfindu <poi> [chunkRadius [ForceLoad]]",
+    "parameters": {
+      "poi": {
+        "type": "string (word)",
+        "description": "Internal POI type name (e.g. village_candidate, dungeon, trial_chamber, archaeology_site)."
+      },
+      "chunkRadius": {
+        "type": "int (min 1, optional)",
+        "default": 8
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "poiStage1",
+    "description": "Stage-1 POI update — walks nearby chunks, collects candidate POI centers from block/entity patterns, and stores them in the candidate queue. Alias: poiUpdate.",
+    "syntax": "/testmod poiStage1",
+    "parameters": {},
+    "aliases": [
+      "poiUpdate"
+    ],
+    "mutatesWorld": false
+  },
+  {
+    "tool": "poiStage2",
+    "description": "Stage-2 POI confirmation — deduplicates candidate centers by chunk, runs scanSAI2 on up to 'limit' unique chunks, and promotes confirmed results into the POI map. Alias: poiConfirmCandidates.",
+    "syntax": "/testmod poiStage2 [limit]",
+    "parameters": {
+      "limit": {
+        "type": "int (min 1, optional)",
+        "default": 10,
+        "description": "Max number of candidate chunks to confirm."
+      }
+    },
+    "aliases": [
+      "poiConfirmCandidates"
+    ],
+    "mutatesWorld": false
+  },
+  {
+    "tool": "poiReset",
+    "description": "Clears the entire POI map (confirmed centers, candidates, counters).",
+    "syntax": "/testmod poiReset",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "serverLoad",
+    "description": "Reports current server performance — MSPT, tick budget status, and load tier.",
+    "syntax": "/testmod serverLoad",
+    "parameters": {},
+    "subcommands": {
+      "stream": {
+        "description": "Shows or toggles the heartbeat log stream for continuous MSPT output.",
+        "syntax": "/testmod serverLoad stream [on|off]",
+        "parameters": {
+          "on|off": {
+            "type": "literal (optional)",
+            "description": "Turn stream on or off. Omit to check current state."
+          }
+        }
+      },
+      "set": {
+        "description": "Tunes server load thresholds used to classify idle vs. busy vs. behind.",
+        "syntax": "/testmod serverLoad set <idleMspt> <busyMspt> <behindDebtMs> [emaAlpha]",
+        "parameters": {
+          "idleMspt": {
+            "type": "double (0.1 – SERVER_TICK_BUDGET_MS)",
+            "description": "MSPT below which the server is idle."
+          },
+          "busyMspt": {
+            "type": "double (0.1 – SERVER_TICK_BUDGET_MS)",
+            "description": "MSPT above which the server is busy."
+          },
+          "behindDebtMs": {
+            "type": "double (1.0 – 5000.0)",
+            "description": "Accumulated debt (ms) to trigger 'behind' tier."
+          },
+          "emaAlpha": {
+            "type": "double (0.01 – 1.0, optional)",
+            "description": "EMA smoothing factor for MSPT."
+          }
+        }
+      },
+      "reset": {
+        "description": "Resets server load tuning to factory defaults.",
+        "syntax": "/testmod serverLoad reset"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "explore",
+    "description": "Directs SteveAI to navigate toward the nearest known POI of the given type. Searches the in-memory POI map and sets an exploration goal.",
+    "syntax": "/testmod explore <poi>",
+    "parameters": {
+      "poi": {
+        "type": "string (word)",
+        "description": "Destination POI type keyword.",
+        "accepted_values": [
+          "village",
+          "dungeon",
+          "trial",
+          "trial_chamber",
+          "archaeology",
+          "archaeology_site"
+        ]
+      }
+    },
+    "mutatesWorld": true
+  },
+  {
+    "tool": "exploreStop",
+    "description": "Stops any active SteveAI exploration task and clears exploration state.",
+    "syntax": "/testmod exploreStop",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "exploreStatus",
+    "description": "Reports the current SteveAI exploration goal, POI type, center position, and radius.",
+    "syntax": "/testmod exploreStatus",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "followMe",
+    "description": "Commands SteveAI to follow the executing player, keeping within 3 blocks.",
+    "syntax": "/testmod followMe",
+    "parameters": {},
+    "mutatesWorld": true
+  },
+  {
+    "tool": "findMe",
+    "description": "Commands SteveAI to pathfind toward the executing player from its current position.",
+    "syntax": "/testmod findMe",
+    "parameters": {},
+    "mutatesWorld": true
+  },
+  {
+    "tool": "stopFollow",
+    "description": "Stops SteveAI's follow/find-me behaviour and cancels active navigation.",
+    "syntax": "/testmod stopFollow",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "forceChunkOn",
+    "description": "Enables chunk force-loading around SteveAI so its chunks stay loaded. Default on world entry.",
+    "syntax": "/testmod forceChunkOn",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "forceChunkOff",
+    "description": "Disables chunk force-loading around SteveAI.",
+    "syntax": "/testmod forceChunkOff",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "whereRu",
+    "description": "Reports SteveAI's current or last-known block position and chunk coordinates.",
+    "syntax": "/testmod whereRu",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "tele",
+    "description": "Teleports SteveAI to a safe position near the executing player.",
+    "syntax": "/testmod tele",
+    "parameters": {},
+    "mutatesWorld": true
+  },
+  {
+    "tool": "inv",
+    "description": "Prints a summary of SteveAI's current inventory slots.",
+    "syntax": "/testmod inv",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "invAdd",
+    "description": "Adds a specified item to SteveAI's inventory.",
+    "syntax": "/testmod invAdd <itemName> [count]",
+    "parameters": {
+      "itemName": {
+        "type": "string (word)",
+        "description": "Item registry name or display name (e.g. wheat, diamond)."
+      },
+      "count": {
+        "type": "int (min 1, optional)",
+        "default": 1
+      }
+    },
+    "mutatesWorld": true
+  },
+  {
+    "tool": "invDrop",
+    "description": "Removes a specified item from SteveAI's inventory and drops it in the world.",
+    "syntax": "/testmod invDrop <itemName> [count]",
+    "parameters": {
+      "itemName": {
+        "type": "string (word)",
+        "description": "Item registry name or display name."
+      },
+      "count": {
+        "type": "int (min 1, optional)",
+        "default": 1
+      }
+    },
+    "mutatesWorld": true
+  },
+  {
+    "tool": "opengui",
+    "description": "Opens the SteveAI inventory GUI for the executing player.",
+    "syntax": "/testmod opengui",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "writeT",
+    "description": "Writes SteveAI scan text summary files (poiSummary, steveAI status, etc.) to the player data folder immediately.",
+    "syntax": "/testmod writeT [suffix]",
+    "parameters": {
+      "suffix": {
+        "type": "string (greedy, optional)",
+        "description": "Optional filename suffix to distinguish this snapshot."
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "writeTD",
+    "description": "Writes SteveAI detail text files (detailBlocks, detailEntities, detailBlockEntities) to the player data folder immediately.",
+    "syntax": "/testmod writeTD [suffix]",
+    "parameters": {
+      "suffix": {
+        "type": "string (greedy, optional)",
+        "description": "Optional filename suffix to distinguish this snapshot."
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "writeNow",
+    "description": "Forces an immediate flush of all SteveAI scan and POI files to disk.",
+    "syntax": "/testmod writeNow",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "chat",
+    "description": "Sends a natural-language message to the OpenAI backend with the current SteveAI context bundle (POI map, scans, POIfind report) and returns the reply in chat.",
+    "syntax": "/testmod <message>",
+    "parameters": {
+      "message": {
+        "type": "string (greedy)",
+        "description": "Natural-language question or instruction for the AI agent."
+      }
+    },
+    "note": "This is the catch-all greedy argument at the end of the testmod tree — any text that doesn't match a subcommand literal is routed here as a chat message.",
+    "mutatesWorld": false
+  }
+]

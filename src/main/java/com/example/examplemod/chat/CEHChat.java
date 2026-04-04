@@ -29,6 +29,12 @@
  */
 package com.example.examplemod.chat;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
@@ -36,6 +42,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 import com.example.examplemod.SteveAiContextFiles;
@@ -49,6 +58,7 @@ import org.slf4j.Logger;
 public final class CEHChat {
 
     private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
+    private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private CEHChat() {}
 
@@ -105,44 +115,202 @@ public final class CEHChat {
         return s.replace("\r", " ").replace("\n", " ").trim();
     }
 
+    private static JsonElement tryParseJson(String s) {
+        if (s == null || s.isBlank()) {
+            return null;
+        }
+
+        String trimmed = s.trim();
+        int firstBrace = trimmed.indexOf('{');
+        int lastBrace = trimmed.lastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+            trimmed = trimmed.substring(firstBrace, lastBrace + 1);
+        }
+
+        try {
+            return JsonParser.parseString(trimmed);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static void appendPrettyAgentJson(ServerLevel serverLevel, UUID playerUuid, String prompt, JsonElement responseJson) {
+        try {
+            Path playerDataDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
+            Path prettyFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat_pretty.json");
+
+            JsonArray history = new JsonArray();
+            if (Files.exists(prettyFile)) {
+                String existing = Files.readString(prettyFile, java.nio.charset.StandardCharsets.UTF_8);
+                try {
+                    JsonElement parsed = JsonParser.parseString(existing);
+                    if (parsed.isJsonArray()) {
+                        history = parsed.getAsJsonArray();
+                    }
+                } catch (Exception ignored) {
+                    // If file was corrupted, start a fresh history array.
+                }
+            }
+
+            JsonObject entry = new JsonObject();
+            entry.addProperty("timestamp", chatTs());
+            entry.addProperty("prompt", prompt == null ? "" : prompt);
+            entry.add("response", responseJson == null ? new JsonObject() : responseJson.deepCopy());
+            history.add(entry);
+
+            Files.writeString(
+                prettyFile,
+                PRETTY_GSON.toJson(history),
+                java.nio.charset.StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+            );
+        } catch (Exception e) {
+            LOGGER.error(com.sai.NpcooLog.tag("Failed to write pretty SteveAI JSON chat file"), e);
+        }
+    }
+
+    private static String summarizeJsonForChat(UUID playerUuid, JsonElement json) {
+        String fileName = playerUuid.toString() + "_steveAI_chat_pretty.json";
+
+        if (json == null || !json.isJsonObject()) {
+            return "Structured response saved to " + fileName;
+        }
+
+        JsonObject obj = json.getAsJsonObject();
+        String stage = obj.has("stage") && obj.get("stage").isJsonPrimitive()
+            ? obj.get("stage").getAsString()
+            : "unknown";
+
+        if ("stage1_candidates".equals(stage)) {
+            JsonArray candidates = obj.has("candidates") && obj.get("candidates").isJsonArray()
+                ? obj.getAsJsonArray("candidates")
+                : new JsonArray();
+
+            JsonObject bestAnswer = null;
+            List<NumberedCandidate> commandCandidates = new ArrayList<>();
+
+            for (int idx = 0; idx < candidates.size(); idx++) {
+                JsonElement el = candidates.get(idx);
+                if (!el.isJsonObject()) {
+                    continue;
+                }
+                JsonObject c = el.getAsJsonObject();
+                String type = c.has("type") && c.get("type").isJsonPrimitive()
+                    ? c.get("type").getAsString()
+                    : "";
+
+                if ("answer".equalsIgnoreCase(type)) {
+                    if (bestAnswer == null || confidenceOf(c) > confidenceOf(bestAnswer)) {
+                        bestAnswer = c;
+                    }
+                } else if ("command".equalsIgnoreCase(type)) {
+                    commandCandidates.add(new NumberedCandidate(idx + 1, c));
+                }
+            }
+
+            commandCandidates.sort(Comparator.comparingDouble((NumberedCandidate nc) -> confidenceOf(nc.candidate)).reversed());
+
+            StringBuilder sb = new StringBuilder();
+            if (bestAnswer != null) {
+                String ansText = bestAnswer.has("text") && bestAnswer.get("text").isJsonPrimitive()
+                    ? bestAnswer.get("text").getAsString()
+                    : "No answer candidate.";
+                sb.append("conf:")
+                    .append(String.format(java.util.Locale.ROOT, "%.2f", confidenceOf(bestAnswer)))
+                    .append(" Ans:\"")
+                    .append(oneLine(ansText))
+                    .append("\"");
+            }
+
+            for (NumberedCandidate nc : commandCandidates) {
+                JsonObject cmd = nc.candidate;
+                if (sb.length() > 0) {
+                    sb.append("\n");
+                }
+
+                String tool = cmd.has("tool") && cmd.get("tool").isJsonPrimitive()
+                    ? cmd.get("tool").getAsString()
+                    : "unknownTool";
+
+                int confPercent = (int) Math.round(confidenceOf(cmd) * 100.0);
+                sb.append("#").append(nc.candidateNumber).append(" ")
+                    .append("conf:").append(confPercent).append(" ").append(tool);
+
+                if (cmd.has("args") && cmd.get("args").isJsonArray() && cmd.getAsJsonArray("args").size() > 0) {
+                    JsonArray args = cmd.getAsJsonArray("args");
+                    List<String> argParts = new ArrayList<>();
+                    for (JsonElement arg : args) {
+                        if (arg != null && arg.isJsonPrimitive()) {
+                            argParts.add(arg.getAsString());
+                        }
+                    }
+                    if (!argParts.isEmpty()) {
+                        sb.append(" args (")
+                            .append(String.join(" ", argParts))
+                            .append(")");
+                    }
+                }
+            }
+
+            if (sb.length() == 0) {
+                return "No candidates available. Full JSON saved to " + fileName;
+            }
+            return sb.toString();
+        }
+
+        if ("stage3_final".equals(stage)) {
+            String finalAnswer = obj.has("finalAnswer") && obj.get("finalAnswer").isJsonPrimitive()
+                ? obj.get("finalAnswer").getAsString()
+                : "Done.";
+            return oneLine(finalAnswer) + " (Full JSON saved to " + fileName + ")";
+        }
+
+        if ("error".equals(stage)) {
+            String msg = obj.has("message") && obj.get("message").isJsonPrimitive()
+                ? obj.get("message").getAsString()
+                : "Agent error.";
+            return oneLine(msg) + " (Full JSON saved to " + fileName + ")";
+        }
+
+        return "Agent stage '" + stage + "' complete. Full JSON saved to " + fileName;
+    }
+
+    private static double confidenceOf(JsonObject candidate) {
+        if (candidate == null || !candidate.has("confidence") || !candidate.get("confidence").isJsonPrimitive()) {
+            return 0.0;
+        }
+        double c = candidate.get("confidence").getAsDouble();
+        if (c < 0.0) return 0.0;
+        if (c > 1.0) return 1.0;
+        return c;
+    }
+
+    private static final class NumberedCandidate {
+        final int candidateNumber;
+        final JsonObject candidate;
+
+        NumberedCandidate(int candidateNumber, JsonObject candidate) {
+            this.candidateNumber = candidateNumber;
+            this.candidate = candidate;
+        }
+    }
+
     public static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
         LOGGER.info(com.sai.NpcooLog.tag("askSteveAi START playerUuid={} message={}"), playerUuid, message);
 
         String fileContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
-        String normalizedMessage = message == null ? "" : message.toLowerCase(java.util.Locale.ROOT);
-        boolean louTruthMode = normalizedMessage.contains("lou wants to know")
-            || normalizedMessage.contains("lwtk");
+        String rawReply = SteveAiThreeStageAgent.process(serverLevel, playerUuid, message, fileContext);
+        JsonElement parsedJson = tryParseJson(rawReply);
 
-        String behaviorText;
-        if (louTruthMode) {
-            behaviorText =
-                "You are SteveAI, a Minecraft villager. " +
-                "Be very honest and direct. " +
-                "Add a bit of specific detail that helps answer the question clearly. " +
-                "Keep responses concise and not too long.";
-        } else {
-            behaviorText =
-                "You are SteveAI, a Minecraft villager. " +
-                "You are shy at first and mistrustful in this new world. " +
-                "You are truthful but vague and may fib to protect yourself, especially early in a relationship. " +
-                "After days of knowing someone you become more open and share more detailed, personal and useful info.\n" +
-                "Keep replies short if possible, even curt if warranted.";
+        if (parsedJson != null) {
+            appendPrettyAgentJson(serverLevel, playerUuid, message, parsedJson);
         }
 
-        String prompt =
-            behaviorText + " " +
-            "Use the context files below if relevant.\n" +
-            "IMPORTANT: The POI summary may list confirmed villages with a 'personality' field. " +
-            "When a village has a personality, its villagers ARE the characters from that theme. " +
-            "For example, a village with personality=scooby_doo has villagers named Scooby-Doo, Shaggy, Velma, Daphne, and Fred. " +
-            "A village with personality=er_tv_series has Dr. Mark Greene, Dr. Doug Ross, Dr. John Carter, Nurse Carol Hathaway, and Dr. Peter Benton. " +
-            "A village with personality=lord_of_the_rings has Gandalf, Frodo, Aragorn, Legolas, Gimli, Samwise Gamgee, and Boromir. " +
-            "A village with personality=pirates_of_the_caribbean has Jack Sparrow, Will Turner, Elizabeth Swann, Hector Barbossa, and Davy Jones. " +
-            "Always refer to those villagers by their character names and stay in character for that theme.\n\n" +
-            fileContext + "\n\n" +
-            "Player asks: " + message;
-
-        String reply = OpenAiService.ask(prompt);
+        String reply = parsedJson != null
+            ? summarizeJsonForChat(playerUuid, parsedJson)
+            : rawReply;
 
         appendSteveAiChatLine(serverLevel, playerUuid,
             "[" + chatTs() + "] YOU: " + oneLine(message));

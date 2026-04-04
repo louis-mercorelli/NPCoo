@@ -72,7 +72,6 @@ public final class CEHNavigationChunk {
 
     public static int handleForceChunkOff(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-
         if (!(source.getEntity() instanceof ServerPlayer player)) {
             source.sendFailure(Component.literal("Player only command."));
             return 0;
@@ -168,7 +167,7 @@ public final class CEHNavigationChunk {
         return 1;
     }
 
-    static BlockPos findSafeTeleportPosNearPlayer(ServerLevel serverLevel, ServerPlayer player) {
+    public static BlockPos findSafeTeleportPosNearPlayer(ServerLevel serverLevel, ServerPlayer player) {
         BlockPos playerPos = player.blockPosition();
 
         for (int radius = 1; radius <= 4; radius++) {
