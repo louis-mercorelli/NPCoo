@@ -55,6 +55,10 @@ package com.example.examplemod.scan;
 import com.example.examplemod.CommandEvents;
 import com.example.examplemod.SteveAiContextFiles;
 import com.example.examplemod.steveAI.SteveAiLocator;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 
@@ -87,8 +91,12 @@ public final class CEHScan {
 
     private static final String UNIQUE_SIGNATURES_RESOURCE_PATH =
         "data/examplemod/reference/vanilla_structures_pois_unique_signatures.txt";
+    private static final String VANILLA_POIS_JSON_RESOURCE_PATH =
+        "data/examplemod/reference/vanilla_structures_pois.json";
     private static volatile List<UniqueSignatureRule> cachedUniqueSignatureRules = null;
-    private static final Set<String> findPoiCheckedChunkKeys = new HashSet<>();
+    private static volatile Map<String, VanillaPoiEntry> cachedVanillaPoisMap = null;
+    private static final Set<String> poiFindCheckedChunkKeys = new HashSet<>();
+    private static volatile Set<String> lastDetectedStructureIds = new HashSet<>();
 
     private CEHScan() {}
 
@@ -109,6 +117,21 @@ public final class CEHScan {
         UniqueSignatureRule(String id, List<UniqueSignatureToken> tokens) {
             this.id = id;
             this.tokens = tokens;
+        }
+    }
+
+    /** Lightweight descriptor loaded from vanilla_structures_pois.json for POIfindu targeting. */
+    static class VanillaPoiEntry {
+        final String id;       // e.g. "minecraft:village"
+        final String name;     // e.g. "Village"
+        final Set<String> entities;
+        final Set<String> blockEntities;
+
+        VanillaPoiEntry(String id, String name, Set<String> entities, Set<String> blockEntities) {
+            this.id = id;
+            this.name = name;
+            this.entities = entities;
+            this.blockEntities = blockEntities;
         }
     }
 
@@ -738,24 +761,109 @@ public final class CEHScan {
         return true;
     }
 
-    private static String findPoiChunkMemoryKey(ServerLevel serverLevel, int chunkX, int chunkZ) {
+    private static String poiFindChunkMemoryKey(ServerLevel serverLevel, int chunkX, int chunkZ) {
         return String.valueOf(serverLevel.dimension()) + ":" + chunkX + ":" + chunkZ;
     }
 
-    public static int handleFindPoiReset(CommandContext<CommandSourceStack> context) {
+    /**
+     * Loads and caches vanilla_structures_pois.json into a map keyed by both the full id
+     * (e.g. "minecraft:village") and the short name key (e.g. "village").
+     * Returns the cached map on subsequent calls.
+     */
+    private static Map<String, VanillaPoiEntry> loadVanillaPoisMap() {
+        if (cachedVanillaPoisMap != null) {
+            return cachedVanillaPoisMap;
+        }
+
+        Map<String, VanillaPoiEntry> map = new java.util.HashMap<>();
+
+        try (InputStream input = CEHScan.class.getClassLoader().getResourceAsStream(VANILLA_POIS_JSON_RESOURCE_PATH)) {
+            java.io.Reader reader;
+            if (input != null) {
+                reader = new InputStreamReader(input, StandardCharsets.UTF_8);
+            } else {
+                Path fallback = Path.of("src/main/resources/" + VANILLA_POIS_JSON_RESOURCE_PATH);
+                if (!Files.exists(fallback)) {
+                    throw new IllegalStateException("vanilla_structures_pois.json not found");
+                }
+                reader = Files.newBufferedReader(fallback, StandardCharsets.UTF_8);
+            }
+
+            try (reader) {
+                JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
+
+                for (String arrayKey : new String[]{"structures", "pois"}) {
+                    if (!root.has(arrayKey)) {
+                        continue;
+                    }
+                    JsonArray arr = root.getAsJsonArray(arrayKey);
+                    for (JsonElement el : arr) {
+                        JsonObject obj = el.getAsJsonObject();
+                        String id = obj.get("id").getAsString();
+                        String name = obj.has("name") ? obj.get("name").getAsString() : id;
+
+                        Set<String> entities = new java.util.LinkedHashSet<>();
+                        Set<String> blockEntities = new java.util.LinkedHashSet<>();
+
+                        if (obj.has("entities")) {
+                            for (JsonElement e : obj.getAsJsonArray("entities")) {
+                                entities.add(e.getAsString());
+                            }
+                        }
+                        if (obj.has("block_entities")) {
+                            for (JsonElement e : obj.getAsJsonArray("block_entities")) {
+                                blockEntities.add(e.getAsString());
+                            }
+                        }
+
+                        VanillaPoiEntry entry = new VanillaPoiEntry(id, name, entities, blockEntities);
+                        map.put(id.toLowerCase(Locale.ROOT), entry);
+
+                        // Also index by short key (text after ":") for convenience
+                        int colon = id.lastIndexOf(':');
+                        if (colon >= 0 && colon + 1 < id.length()) {
+                            map.putIfAbsent(id.substring(colon + 1).toLowerCase(Locale.ROOT), entry);
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to load vanilla_structures_pois.json: " + e.getMessage(), e);
+        }
+
+        cachedVanillaPoisMap = java.util.Collections.unmodifiableMap(map);
+        return cachedVanillaPoisMap;
+    }
+
+    /** Resolves a user-supplied POI arg (e.g. "village", "minecraft:village") to a VanillaPoiEntry, or null. */
+    private static VanillaPoiEntry resolvePoiArg(String arg) {
+        if (arg == null || arg.isBlank()) {
+            return null;
+        }
+        Map<String, VanillaPoiEntry> map = loadVanillaPoisMap();
+        String lower = arg.toLowerCase(Locale.ROOT).trim();
+        VanillaPoiEntry entry = map.get(lower);
+        if (entry == null && !lower.contains(":")) {
+            // Try prefixing "minecraft:"
+            entry = map.get("minecraft:" + lower);
+        }
+        return entry;
+    }
+
+    public static int handlePoiFindReset(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
-        int cleared = findPoiCheckedChunkKeys.size();
-        findPoiCheckedChunkKeys.clear();
+        int cleared = poiFindCheckedChunkKeys.size();
+        poiFindCheckedChunkKeys.clear();
         source.sendSuccess(() -> Component.literal(
-            "findPOI memory reset: clearedCheckedChunks=" + cleared
+            "POIfind memory reset: clearedCheckedChunks=" + cleared
         ), false);
         return 1;
     }
 
-    public static int handleFindPoiStatus(CommandContext<CommandSourceStack> context) {
+    public static int handlePoiFindStatus(CommandContext<CommandSourceStack> context) {
         CommandSourceStack source = context.getSource();
         source.sendSuccess(() -> Component.literal(
-            "findPOI memory: checkedChunks=" + findPoiCheckedChunkKeys.size()
+            "POIfind memory: checkedChunks=" + poiFindCheckedChunkKeys.size()
         ), false);
         return 1;
     }
@@ -795,6 +903,38 @@ public final class CEHScan {
                 }
                 matchedDetails.add(detail.toString());
             }
+        }
+
+        boolean hasVillager = uniqueEntities.contains("minecraft:villager");
+        boolean hasBell = uniqueBlocks.contains("minecraft:bell");
+        boolean hasBed = false;
+        for (String blockId : uniqueBlocks) {
+            if (blockId != null && blockId.endsWith("_bed")) {
+                hasBed = true;
+                break;
+            }
+        }
+
+        boolean hasVillageWorkstation =
+            uniqueBlocks.contains("minecraft:blast_furnace")
+            || uniqueBlocks.contains("minecraft:smoker")
+            || uniqueBlocks.contains("minecraft:lectern")
+            || uniqueBlocks.contains("minecraft:cartography_table")
+            || uniqueBlocks.contains("minecraft:composter")
+            || uniqueBlocks.contains("minecraft:stonecutter")
+            || uniqueBlocks.contains("minecraft:loom")
+            || uniqueBlocks.contains("minecraft:grindstone")
+            || uniqueBlocks.contains("minecraft:fletching_table")
+            || uniqueBlocks.contains("minecraft:smithing_table");
+
+        if (!likelyIds.contains("minecraft:village") && hasVillager && (hasBell || hasBed || hasVillageWorkstation)) {
+            likelyIds.add("minecraft:village");
+            matchedDetails.add(
+                "minecraft:village <- heuristic: entity=minecraft:villager"
+                    + (hasBell ? ", block=minecraft:bell" : "")
+                    + (hasBed ? ", block=* _bed" : "")
+                    + (hasVillageWorkstation ? ", block=village_workstation" : "")
+            );
         }
 
         java.util.Collections.sort(likelyIds);
@@ -910,7 +1050,7 @@ public final class CEHScan {
         return 1;
     }
 
-    public static int handleFindPoi(
+    public static int handlePoiFind(
         CommandContext<CommandSourceStack> context,
         int broadChunkRadius,
         int scanLimit,
@@ -924,7 +1064,7 @@ public final class CEHScan {
             return 0;
         }
         if (!(source.getEntity() instanceof ServerPlayer player)) {
-            source.sendFailure(Component.literal("findPOI requires a player command source."));
+            source.sendFailure(Component.literal("POIfind requires a player command source."));
             return 0;
         }
 
@@ -973,8 +1113,8 @@ public final class CEHScan {
                 int chunkZ = pos.getZ() >> 4;
                 long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
                 if (candidateKeys.add(key)) {
-                    String memoryKey = findPoiChunkMemoryKey(serverLevel, chunkX, chunkZ);
-                    if (findPoiCheckedChunkKeys.contains(memoryKey)) {
+                    String memoryKey = poiFindChunkMemoryKey(serverLevel, chunkX, chunkZ);
+                    if (poiFindCheckedChunkKeys.contains(memoryKey)) {
                         skippedKnownChunks++;
                         continue;
                     }
@@ -988,8 +1128,8 @@ public final class CEHScan {
                     int chunkZ = pos.getZ() >> 4;
                     long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
                     if (candidateKeys.add(key)) {
-                        String memoryKey = findPoiChunkMemoryKey(serverLevel, chunkX, chunkZ);
-                        if (findPoiCheckedChunkKeys.contains(memoryKey)) {
+                        String memoryKey = poiFindChunkMemoryKey(serverLevel, chunkX, chunkZ);
+                        if (poiFindCheckedChunkKeys.contains(memoryKey)) {
                             skippedKnownChunks++;
                             continue;
                         }
@@ -1012,8 +1152,8 @@ public final class CEHScan {
                 int chunkZ = pos.getZ() >> 4;
                 long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
                 if (candidateKeys.add(key)) {
-                    String memoryKey = findPoiChunkMemoryKey(serverLevel, chunkX, chunkZ);
-                    if (findPoiCheckedChunkKeys.contains(memoryKey)) {
+                    String memoryKey = poiFindChunkMemoryKey(serverLevel, chunkX, chunkZ);
+                    if (poiFindCheckedChunkKeys.contains(memoryKey)) {
                         skippedKnownChunks++;
                         continue;
                     }
@@ -1027,8 +1167,8 @@ public final class CEHScan {
                     int chunkZ = pos.getZ() >> 4;
                     long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
                     if (candidateKeys.add(key)) {
-                        String memoryKey = findPoiChunkMemoryKey(serverLevel, chunkX, chunkZ);
-                        if (findPoiCheckedChunkKeys.contains(memoryKey)) {
+                        String memoryKey = poiFindChunkMemoryKey(serverLevel, chunkX, chunkZ);
+                        if (poiFindCheckedChunkKeys.contains(memoryKey)) {
                             skippedKnownChunks++;
                             continue;
                         }
@@ -1050,12 +1190,12 @@ public final class CEHScan {
         int toScan = Math.min(scanLimit, candidates.size());
         if (toScan <= 0) {
             final int skippedKnownChunksFinal = skippedKnownChunks;
-            final int checkedChunksFinal = findPoiCheckedChunkKeys.size();
+            final int checkedChunksFinal = poiFindCheckedChunkKeys.size();
             source.sendSuccess(() -> Component.literal(
-                "findPOI: no new candidate chunks found from broad scan"
+                "POIfind: no new candidate chunks found from broad scan"
             ), false);
             source.sendSuccess(() -> Component.literal(
-                "findPOI memory: skippedKnownChunks=" + skippedKnownChunksFinal
+                "POIfind memory: skippedKnownChunks=" + skippedKnownChunksFinal
                     + " checkedChunks=" + checkedChunksFinal
             ), false);
             return 1;
@@ -1076,7 +1216,7 @@ public final class CEHScan {
             FindPoiCandidate c = candidates.get(i);
             BlockPos scanCenter = new BlockPos((c.chunkX << 4) + 8, c.samplePos.getY(), (c.chunkZ << 4) + 8);
             Sai2LikelyAnalysis analysis = runSai2LikelyAnalysis(serverLevel, scanCenter, useCache, rules);
-            findPoiCheckedChunkKeys.add(findPoiChunkMemoryKey(serverLevel, c.chunkX, c.chunkZ));
+            poiFindCheckedChunkKeys.add(poiFindChunkMemoryKey(serverLevel, c.chunkX, c.chunkZ));
 
             globalLikely.addAll(analysis.likelyIds);
             chunkSummaries.add(
@@ -1090,17 +1230,17 @@ public final class CEHScan {
         Path outFile = null;
         try {
             Path dir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
-            outFile = dir.resolve("findPOI_" + serverLevel.getGameTime() + "_" + playerChunkX + "_" + playerChunkZ + ".txt");
+            outFile = dir.resolve("POIfind_" + serverLevel.getGameTime() + "_" + playerChunkX + "_" + playerChunkZ + ".txt");
 
             StringBuilder text = new StringBuilder();
-            text.append("findPOI report\n");
+            text.append("POIfind report\n");
             text.append("player=").append(playerPos.toShortString()).append(" playerChunk=").append(playerChunkX).append(",").append(playerChunkZ).append("\n");
             text.append("steveAI=").append(stevePos.toShortString()).append(" steveChunk=").append(steveChunkX).append(",").append(steveChunkZ).append("\n");
             text.append("broadCenter=").append(broadCenter.toShortString()).append(" broadChunkRadius=").append(broadChunkRadius).append("\n");
             text.append("forceLoad=").append(forceLoad).append(" useCache=").append(useCache).append("\n");
             text.append("candidateChunks=").append(candidates.size()).append(" scannedChunks=").append(toScan)
                 .append(" skippedKnownChunks=").append(skippedKnownChunks)
-                .append(" checkedMemorySize=").append(findPoiCheckedChunkKeys.size()).append("\n\n");
+                .append(" checkedMemorySize=").append(poiFindCheckedChunkKeys.size()).append("\n\n");
 
             text.append("globalLikely (count=").append(globalLikely.size()).append(")\n");
             for (String id : globalLikely) {
@@ -1127,20 +1267,200 @@ public final class CEHScan {
         String likelyText = globalLikely.isEmpty() ? "none" : String.join(", ", globalLikely);
         String fileText = outFile == null ? "(file write failed)" : outFile.toAbsolutePath().toString();
         final int skippedKnownChunksFinal = skippedKnownChunks;
-        final int checkedChunksFinal = findPoiCheckedChunkKeys.size();
+        final int checkedChunksFinal = poiFindCheckedChunkKeys.size();
+
+        lastDetectedStructureIds = new HashSet<>(globalLikely);
 
         source.sendSuccess(() -> Component.literal(
-            "findPOI complete: broadRadius=" + broadChunkRadius
+            "POIfind complete: broadRadius=" + broadChunkRadius
                 + " candidates=" + candidates.size()
                 + " scanned=" + toScan
-            + " skippedKnown=" + skippedKnownChunksFinal
-            + " checkedMemory=" + checkedChunksFinal
+                + " skippedKnown=" + skippedKnownChunksFinal
+                + " checkedMemory=" + checkedChunksFinal
                 + " globalLikely=" + globalLikely.size()
                 + " time=" + totalElapsedMs + "ms"
         ), false);
-        source.sendSuccess(() -> Component.literal("findPOI likelyStructures: " + likelyText), false);
-        source.sendSuccess(() -> Component.literal("findPOI reportFile: " + fileText), false);
+        source.sendSuccess(() -> Component.literal("POIfind likelyStructures: " + likelyText), false);
+        source.sendSuccess(() -> Component.literal("POIfind reportFile: " + fileText), false);
+        return 1;
+    }
 
+    /**
+     * POIfindu — targeted variant of POIfind.
+     * Runs a single scanSAIBroad then filters candidate chunks to ONLY those containing
+     * entities or block-entities that match the target POI's known signature from
+     * vanilla_structures_pois.json.  There is no per-chunk re-scan, making this
+     * significantly faster than POIfind for finding a specific known structure.
+     */
+    public static int handlePoiFindU(
+        CommandContext<CommandSourceStack> context,
+        String poiArg,
+        int broadChunkRadius,
+        boolean forceLoad
+    ) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+        if (!(source.getEntity() instanceof ServerPlayer player)) {
+            source.sendFailure(Component.literal("POIfindu requires a player command source."));
+            return 0;
+        }
+
+        VanillaPoiEntry entry;
+        try {
+            entry = resolvePoiArg(poiArg);
+        } catch (IllegalStateException e) {
+            source.sendFailure(Component.literal("POIfindu: failed to load POI data: " + e.getMessage()));
+            return 0;
+        }
+
+        if (entry == null) {
+            source.sendFailure(Component.literal(
+                "POIfindu: unknown POI '" + poiArg + "'. Use the structure id or short name, e.g. village, mineshaft, minecraft:village."
+            ));
+            return 0;
+        }
+
+        Villager steveAi = SteveAiLocator.findSteveAi(serverLevel);
+        if (steveAi == null) {
+            source.sendFailure(Component.literal("SteveAI not found."));
+            return 0;
+        }
+
+        BlockPos playerPos = player.blockPosition();
+        BlockPos stevePos = steveAi.blockPosition();
+        BlockPos broadCenter = new BlockPos(
+            (playerPos.getX() + stevePos.getX()) / 2,
+            (playerPos.getY() + stevePos.getY()) / 2,
+            (playerPos.getZ() + stevePos.getZ()) / 2
+        );
+
+        int playerChunkX = playerPos.getX() >> 4;
+        int playerChunkZ = playerPos.getZ() >> 4;
+        int steveChunkX = stevePos.getX() >> 4;
+        int steveChunkZ = stevePos.getZ() >> 4;
+
+        long totalStartNs = System.nanoTime();
+        try {
+            SteveAiScanManager.scanSAIBroad(serverLevel, broadCenter, broadChunkRadius, forceLoad);
+        } catch (IllegalArgumentException e) {
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        Map<String, SteveAiCollectors.SeenSummary> broadEntities = SteveAiScanManager.getScannedEntities();
+        Map<String, SteveAiCollectors.SeenSummary> broadBlockEntities = SteveAiScanManager.getScannedBlockEntities();
+
+        // Collect candidate chunks only from the target POI's known entity/block-entity signals
+        LinkedHashSet<Long> candidateKeys = new LinkedHashSet<>();
+        List<FindPoiCandidate> candidates = new ArrayList<>();
+
+        for (String entityId : entry.entities) {
+            SteveAiCollectors.SeenSummary summary = broadEntities.get(entityId);
+            if (summary == null) {
+                continue;
+            }
+            List<BlockPos> positions = summary.allLocations.isEmpty()
+                ? List.of(new BlockPos(summary.x, summary.y, summary.z))
+                : summary.allLocations;
+            for (BlockPos pos : positions) {
+                int chunkX = pos.getX() >> 4;
+                int chunkZ = pos.getZ() >> 4;
+                long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
+                if (candidateKeys.add(key)) {
+                    int score = Math.abs(chunkX - playerChunkX) + Math.abs(chunkZ - playerChunkZ)
+                        + Math.abs(chunkX - steveChunkX) + Math.abs(chunkZ - steveChunkZ);
+                    candidates.add(new FindPoiCandidate(chunkX, chunkZ, pos, score));
+                }
+            }
+        }
+
+        for (String beId : entry.blockEntities) {
+            SteveAiCollectors.SeenSummary summary = broadBlockEntities.get(beId);
+            if (summary == null) {
+                continue;
+            }
+            List<BlockPos> positions = summary.allLocations.isEmpty()
+                ? List.of(new BlockPos(summary.x, summary.y, summary.z))
+                : summary.allLocations;
+            for (BlockPos pos : positions) {
+                int chunkX = pos.getX() >> 4;
+                int chunkZ = pos.getZ() >> 4;
+                long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
+                if (candidateKeys.add(key)) {
+                    int score = Math.abs(chunkX - playerChunkX) + Math.abs(chunkZ - playerChunkZ)
+                        + Math.abs(chunkX - steveChunkX) + Math.abs(chunkZ - steveChunkZ);
+                    candidates.add(new FindPoiCandidate(chunkX, chunkZ, pos, score));
+                }
+            }
+        }
+
+        candidates.sort(
+            Comparator
+                .comparingInt((FindPoiCandidate c) -> c.score)
+                .thenComparingInt(c -> c.chunkX)
+                .thenComparingInt(c -> c.chunkZ)
+        );
+
+        long totalElapsedMs = (System.nanoTime() - totalStartNs) / 1_000_000L;
+
+        // Write results file
+        Path outFile = null;
+        try {
+            Path dir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
+            outFile = dir.resolve("POIfindu_" + serverLevel.getGameTime() + "_" + playerChunkX + "_" + playerChunkZ + ".txt");
+
+            StringBuilder text = new StringBuilder();
+            text.append("POIfindu report\n");
+            text.append("target=").append(entry.id).append(" (").append(entry.name).append(")\n");
+            text.append("player=").append(playerPos.toShortString()).append(" playerChunk=").append(playerChunkX).append(",").append(playerChunkZ).append("\n");
+            text.append("steveAI=").append(stevePos.toShortString()).append(" steveChunk=").append(steveChunkX).append(",").append(steveChunkZ).append("\n");
+            text.append("broadCenter=").append(broadCenter.toShortString()).append(" broadChunkRadius=").append(broadChunkRadius).append("\n");
+            text.append("forceLoad=").append(forceLoad).append("\n");
+            text.append("matchedChunks=").append(candidates.size()).append(" elapsedMs=").append(totalElapsedMs).append("\n\n");
+
+            text.append("matchedChunkResults (sorted by proximity)\n");
+            for (FindPoiCandidate c : candidates) {
+                text.append("chunk=").append(c.chunkX).append(",").append(c.chunkZ)
+                    .append(" samplePos=").append(c.samplePos.toShortString())
+                    .append(" score=").append(c.score).append("\n");
+            }
+
+            Files.writeString(
+                outFile,
+                text.toString(),
+                StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.WRITE
+            );
+        } catch (IOException e) {
+            CommandEvents.LOGGER.warn("POIfindu failed to write output file: {}", e.getMessage());
+        }
+
+        lastDetectedStructureIds = new HashSet<>(Set.of(entry.id));
+
+        String fileText2 = outFile == null ? "(file write failed)" : outFile.toAbsolutePath().toString();
+        source.sendSuccess(() -> Component.literal(
+            "POIfindu complete: target=" + entry.id
+                + " broadRadius=" + broadChunkRadius
+                + " matchedChunks=" + candidates.size()
+                + " time=" + totalElapsedMs + "ms"
+        ), false);
+        if (candidates.isEmpty()) {
+            source.sendSuccess(() -> Component.literal("POIfindu: no chunks matched target '" + entry.id + "' in broad scan"), false);
+        } else {
+            FindPoiCandidate best = candidates.get(0);
+            source.sendSuccess(() -> Component.literal(
+                "POIfindu nearest chunk: " + best.chunkX + "," + best.chunkZ
+                    + " samplePos=" + best.samplePos.toShortString()
+                    + " score=" + best.score
+            ), false);
+        }
+        source.sendSuccess(() -> Component.literal("POIfindu reportFile: " + fileText2), false);
         return 1;
     }
 
@@ -1204,5 +1524,141 @@ public final class CEHScan {
         ), false);
 
         return 1;
+    }
+
+    public static int handlePoiMap(CommandContext<CommandSourceStack> context) {
+        CommandSourceStack source = context.getSource();
+
+        if (!(source.getLevel() instanceof ServerLevel serverLevel)) {
+            source.sendFailure(Component.literal("Not on server level."));
+            return 0;
+        }
+
+        // Get the detected structure IDs from last POIfind call
+        if (lastDetectedStructureIds.isEmpty()) {
+            source.sendFailure(Component.literal("No detected structures. Run /testmod POIfind first."));
+            return 0;
+        }
+
+        // Load signature rules and build output lines
+        List<String> outputLines = new ArrayList<>();
+        outputLines.add("Structure,MinX,MaxX,MinY,MaxY,MinZ,MaxZ,CenterX,CenterY,CenterZ");
+
+        // Load all unique signature rules
+        List<UniqueSignatureRule> rules = loadUniqueSignatureRules();
+
+        for (String structureId : lastDetectedStructureIds) {
+            // Find the signature rule for this structure ID
+            UniqueSignatureRule rule = null;
+            for (UniqueSignatureRule r : rules) {
+                if (r.id.equals(structureId)) {
+                    rule = r;
+                    break;
+                }
+            }
+
+            if (rule == null) {
+                continue;
+            }
+
+            double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE;
+            double minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
+            double minZ = Double.MAX_VALUE, maxZ = -Double.MAX_VALUE;
+
+            // Collect all positions that match this structure's signature
+            for (UniqueSignatureToken token : rule.tokens) {
+                if (token.key.equals("entity")) {
+                    Map<String, SteveAiCollectors.SeenSummary> entities = SteveAiScanManager.getScannedEntities();
+                    if (entities.containsKey(token.value)) {
+                        SteveAiCollectors.SeenSummary summary = entities.get(token.value);
+                        for (BlockPos pos : summary.allLocations) {
+                            minX = Math.min(minX, pos.getX());
+                            maxX = Math.max(maxX, pos.getX());
+                            minY = Math.min(minY, pos.getY());
+                            maxY = Math.max(maxY, pos.getY());
+                            minZ = Math.min(minZ, pos.getZ());
+                            maxZ = Math.max(maxZ, pos.getZ());
+                        }
+                        // Also check the single location if no allLocations
+                        if (summary.allLocations.isEmpty()) {
+                            minX = Math.min(minX, summary.x);
+                            maxX = Math.max(maxX, summary.x);
+                            minY = Math.min(minY, summary.y);
+                            maxY = Math.max(maxY, summary.y);
+                            minZ = Math.min(minZ, summary.z);
+                            maxZ = Math.max(maxZ, summary.z);
+                        }
+                    }
+                } else if (token.key.equals("block_entity")) {
+                    Map<String, SteveAiCollectors.SeenSummary> blockEntities = SteveAiScanManager.getScannedBlockEntities();
+                    if (blockEntities.containsKey(token.value)) {
+                        SteveAiCollectors.SeenSummary summary = blockEntities.get(token.value);
+                        for (BlockPos pos : summary.allLocations) {
+                            minX = Math.min(minX, pos.getX());
+                            maxX = Math.max(maxX, pos.getX());
+                            minY = Math.min(minY, pos.getY());
+                            maxY = Math.max(maxY, pos.getY());
+                            minZ = Math.min(minZ, pos.getZ());
+                            maxZ = Math.max(maxZ, pos.getZ());
+                        }
+                        // Also check the single location if no allLocations
+                        if (summary.allLocations.isEmpty()) {
+                            minX = Math.min(minX, summary.x);
+                            maxX = Math.max(maxX, summary.x);
+                            minY = Math.min(minY, summary.y);
+                            maxY = Math.max(maxY, summary.y);
+                            minZ = Math.min(minZ, summary.z);
+                            maxZ = Math.max(maxZ, summary.z);
+                        }
+                    }
+                } else if (token.key.equals("block")) {
+                    Map<String, SteveAiCollectors.SeenSummary> blocks = SteveAiScanManager.getScannedBlocks();
+                    if (blocks.containsKey(token.value)) {
+                        SteveAiCollectors.SeenSummary summary = blocks.get(token.value);
+                        for (BlockPos pos : summary.allLocations) {
+                            minX = Math.min(minX, pos.getX());
+                            maxX = Math.max(maxX, pos.getX());
+                            minY = Math.min(minY, pos.getY());
+                            maxY = Math.max(maxY, pos.getY());
+                            minZ = Math.min(minZ, pos.getZ());
+                            maxZ = Math.max(maxZ, pos.getZ());
+                        }
+                        // Also check the single location if no allLocations
+                        if (summary.allLocations.isEmpty()) {
+                            minX = Math.min(minX, summary.x);
+                            maxX = Math.max(maxX, summary.x);
+                            minY = Math.min(minY, summary.y);
+                            maxY = Math.max(maxY, summary.y);
+                            minZ = Math.min(minZ, summary.z);
+                            maxZ = Math.max(maxZ, summary.z);
+                        }
+                    }
+                }
+            }
+
+            // Only add if we found at least one position
+            if (minX != Double.MAX_VALUE) {
+                double centerX = (minX + maxX) / 2.0;
+                double centerY = (minY + maxY) / 2.0;
+                double centerZ = (minZ + maxZ) / 2.0;
+
+                outputLines.add(String.format(
+                    "%s,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%.1f",
+                    structureId, minX, maxX, minY, maxY, minZ, maxZ, centerX, centerY, centerZ
+                ));
+            }
+        }
+
+        // Write output file
+        try {
+            Path outDir = SteveAiContextFiles.getSteveAiDataDir(serverLevel);
+            Path outFile = outDir.resolve("POImap_" + System.currentTimeMillis() + ".csv");
+            Files.writeString(outFile, String.join("\n", outputLines));
+            source.sendSuccess(() -> Component.literal("POImap complete: " + outputLines.size() + " structures written to " + outFile.toAbsolutePath()), false);
+            return 1;
+        } catch (IOException e) {
+            source.sendFailure(Component.literal("POImap failed: " + e.getMessage()));
+            return 0;
+        }
     }
 }

@@ -81,7 +81,8 @@
         "common": 20
       },
       "entities": [
-        "minecraft:cave_spider"
+        "minecraft:cave_spider",
+        "minecraft:chest_minecart"
       ],
       "block_entities": [
         "minecraft:chest",
