@@ -97,6 +97,7 @@ public class SteveAiContextFiles {
             Path detailBlockEntitiesFile = findLatestMatchingFile(playerDataDir, "detailBlockEntities*.txt");
             Path detailEntitiesFile = findLatestMatchingFile(playerDataDir, "detailEntities*.txt");
             Path detailStatusFile = findLatestMatchingFile(playerDataDir, "detailStatus*.txt");
+            Path poiFindFile = findLatestMatchingFile(playerDataDir, "POIfind_*.txt");
 
             logFileTail("OPENAI DEBUG", poiSummaryFile, 10);
             logFileTail("OPENAI DEBUG", rawFile, 10);
@@ -104,6 +105,7 @@ public class SteveAiContextFiles {
             logFileTail("OPENAI DEBUG", detailBlockEntitiesFile, 10);
             logFileTail("OPENAI DEBUG", detailEntitiesFile, 10);
             logFileTail("OPENAI DEBUG", detailStatusFile, 10);
+            logFileTail("OPENAI DEBUG", poiFindFile, 10);
 
             String poiSummaryText = readWholeFile(poiSummaryFile);
             String sessionPoiSummaryText = (playerUuid == null) ? "" : chatSessionPoiSummary.getOrDefault(playerUuid, "");
@@ -112,6 +114,7 @@ public class SteveAiContextFiles {
             String detailBlockEntitiesText = readWholeFile(detailBlockEntitiesFile);
             String detailEntitiesText = readWholeFile(detailEntitiesFile);
             String detailStatusText = readWholeFile(detailStatusFile);
+            String poiFindText = readWholeFile(poiFindFile);
 
             StringBuilder sb = new StringBuilder();
 
@@ -138,6 +141,9 @@ public class SteveAiContextFiles {
 
             sb.append("=== SteveAI Detail Status ===\n");
             sb.append(detailStatusText.isBlank() ? "(latest detailStatus*.txt empty or missing)\n" : detailStatusText).append("\n");
+
+            sb.append("=== SteveAI POIfind Report ===\n");
+            sb.append(poiFindText.isBlank() ? "(latest POIfind_*.txt empty or missing)\n" : poiFindText).append("\n");
 
             LOGGER.info(com.sai.NpcooLog.tag("[OPENAI DEBUG] buildChatContext finished playerDataDir={}"), playerDataDir.toAbsolutePath());
 

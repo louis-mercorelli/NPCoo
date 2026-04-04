@@ -24,6 +24,7 @@
  */
 package com.example.examplemod.chat;
 
+import com.example.examplemod.CommandEvents;
 import com.example.examplemod.SteveAiContextFiles;
 
 import net.minecraft.network.FriendlyByteBuf;
@@ -56,6 +57,14 @@ public class SteveAiChatSessionPacket {
 
             ServerLevel serverLevel = (ServerLevel) player.level();
             if (pkt.opened) {
+                try {
+                    // Refresh POIfind context each time chat is opened.
+                    serverLevel.getServer()
+                        .getCommands()
+                        .performPrefixedCommand(player.createCommandSourceStack(), "testmod POIfind 20 20");
+                } catch (Exception e) {
+                    CommandEvents.LOGGER.warn(com.sai.NpcooLog.tag("Failed to run automatic POIfind on chat open: {}"), e.getMessage());
+                }
                 SteveAiContextFiles.startChatSession(serverLevel, player.getUUID());
             } else {
                 SteveAiContextFiles.endChatSession(player.getUUID());
