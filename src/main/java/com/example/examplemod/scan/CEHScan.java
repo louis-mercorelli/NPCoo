@@ -97,6 +97,12 @@ public final class CEHScan {
     private static volatile Map<String, VanillaPoiEntry> cachedVanillaPoisMap = null;
     private static final Set<String> poiFindCheckedChunkKeys = new HashSet<>();
     private static volatile Set<String> lastDetectedStructureIds = new HashSet<>();
+    private static final Map<String, Set<String>> VALUABLE_BLOCK_GROUPS = Map.of(
+        "examplemod:valuable_diamonds",
+        Set.of("minecraft:diamond_ore", "minecraft:deepslate_diamond_ore"),
+        "examplemod:valuable_emeralds",
+        Set.of("minecraft:emerald_ore", "minecraft:deepslate_emerald_ore")
+    );
 
     private CEHScan() {}
 
@@ -150,6 +156,7 @@ public final class CEHScan {
         final Set<String> uniqueBlockEntities;
         final List<String> likelyIds;
         final List<String> matchedDetails;
+        final Map<String, List<String>> likelyEvidenceById;
 
         Sai2LikelyAnalysis(
             BlockPos center,
@@ -161,7 +168,8 @@ public final class CEHScan {
             Set<String> uniqueEntities,
             Set<String> uniqueBlockEntities,
             List<String> likelyIds,
-            List<String> matchedDetails
+            List<String> matchedDetails,
+            Map<String, List<String>> likelyEvidenceById
         ) {
             this.center = center.immutable();
             this.chunkX = chunkX;
@@ -173,6 +181,7 @@ public final class CEHScan {
             this.uniqueBlockEntities = uniqueBlockEntities;
             this.likelyIds = likelyIds;
             this.matchedDetails = matchedDetails;
+            this.likelyEvidenceById = likelyEvidenceById;
         }
     }
 
@@ -861,7 +870,7 @@ public final class CEHScan {
                 int limit = Math.min(maxEvidencePerStructure, positions.size());
                 for (int i = 0; i < limit; i++) {
                     BlockPos p = positions.get(i);
-                    bucket.add(token.key + "=" + token.value + "@(" + p.getX() + "," + p.getY() + "," + p.getZ() + ")");
+                    bucket.add(formatEvidenceItem(token.value, p));
                     if (bucket.size() >= maxEvidencePerStructure) {
                         break;
                     }
@@ -878,6 +887,132 @@ public final class CEHScan {
             out.put(e.getKey(), new ArrayList<>(e.getValue()));
         }
 
+        return out;
+    }
+
+    private static String shortItemName(String id) {
+        if (id == null || id.isBlank()) {
+            return "unknown";
+        }
+        int idx = id.indexOf(':');
+        return idx >= 0 && idx + 1 < id.length() ? id.substring(idx + 1) : id;
+    }
+
+    private static String formatEvidenceItem(String itemId, BlockPos pos) {
+        return shortItemName(itemId) + "@(" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ")";
+    }
+
+    private static List<String> collectTokenEvidence(
+        String structureId,
+        UniqueSignatureToken token,
+        Map<String, SteveAiCollectors.SeenSummary> blocks,
+        Map<String, SteveAiCollectors.SeenSummary> entities,
+        Map<String, SteveAiCollectors.SeenSummary> blockEntities,
+        int maxPerToken
+    ) {
+        SteveAiCollectors.SeenSummary summary = null;
+        if ("block".equals(token.key)) {
+            summary = blocks.get(token.value);
+        } else if ("entity".equals(token.key)) {
+            summary = entities.get(token.value);
+        } else if ("block_entity".equals(token.key)) {
+            summary = blockEntities.get(token.value);
+        }
+
+        if (summary == null) {
+            return List.of();
+        }
+
+        List<BlockPos> positions = summary.allLocations.isEmpty()
+            ? List.of(new BlockPos(summary.x, summary.y, summary.z))
+            : summary.allLocations;
+
+        List<String> out = new ArrayList<>();
+        int limit = Math.min(maxPerToken, positions.size());
+        for (int i = 0; i < limit; i++) {
+            BlockPos p = positions.get(i);
+            out.add(formatEvidenceItem(token.value, p));
+        }
+        return out;
+    }
+
+    private static void addValuableBlockLikelyEvidence(
+        SteveAiScanManager.ChunkScanResult result,
+        List<String> likelyIds,
+        List<String> matchedDetails,
+        Map<String, LinkedHashSet<String>> likelyEvidence
+    ) {
+        for (Map.Entry<String, Set<String>> group : VALUABLE_BLOCK_GROUPS.entrySet()) {
+            String likelyId = group.getKey();
+            Set<String> blockIds = group.getValue();
+            Set<String> matchedBlocks = new LinkedHashSet<>();
+
+            LinkedHashSet<String> bucket = likelyEvidence.computeIfAbsent(likelyId, id -> new LinkedHashSet<>());
+            for (String blockId : blockIds) {
+                SteveAiCollectors.SeenSummary summary = result.blocks.get(blockId);
+                if (summary == null) {
+                    continue;
+                }
+
+                matchedBlocks.add(blockId);
+                UniqueSignatureToken token = new UniqueSignatureToken("block", blockId);
+                for (String ev : collectTokenEvidence(
+                    likelyId,
+                    token,
+                    result.blocks,
+                    result.entities,
+                    result.blockEntities,
+                    12
+                )) {
+                    if (bucket.size() >= 48) {
+                        break;
+                    }
+                    bucket.add(ev);
+                }
+
+                if (bucket.size() >= 48) {
+                    break;
+                }
+            }
+
+            if (!matchedBlocks.isEmpty()) {
+                if (!likelyIds.contains(likelyId)) {
+                    likelyIds.add(likelyId);
+                }
+                StringBuilder detail = new StringBuilder(likelyId).append(" <- heuristic: ");
+                int i = 0;
+                for (String blockId : matchedBlocks) {
+                    if (i++ > 0) {
+                        detail.append(", ");
+                    }
+                    detail.append("block=").append(blockId);
+                }
+                matchedDetails.add(detail.toString());
+            }
+        }
+    }
+
+    private static void mergeLikelyEvidence(
+        Map<String, LinkedHashSet<String>> merged,
+        Map<String, List<String>> additions,
+        int maxEvidencePerId
+    ) {
+        for (Map.Entry<String, List<String>> entry : additions.entrySet()) {
+            LinkedHashSet<String> bucket = merged.computeIfAbsent(entry.getKey(), id -> new LinkedHashSet<>());
+            for (String value : entry.getValue()) {
+                if (bucket.size() >= maxEvidencePerId) {
+                    break;
+                }
+                bucket.add(value);
+            }
+        }
+    }
+
+    private static Map<String, List<String>> toListMap(Map<String, LinkedHashSet<String>> source) {
+        Map<String, List<String>> out = new java.util.TreeMap<>();
+        for (Map.Entry<String, LinkedHashSet<String>> entry : source.entrySet()) {
+            out.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
         return out;
     }
 
@@ -1111,6 +1246,7 @@ public final class CEHScan {
 
         List<String> likelyIds = new ArrayList<>();
         List<String> matchedDetails = new ArrayList<>();
+        Map<String, LinkedHashSet<String>> likelyEvidence = new java.util.TreeMap<>();
         for (UniqueSignatureRule rule : rules) {
             if (ruleMatches(rule, uniqueBlocks, uniqueEntities, uniqueBlockEntities, center.getY())) {
                 boolean allowed = biomeAllowedById.computeIfAbsent(
@@ -1130,6 +1266,26 @@ public final class CEHScan {
                     detail.append(token.key).append("=").append(token.value);
                 }
                 matchedDetails.add(detail.toString());
+
+                LinkedHashSet<String> bucket = likelyEvidence.computeIfAbsent(rule.id, id -> new LinkedHashSet<>());
+                for (UniqueSignatureToken token : rule.tokens) {
+                    for (String ev : collectTokenEvidence(
+                        rule.id,
+                        token,
+                        result.blocks,
+                        result.entities,
+                        result.blockEntities,
+                        8
+                    )) {
+                        if (bucket.size() >= 48) {
+                            break;
+                        }
+                        bucket.add(ev);
+                    }
+                    if (bucket.size() >= 48) {
+                        break;
+                    }
+                }
             }
         }
 
@@ -1168,8 +1324,25 @@ public final class CEHScan {
                         + (hasBed ? ", block=* _bed" : "")
                         + (hasVillageWorkstation ? ", block=village_workstation" : "")
                 );
+
+                LinkedHashSet<String> villageEvidence = likelyEvidence.computeIfAbsent(
+                    "minecraft:village",
+                    id -> new LinkedHashSet<>()
+                );
+                SteveAiCollectors.SeenSummary villagerSummary = result.entities.get("minecraft:villager");
+                if (villagerSummary != null) {
+                    List<BlockPos> positions = villagerSummary.allLocations.isEmpty()
+                        ? List.of(new BlockPos(villagerSummary.x, villagerSummary.y, villagerSummary.z))
+                        : villagerSummary.allLocations;
+                    if (!positions.isEmpty()) {
+                        BlockPos p = positions.get(0);
+                        villageEvidence.add(formatEvidenceItem("minecraft:villager", p));
+                    }
+                }
             }
         }
+
+        addValuableBlockLikelyEvidence(result, likelyIds, matchedDetails, likelyEvidence);
 
         java.util.Collections.sort(likelyIds);
         java.util.Collections.sort(matchedDetails);
@@ -1185,7 +1358,8 @@ public final class CEHScan {
             uniqueEntities,
             uniqueBlockEntities,
             likelyIds,
-            matchedDetails
+            matchedDetails,
+            toListMap(likelyEvidence)
         );
     }
 
@@ -1463,8 +1637,11 @@ public final class CEHScan {
             broadCenter.getY(),
             24
         );
+        Map<String, LinkedHashSet<String>> mergedLikelyEvidence = new java.util.TreeMap<>();
+        mergeLikelyEvidence(mergedLikelyEvidence, broadLikelyHintEvidence, 64);
+
         Set<String> broadLikelyHints = new TreeSet<>(broadLikelyHintEvidence.keySet());
-        Set<String> globalLikely = new TreeSet<>(broadLikelyHints);
+        Set<String> globalLikely = new TreeSet<>(mergedLikelyEvidence.keySet());
 
         for (int i = 0; i < toScan; i++) {
             FindPoiCandidate c = candidates.get(i);
@@ -1473,6 +1650,7 @@ public final class CEHScan {
             poiFindCheckedChunkKeys.add(poiFindChunkMemoryKey(serverLevel, c.chunkX, c.chunkZ));
 
             globalLikely.addAll(analysis.likelyIds);
+            mergeLikelyEvidence(mergedLikelyEvidence, analysis.likelyEvidenceById, 64);
             chunkSummaries.add(
                 "chunk=" + c.chunkX + "," + c.chunkZ
                     + " score=" + c.score
@@ -1504,6 +1682,26 @@ public final class CEHScan {
                 List<String> evidence = broadLikelyHintEvidence.get(id);
                 text.append(id);
                 if (evidence != null && !evidence.isEmpty()) {
+                    text.append(" -> evidenceCount=").append(evidence.size()).append(", evidence=(");
+                    for (int i = 0; i < evidence.size(); i++) {
+                        if (i > 0) {
+                            text.append("; ");
+                        }
+                        text.append(evidence.get(i));
+                    }
+                    text.append(")");
+                }
+                text.append("\n");
+            }
+            text.append("\n");
+
+            text.append("mergedLikelyEvidence (count=").append(globalLikely.size()).append(")\n");
+            for (String id : globalLikely) {
+                List<String> evidence = mergedLikelyEvidence.containsKey(id)
+                    ? new ArrayList<>(mergedLikelyEvidence.get(id))
+                    : List.of();
+                text.append(id);
+                if (!evidence.isEmpty()) {
                     text.append(" -> evidenceCount=").append(evidence.size()).append(", evidence=(");
                     for (int i = 0; i < evidence.size(); i++) {
                         if (i > 0) {

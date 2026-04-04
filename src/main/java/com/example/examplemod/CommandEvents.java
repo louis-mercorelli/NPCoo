@@ -409,6 +409,11 @@ public class CommandEvents {
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         LOGGER.info(com.sai.NpcooLog.tag("CommandEvents.onPlayerLoggedIn START "));
         try {
+            // Enforce default runtime toggles on world entry.
+            screenDebugEnabled = false;
+            steveAiChunkForceEnabled = true;
+            ServerLoad.setHeartbeatLoggingEnabled(false);
+
             var player = event.getEntity();
             var level = player.level();
             lastPlayerUuid = player.getUUID();

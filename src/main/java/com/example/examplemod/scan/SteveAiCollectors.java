@@ -126,6 +126,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
+import com.example.examplemod.steveAI.SteveAiLocator;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -255,7 +256,9 @@ public class SteveAiCollectors {
                 continue;
             }
 
-            String typeName = BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
+            String typeName = SteveAiLocator.isSteveAi(nearby)
+                ? SteveAiLocator.STEVE_AI_ENTITY_KEY
+                : BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
             BlockPos pos = nearby.blockPosition();
 
             SeenSummary summary = grouped.get(typeName);
@@ -466,7 +469,9 @@ public class SteveAiCollectors {
         );
         Map<String, SeenSummary> grouped = new LinkedHashMap<>();
         for (net.minecraft.world.entity.Entity nearby : entities) {
-            String typeName = BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
+            String typeName = SteveAiLocator.isSteveAi(nearby)
+                ? SteveAiLocator.STEVE_AI_ENTITY_KEY
+                : BuiltInRegistries.ENTITY_TYPE.getKey(nearby.getType()).toString();
             BlockPos pos = nearby.blockPosition();
             SeenSummary summary = grouped.get(typeName);
             if (summary == null) {

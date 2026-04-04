@@ -35,6 +35,7 @@ public final class SteveAiLocator {
 
     public static final String STEVE_AI_NAME = "steveAI";
     public static final String STEVE_AI_TAG = "steveai_npc";
+    public static final String STEVE_AI_ENTITY_KEY = "examplemod:steveai";
 
     private SteveAiLocator() {}
 
