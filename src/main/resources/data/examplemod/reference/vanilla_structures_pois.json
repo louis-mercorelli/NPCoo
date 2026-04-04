@@ -307,7 +307,8 @@
         "minecraft:allay"
       ],
       "block_entities": [
-        "minecraft:chest"
+        "minecraft:chest",
+        "minecraft:banner"
       ],
       "blocks": [
         "minecraft:dark_oak_log",
@@ -371,6 +372,9 @@
         "minecraft:zombie_villager"
       ],
       "block_entities": [
+        "minecraft:bed",
+        "minecraft:campfire",
+        "minecraft:bell",
         "minecraft:blast_furnace",
         "minecraft:brewing_stand",
         "minecraft:smoker",
@@ -812,7 +816,9 @@
       "entities": [
         "minecraft:villager"
       ],
-      "block_entities": [],
+      "block_entities": [
+        "minecraft:bed"
+      ],
       "blocks": [
         "minecraft:bed"
       ]
@@ -839,7 +845,9 @@
         "minecraft:iron_golem",
         "minecraft:cat"
       ],
-      "block_entities": [],
+      "block_entities": [
+        "minecraft:bell"
+      ],
       "blocks": [
         "minecraft:bell"
       ]

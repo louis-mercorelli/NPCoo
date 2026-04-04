@@ -124,12 +124,16 @@ public final class CEHScan {
     static class VanillaPoiEntry {
         final String id;       // e.g. "minecraft:village"
         final String name;     // e.g. "Village"
+        final String dimension;
+        final Set<String> biomes;
         final Set<String> entities;
         final Set<String> blockEntities;
 
-        VanillaPoiEntry(String id, String name, Set<String> entities, Set<String> blockEntities) {
+        VanillaPoiEntry(String id, String name, String dimension, Set<String> biomes, Set<String> entities, Set<String> blockEntities) {
             this.id = id;
             this.name = name;
+            this.dimension = dimension;
+            this.biomes = biomes;
             this.entities = entities;
             this.blockEntities = blockEntities;
         }
@@ -761,6 +765,134 @@ public final class CEHScan {
         return true;
     }
 
+    private static void appendSeenSummarySection(
+        StringBuilder text,
+        String title,
+        Map<String, SteveAiCollectors.SeenSummary> seenMap
+    ) {
+        List<String> ids = new ArrayList<>(seenMap.keySet());
+        ids.sort(String::compareTo);
+
+        text.append(title).append(" (count=").append(ids.size()).append(")\n");
+        for (String id : ids) {
+            SteveAiCollectors.SeenSummary summary = seenMap.get(id);
+            if (summary == null) {
+                continue;
+            }
+
+            List<BlockPos> locations = summary.allLocations;
+            int locationCount = locations.isEmpty() ? 1 : locations.size();
+            text.append(id)
+                .append(" -> count=").append(summary.count)
+                .append(", firstLoc=(").append(summary.x).append(",").append(summary.y).append(",").append(summary.z).append(")")
+                .append(", locations=").append(locationCount);
+
+            // Keep file sizes manageable while still showing concrete debug samples.
+            if (!locations.isEmpty()) {
+                int sampleSize = Math.min(12, locations.size());
+                text.append(", sampleLocs=");
+                text.append("(");
+                for (int i = 0; i < sampleSize; i++) {
+                    BlockPos p = locations.get(i);
+                    if (i > 0) {
+                        text.append("; ");
+                    }
+                    text.append("(").append(p.getX()).append(",").append(p.getY()).append(",").append(p.getZ()).append(")");
+                }
+                if (locations.size() > sampleSize) {
+                    text.append("; ...");
+                }
+                text.append(")");
+            }
+
+            text.append("\n");
+        }
+        text.append("\n");
+    }
+
+    private static boolean isBroadHintCompatibleRule(UniqueSignatureRule rule) {
+        for (UniqueSignatureToken token : rule.tokens) {
+            // Broad scans only provide entities + block entities, not block sets or reliable Y rules.
+            if ("block".equals(token.key) || "y".equals(token.key)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Map<String, List<String>> collectBroadLikelyHintEvidence(
+        List<UniqueSignatureRule> rules,
+        Map<String, SteveAiCollectors.SeenSummary> broadEntities,
+        Map<String, SteveAiCollectors.SeenSummary> broadBlockEntities,
+        int centerY,
+        int maxEvidencePerStructure
+    ) {
+        Map<String, java.util.LinkedHashSet<String>> evidence = new java.util.TreeMap<>();
+        Set<String> entityIds = broadEntities.keySet();
+        Set<String> blockEntityIds = broadBlockEntities.keySet();
+
+        for (UniqueSignatureRule rule : rules) {
+            if (!isBroadHintCompatibleRule(rule)) {
+                continue;
+            }
+
+            if (!ruleMatches(rule, Set.of(), entityIds, blockEntityIds, centerY)) {
+                continue;
+            }
+
+            java.util.LinkedHashSet<String> bucket = evidence.computeIfAbsent(rule.id, id -> new java.util.LinkedHashSet<>());
+
+            for (UniqueSignatureToken token : rule.tokens) {
+                SteveAiCollectors.SeenSummary summary = null;
+                if ("entity".equals(token.key)) {
+                    summary = broadEntities.get(token.value);
+                } else if ("block_entity".equals(token.key)) {
+                    summary = broadBlockEntities.get(token.value);
+                }
+
+                if (summary == null) {
+                    continue;
+                }
+
+                List<BlockPos> positions = summary.allLocations.isEmpty()
+                    ? List.of(new BlockPos(summary.x, summary.y, summary.z))
+                    : summary.allLocations;
+
+                int limit = Math.min(maxEvidencePerStructure, positions.size());
+                for (int i = 0; i < limit; i++) {
+                    BlockPos p = positions.get(i);
+                    bucket.add(token.key + "=" + token.value + "@(" + p.getX() + "," + p.getY() + "," + p.getZ() + ")");
+                    if (bucket.size() >= maxEvidencePerStructure) {
+                        break;
+                    }
+                }
+
+                if (bucket.size() >= maxEvidencePerStructure) {
+                    break;
+                }
+            }
+        }
+
+        Map<String, List<String>> out = new java.util.TreeMap<>();
+        for (Map.Entry<String, java.util.LinkedHashSet<String>> e : evidence.entrySet()) {
+            out.put(e.getKey(), new ArrayList<>(e.getValue()));
+        }
+
+        return out;
+    }
+
+    private static Set<String> collectSignatureValues(List<UniqueSignatureRule> rules, String tokenKey) {
+        Set<String> values = new HashSet<>();
+        for (UniqueSignatureRule rule : rules) {
+            for (UniqueSignatureToken token : rule.tokens) {
+                if (tokenKey.equals(token.key)) {
+                    values.add(token.value);
+                }
+            }
+        }
+        return values;
+    }
+
     private static String poiFindChunkMemoryKey(ServerLevel serverLevel, int chunkX, int chunkZ) {
         return String.valueOf(serverLevel.dimension()) + ":" + chunkX + ":" + chunkZ;
     }
@@ -801,9 +933,18 @@ public final class CEHScan {
                         JsonObject obj = el.getAsJsonObject();
                         String id = obj.get("id").getAsString();
                         String name = obj.has("name") ? obj.get("name").getAsString() : id;
+                        String dimension = obj.has("dimension") ? obj.get("dimension").getAsString() : "";
 
+                        Set<String> biomes = new java.util.LinkedHashSet<>();
                         Set<String> entities = new java.util.LinkedHashSet<>();
                         Set<String> blockEntities = new java.util.LinkedHashSet<>();
+
+                        String biomeField = obj.has("biomes") ? "biomes" : (obj.has("natural_biomes") ? "natural_biomes" : null);
+                        if (biomeField != null) {
+                            for (JsonElement b : obj.getAsJsonArray(biomeField)) {
+                                biomes.add(b.getAsString().toLowerCase(Locale.ROOT));
+                            }
+                        }
 
                         if (obj.has("entities")) {
                             for (JsonElement e : obj.getAsJsonArray("entities")) {
@@ -816,7 +957,7 @@ public final class CEHScan {
                             }
                         }
 
-                        VanillaPoiEntry entry = new VanillaPoiEntry(id, name, entities, blockEntities);
+                        VanillaPoiEntry entry = new VanillaPoiEntry(id, name, dimension, biomes, entities, blockEntities);
                         map.put(id.toLowerCase(Locale.ROOT), entry);
 
                         // Also index by short key (text after ":") for convenience
@@ -848,6 +989,85 @@ public final class CEHScan {
             entry = map.get("minecraft:" + lower);
         }
         return entry;
+    }
+
+    private static String extractMinecraftPathFromKeyString(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+
+        String lower = raw.toLowerCase(Locale.ROOT);
+        int idx = lower.lastIndexOf("minecraft:");
+        if (idx < 0) {
+            return "";
+        }
+
+        int start = idx + "minecraft:".length();
+        String tail = lower.substring(start);
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < tail.length(); i++) {
+            char c = tail.charAt(i);
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '/' || c == '-') {
+                out.append(c);
+            } else {
+                break;
+            }
+        }
+        String value = out.toString();
+        int slash = value.lastIndexOf('/');
+        return slash >= 0 ? value.substring(slash + 1) : value;
+    }
+
+    private static boolean isIdBiomeCompatible(String structureId, ServerLevel serverLevel, BlockPos samplePos) {
+        VanillaPoiEntry entry = loadVanillaPoisMap().get(structureId.toLowerCase(Locale.ROOT));
+        if (entry == null) {
+            // Unknown ids should not be hard-filtered.
+            return true;
+        }
+
+        String dim = extractMinecraftPathFromKeyString(String.valueOf(serverLevel.dimension()));
+        if (entry.dimension != null && !entry.dimension.isBlank() && !entry.dimension.equalsIgnoreCase(dim)) {
+            return false;
+        }
+
+        if (entry.biomes == null || entry.biomes.isEmpty()) {
+            return true;
+        }
+
+        String biomePath = serverLevel
+            .getBiome(samplePos)
+            .unwrapKey()
+            .map(key -> extractMinecraftPathFromKeyString(String.valueOf(key)))
+            .orElse("");
+
+        String biomeFull = biomePath.isEmpty() ? "" : ("minecraft:" + biomePath);
+
+        for (String allowedRaw : entry.biomes) {
+            String allowed = allowedRaw.toLowerCase(Locale.ROOT);
+            switch (allowed) {
+                case "any_overworld", "all_overworld_biomes", "any_overworld_except_deep_dark" -> {
+                    if (!"overworld".equals(dim)) {
+                        continue;
+                    }
+                    if ("any_overworld_except_deep_dark".equals(allowed) && "deep_dark".equals(biomePath)) {
+                        continue;
+                    }
+                    return true;
+                }
+                case "all_nether_biomes" -> {
+                    if ("the_nether".equals(dim)) {
+                        return true;
+                    }
+                }
+                default -> {
+                    if (allowed.equals(biomePath) || allowed.equals(biomeFull)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     public static int handlePoiFindReset(CommandContext<CommandSourceStack> context) {
@@ -887,11 +1107,19 @@ public final class CEHScan {
         Set<String> uniqueBlocks = new TreeSet<>(result.blocks.keySet());
         Set<String> uniqueEntities = new TreeSet<>(result.entities.keySet());
         Set<String> uniqueBlockEntities = new TreeSet<>(result.blockEntities.keySet());
+        Map<String, Boolean> biomeAllowedById = new java.util.HashMap<>();
 
         List<String> likelyIds = new ArrayList<>();
         List<String> matchedDetails = new ArrayList<>();
         for (UniqueSignatureRule rule : rules) {
             if (ruleMatches(rule, uniqueBlocks, uniqueEntities, uniqueBlockEntities, center.getY())) {
+                boolean allowed = biomeAllowedById.computeIfAbsent(
+                    rule.id,
+                    id -> isIdBiomeCompatible(id, serverLevel, center)
+                );
+                if (!allowed) {
+                    continue;
+                }
                 likelyIds.add(rule.id);
                 StringBuilder detail = new StringBuilder(rule.id).append(" <- ");
                 for (int i = 0; i < rule.tokens.size(); i++) {
@@ -928,13 +1156,19 @@ public final class CEHScan {
             || uniqueBlocks.contains("minecraft:smithing_table");
 
         if (!likelyIds.contains("minecraft:village") && hasVillager && (hasBell || hasBed || hasVillageWorkstation)) {
-            likelyIds.add("minecraft:village");
-            matchedDetails.add(
-                "minecraft:village <- heuristic: entity=minecraft:villager"
-                    + (hasBell ? ", block=minecraft:bell" : "")
-                    + (hasBed ? ", block=* _bed" : "")
-                    + (hasVillageWorkstation ? ", block=village_workstation" : "")
+            boolean villageAllowed = biomeAllowedById.computeIfAbsent(
+                "minecraft:village",
+                id -> isIdBiomeCompatible(id, serverLevel, center)
             );
+            if (villageAllowed) {
+                likelyIds.add("minecraft:village");
+                matchedDetails.add(
+                    "minecraft:village <- heuristic: entity=minecraft:villager"
+                        + (hasBell ? ", block=minecraft:bell" : "")
+                        + (hasBed ? ", block=* _bed" : "")
+                        + (hasVillageWorkstation ? ", block=village_workstation" : "")
+                );
+            }
         }
 
         java.util.Collections.sort(likelyIds);
@@ -1098,11 +1332,27 @@ public final class CEHScan {
         Map<String, SteveAiCollectors.SeenSummary> broadEntities = SteveAiScanManager.getScannedEntities();
         Map<String, SteveAiCollectors.SeenSummary> broadBlockEntities = SteveAiScanManager.getScannedBlockEntities();
 
+        List<UniqueSignatureRule> rules;
+        try {
+            rules = loadUniqueSignatureRules();
+        } catch (IllegalStateException e) {
+            source.sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+
+        // Only use IDs that can participate in signature matching; this avoids noisy mob chunks.
+        Set<String> relevantEntityIds = collectSignatureValues(rules, "entity");
+        Set<String> relevantBlockEntityIds = collectSignatureValues(rules, "block_entity");
+
         LinkedHashSet<Long> candidateKeys = new LinkedHashSet<>();
         List<FindPoiCandidate> candidates = new ArrayList<>();
         int skippedKnownChunks = 0;
 
-        for (SteveAiCollectors.SeenSummary summary : broadEntities.values()) {
+        for (Map.Entry<String, SteveAiCollectors.SeenSummary> entityEntry : broadEntities.entrySet()) {
+            if (!relevantEntityIds.contains(entityEntry.getKey())) {
+                continue;
+            }
+            SteveAiCollectors.SeenSummary summary = entityEntry.getValue();
             if (summary == null) {
                 continue;
             }
@@ -1141,7 +1391,11 @@ public final class CEHScan {
             }
         }
 
-        for (SteveAiCollectors.SeenSummary summary : broadBlockEntities.values()) {
+        for (Map.Entry<String, SteveAiCollectors.SeenSummary> blockEntityEntry : broadBlockEntities.entrySet()) {
+            if (!relevantBlockEntityIds.contains(blockEntityEntry.getKey())) {
+                continue;
+            }
+            SteveAiCollectors.SeenSummary summary = blockEntityEntry.getValue();
             if (summary == null) {
                 continue;
             }
@@ -1201,16 +1455,16 @@ public final class CEHScan {
             return 1;
         }
 
-        List<UniqueSignatureRule> rules;
-        try {
-            rules = loadUniqueSignatureRules();
-        } catch (IllegalStateException e) {
-            source.sendFailure(Component.literal(e.getMessage()));
-            return 0;
-        }
-
         List<String> chunkSummaries = new ArrayList<>();
-        Set<String> globalLikely = new TreeSet<>();
+        Map<String, List<String>> broadLikelyHintEvidence = collectBroadLikelyHintEvidence(
+            rules,
+            broadEntities,
+            broadBlockEntities,
+            broadCenter.getY(),
+            24
+        );
+        Set<String> broadLikelyHints = new TreeSet<>(broadLikelyHintEvidence.keySet());
+        Set<String> globalLikely = new TreeSet<>(broadLikelyHints);
 
         for (int i = 0; i < toScan; i++) {
             FindPoiCandidate c = candidates.get(i);
@@ -1241,6 +1495,27 @@ public final class CEHScan {
             text.append("candidateChunks=").append(candidates.size()).append(" scannedChunks=").append(toScan)
                 .append(" skippedKnownChunks=").append(skippedKnownChunks)
                 .append(" checkedMemorySize=").append(poiFindCheckedChunkKeys.size()).append("\n\n");
+
+            appendSeenSummarySection(text, "broadEntitiesFound", broadEntities);
+            appendSeenSummarySection(text, "broadBlockEntitiesFound", broadBlockEntities);
+
+            text.append("broadLikelyHints (count=").append(broadLikelyHints.size()).append(")\n");
+            for (String id : broadLikelyHints) {
+                List<String> evidence = broadLikelyHintEvidence.get(id);
+                text.append(id);
+                if (evidence != null && !evidence.isEmpty()) {
+                    text.append(" -> evidenceCount=").append(evidence.size()).append(", evidence=(");
+                    for (int i = 0; i < evidence.size(); i++) {
+                        if (i > 0) {
+                            text.append("; ");
+                        }
+                        text.append(evidence.get(i));
+                    }
+                    text.append(")");
+                }
+                text.append("\n");
+            }
+            text.append("\n");
 
             text.append("globalLikely (count=").append(globalLikely.size()).append(")\n");
             for (String id : globalLikely) {
@@ -1277,6 +1552,7 @@ public final class CEHScan {
                 + " scanned=" + toScan
                 + " skippedKnown=" + skippedKnownChunksFinal
                 + " checkedMemory=" + checkedChunksFinal
+                + " broadHints=" + broadLikelyHints.size()
                 + " globalLikely=" + globalLikely.size()
                 + " time=" + totalElapsedMs + "ms"
         ), false);
@@ -1357,6 +1633,8 @@ public final class CEHScan {
         // Collect candidate chunks only from the target POI's known entity/block-entity signals
         LinkedHashSet<Long> candidateKeys = new LinkedHashSet<>();
         List<FindPoiCandidate> candidates = new ArrayList<>();
+        Map<Long, Boolean> biomeAllowedChunkCache = new java.util.HashMap<>();
+        int excludedByBiome = 0;
 
         for (String entityId : entry.entities) {
             SteveAiCollectors.SeenSummary summary = broadEntities.get(entityId);
@@ -1370,6 +1648,16 @@ public final class CEHScan {
                 int chunkX = pos.getX() >> 4;
                 int chunkZ = pos.getZ() >> 4;
                 long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
+
+                boolean allowed = biomeAllowedChunkCache.computeIfAbsent(
+                    key,
+                    k -> isIdBiomeCompatible(entry.id, serverLevel, pos)
+                );
+                if (!allowed) {
+                    excludedByBiome++;
+                    continue;
+                }
+
                 if (candidateKeys.add(key)) {
                     int score = Math.abs(chunkX - playerChunkX) + Math.abs(chunkZ - playerChunkZ)
                         + Math.abs(chunkX - steveChunkX) + Math.abs(chunkZ - steveChunkZ);
@@ -1390,6 +1678,16 @@ public final class CEHScan {
                 int chunkX = pos.getX() >> 4;
                 int chunkZ = pos.getZ() >> 4;
                 long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
+
+                boolean allowed = biomeAllowedChunkCache.computeIfAbsent(
+                    key,
+                    k -> isIdBiomeCompatible(entry.id, serverLevel, pos)
+                );
+                if (!allowed) {
+                    excludedByBiome++;
+                    continue;
+                }
+
                 if (candidateKeys.add(key)) {
                     int score = Math.abs(chunkX - playerChunkX) + Math.abs(chunkZ - playerChunkZ)
                         + Math.abs(chunkX - steveChunkX) + Math.abs(chunkZ - steveChunkZ);
@@ -1420,7 +1718,11 @@ public final class CEHScan {
             text.append("steveAI=").append(stevePos.toShortString()).append(" steveChunk=").append(steveChunkX).append(",").append(steveChunkZ).append("\n");
             text.append("broadCenter=").append(broadCenter.toShortString()).append(" broadChunkRadius=").append(broadChunkRadius).append("\n");
             text.append("forceLoad=").append(forceLoad).append("\n");
+            text.append("excludedByBiome=").append(excludedByBiome).append("\n");
             text.append("matchedChunks=").append(candidates.size()).append(" elapsedMs=").append(totalElapsedMs).append("\n\n");
+
+            appendSeenSummarySection(text, "broadEntitiesFound", broadEntities);
+            appendSeenSummarySection(text, "broadBlockEntitiesFound", broadBlockEntities);
 
             text.append("matchedChunkResults (sorted by proximity)\n");
             for (FindPoiCandidate c : candidates) {
@@ -1444,9 +1746,11 @@ public final class CEHScan {
         lastDetectedStructureIds = new HashSet<>(Set.of(entry.id));
 
         String fileText2 = outFile == null ? "(file write failed)" : outFile.toAbsolutePath().toString();
+    final int excludedByBiomeFinal = excludedByBiome;
         source.sendSuccess(() -> Component.literal(
             "POIfindu complete: target=" + entry.id
                 + " broadRadius=" + broadChunkRadius
+        + " excludedByBiome=" + excludedByBiomeFinal
                 + " matchedChunks=" + candidates.size()
                 + " time=" + totalElapsedMs + "ms"
         ), false);
