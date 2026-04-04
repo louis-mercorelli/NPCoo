@@ -134,14 +134,16 @@ public final class CEHScan {
         final Set<String> biomes;
         final Set<String> entities;
         final Set<String> blockEntities;
+        final Set<String> blocks;
 
-        VanillaPoiEntry(String id, String name, String dimension, Set<String> biomes, Set<String> entities, Set<String> blockEntities) {
+        VanillaPoiEntry(String id, String name, String dimension, Set<String> biomes, Set<String> entities, Set<String> blockEntities, Set<String> blocks) {
             this.id = id;
             this.name = name;
             this.dimension = dimension;
             this.biomes = biomes;
             this.entities = entities;
             this.blockEntities = blockEntities;
+            this.blocks = blocks;
         }
     }
 
@@ -359,6 +361,7 @@ public final class CEHScan {
                     + " quickChunks=" + SteveAiScanManager.getLastFastQuickChunkCount()
                 : "")
             + " groupedCount=" + finalCount
+            + " time=" + elapsedMs + "ms"
             + " (run /testmod poiStage1 to ingest into POI map)"
         ), false);
 
@@ -1073,6 +1076,7 @@ public final class CEHScan {
                         Set<String> biomes = new java.util.LinkedHashSet<>();
                         Set<String> entities = new java.util.LinkedHashSet<>();
                         Set<String> blockEntities = new java.util.LinkedHashSet<>();
+                        Set<String> blocks = new java.util.LinkedHashSet<>();
 
                         String biomeField = obj.has("biomes") ? "biomes" : (obj.has("natural_biomes") ? "natural_biomes" : null);
                         if (biomeField != null) {
@@ -1091,8 +1095,13 @@ public final class CEHScan {
                                 blockEntities.add(e.getAsString());
                             }
                         }
+                        if (obj.has("blocks")) {
+                            for (JsonElement e : obj.getAsJsonArray("blocks")) {
+                                blocks.add(e.getAsString());
+                            }
+                        }
 
-                        VanillaPoiEntry entry = new VanillaPoiEntry(id, name, dimension, biomes, entities, blockEntities);
+                        VanillaPoiEntry entry = new VanillaPoiEntry(id, name, dimension, biomes, entities, blockEntities, blocks);
                         map.put(id.toLowerCase(Locale.ROOT), entry);
 
                         // Also index by short key (text after ":") for convenience
@@ -1123,7 +1132,73 @@ public final class CEHScan {
             // Try prefixing "minecraft:"
             entry = map.get("minecraft:" + lower);
         }
-        return entry;
+        if (entry != null) {
+            return entry;
+        }
+
+        // Keyword fallback (e.g. "gold"): merge matching POI signatures into one synthetic target.
+        if (lower.contains(":")) {
+            return null;
+        }
+
+        Map<String, VanillaPoiEntry> byId = new java.util.LinkedHashMap<>();
+        for (VanillaPoiEntry v : map.values()) {
+            if (v == null || v.id == null || v.id.isBlank()) {
+                continue;
+            }
+            byId.putIfAbsent(v.id.toLowerCase(Locale.ROOT), v);
+        }
+
+        Set<String> mergedEntities = new java.util.LinkedHashSet<>();
+        Set<String> mergedBlockEntities = new java.util.LinkedHashSet<>();
+        Set<String> mergedBlocks = new java.util.LinkedHashSet<>();
+        int matchedCount = 0;
+
+        for (VanillaPoiEntry v : byId.values()) {
+            String idLower = v.id.toLowerCase(Locale.ROOT);
+            String nameLower = v.name == null ? "" : v.name.toLowerCase(Locale.ROOT);
+            boolean matches = idLower.contains(lower) || nameLower.contains(lower);
+            if (!matches) {
+                matches = containsToken(v.entities, lower)
+                    || containsToken(v.blockEntities, lower)
+                    || containsToken(v.blocks, lower);
+            }
+            if (!matches) {
+                continue;
+            }
+
+            matchedCount++;
+            mergedEntities.addAll(v.entities);
+            mergedBlockEntities.addAll(v.blockEntities);
+            mergedBlocks.addAll(v.blocks);
+        }
+
+        if (matchedCount == 0) {
+            return null;
+        }
+
+        return new VanillaPoiEntry(
+            "query:" + lower,
+            "Keyword: " + lower,
+            "",
+            java.util.Collections.emptySet(),
+            mergedEntities,
+            mergedBlockEntities,
+            mergedBlocks
+        );
+    }
+
+    private static boolean containsToken(Set<String> values, String token) {
+        if (values == null || values.isEmpty() || token == null || token.isBlank()) {
+            return false;
+        }
+        String lowerToken = token.toLowerCase(Locale.ROOT);
+        for (String value : values) {
+            if (value != null && value.toLowerCase(Locale.ROOT).contains(lowerToken)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String extractMinecraftPathFromKeyString(String raw) {
@@ -1505,6 +1580,7 @@ public final class CEHScan {
 
         Map<String, SteveAiCollectors.SeenSummary> broadEntities = SteveAiScanManager.getScannedEntities();
         Map<String, SteveAiCollectors.SeenSummary> broadBlockEntities = SteveAiScanManager.getScannedBlockEntities();
+        Map<String, SteveAiCollectors.SeenSummary> broadBlocks = SteveAiScanManager.getScannedBlocks();
 
         List<UniqueSignatureRule> rules;
         try {
@@ -1827,6 +1903,7 @@ public final class CEHScan {
 
         Map<String, SteveAiCollectors.SeenSummary> broadEntities = SteveAiScanManager.getScannedEntities();
         Map<String, SteveAiCollectors.SeenSummary> broadBlockEntities = SteveAiScanManager.getScannedBlockEntities();
+        Map<String, SteveAiCollectors.SeenSummary> broadBlocks = SteveAiScanManager.getScannedBlocks();
 
         // Collect candidate chunks only from the target POI's known entity/block-entity signals
         LinkedHashSet<Long> candidateKeys = new LinkedHashSet<>();
@@ -1885,6 +1962,27 @@ public final class CEHScan {
                     excludedByBiome++;
                     continue;
                 }
+
+                if (candidateKeys.add(key)) {
+                    int score = Math.abs(chunkX - playerChunkX) + Math.abs(chunkZ - playerChunkZ)
+                        + Math.abs(chunkX - steveChunkX) + Math.abs(chunkZ - steveChunkZ);
+                    candidates.add(new FindPoiCandidate(chunkX, chunkZ, pos, score));
+                }
+            }
+        }
+
+        for (String blockId : entry.blocks) {
+            SteveAiCollectors.SeenSummary summary = broadBlocks.get(blockId);
+            if (summary == null) {
+                continue;
+            }
+            List<BlockPos> positions = summary.allLocations.isEmpty()
+                ? List.of(new BlockPos(summary.x, summary.y, summary.z))
+                : summary.allLocations;
+            for (BlockPos pos : positions) {
+                int chunkX = pos.getX() >> 4;
+                int chunkZ = pos.getZ() >> 4;
+                long key = (((long) chunkX) << 32) ^ (chunkZ & 0xffffffffL);
 
                 if (candidateKeys.add(key)) {
                     int score = Math.abs(chunkX - playerChunkX) + Math.abs(chunkZ - playerChunkZ)
