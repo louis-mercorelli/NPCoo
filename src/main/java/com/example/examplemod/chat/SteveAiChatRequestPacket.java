@@ -56,6 +56,7 @@ public class SteveAiChatRequestPacket {
             }
 
             ServerLevel serverLevel = (ServerLevel) player.level();
+            long startedMs = System.currentTimeMillis();
             String reply;
 
             try {
@@ -63,9 +64,11 @@ public class SteveAiChatRequestPacket {
             } catch (Exception e) {
                 reply = "Something went wrong.";
             }
+            long serverProcessingMs = Math.max(0L, System.currentTimeMillis() - startedMs);
+            String modeLabel = SteveAiThreeStageAgent.detectModeLabel(pkt.message);
 
             ModNetworking.CHANNEL.send(
-                new SteveAiChatReplyPacket(pkt.message, reply),
+                new SteveAiChatReplyPacket(pkt.message, reply, serverProcessingMs, modeLabel),
                 PacketDistributor.PLAYER.with(player)
             );
         });

@@ -58,12 +58,27 @@ public class SteveAiChatSessionPacket {
             ServerLevel serverLevel = (ServerLevel) player.level();
             if (pkt.opened) {
                 try {
-                    // Refresh POIfind context each time chat is opened.
+                    // Preload scan context before opening chat:
+                    // 1) broad scan around player, 2) SAI2 local chunk radius,
+                    // 3) POIfind refresh, 4) flush to text files.
+                    int x = player.blockPosition().getX();
+                    int y = player.blockPosition().getY();
+                    int z = player.blockPosition().getZ();
+
                     serverLevel.getServer()
                         .getCommands()
-                        .performPrefixedCommand(player.createCommandSourceStack(), "testmod POIfind 20 20");
+                        .performPrefixedCommand(player.createCommandSourceStack(), "testmod scanSAIBroad " + x + " " + y + " " + z + " 20");
+                    serverLevel.getServer()
+                        .getCommands()
+                        .performPrefixedCommand(player.createCommandSourceStack(), "testmod scanSAI2 " + x + " " + y + " " + z + " 2");
+                    serverLevel.getServer()
+                        .getCommands()
+                        .performPrefixedCommand(player.createCommandSourceStack(), "testmod POIfind");
+                    serverLevel.getServer()
+                        .getCommands()
+                        .performPrefixedCommand(player.createCommandSourceStack(), "testmod writeT");
                 } catch (Exception e) {
-                    CommandEvents.LOGGER.warn(com.sai.NpcooLog.tag("Failed to run automatic POIfind on chat open: {}"), e.getMessage());
+                    CommandEvents.LOGGER.warn(com.sai.NpcooLog.tag("Failed to run automatic chat-open scan sequence: {}"), e.getMessage());
                 }
                 SteveAiContextFiles.startChatSession(serverLevel, player.getUUID());
             } else {

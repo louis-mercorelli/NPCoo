@@ -356,6 +356,32 @@ public class SteveAiScanManager {
         detailedBlockEntities.clear();
     }
 
+    private static void mergeOrReplaceScanResults(
+        boolean replaceExisting,
+        String scanType,
+        int chunkRadius,
+        BlockPos center,
+        long gameTime,
+        Map<String, SteveAiCollectors.SeenSummary> blocks,
+        Map<String, SteveAiCollectors.SeenSummary> entities,
+        Map<String, SteveAiCollectors.SeenSummary> blockEntities
+    ) {
+        if (replaceExisting) {
+            replaceScanResults(scanType, chunkRadius, center, gameTime, blocks, entities, blockEntities);
+            return;
+        }
+
+        Map<String, SteveAiCollectors.SeenSummary> mergedBlocks = new LinkedHashMap<>(scannedBlocks);
+        Map<String, SteveAiCollectors.SeenSummary> mergedEntities = new LinkedHashMap<>(scannedEntities);
+        Map<String, SteveAiCollectors.SeenSummary> mergedBlockEntities = new LinkedHashMap<>(scannedBlockEntities);
+
+        SteveAiCollectors.mergeInto(mergedBlocks, blocks == null ? Map.of() : blocks);
+        SteveAiCollectors.mergeInto(mergedEntities, entities == null ? Map.of() : entities);
+        SteveAiCollectors.mergeInto(mergedBlockEntities, blockEntities == null ? Map.of() : blockEntities);
+
+        replaceScanResults(scanType, chunkRadius, center, gameTime, mergedBlocks, mergedEntities, mergedBlockEntities);
+    }
+
     public static void scanSAI(ServerLevel serverLevel, Entity steveAiEntity, String rawInput, int chunkRadius) {
         if (serverLevel == null) {
             throw new IllegalArgumentException("serverLevel is null");
@@ -372,12 +398,20 @@ public class SteveAiScanManager {
 
         int blockRadius = chunkRadius * 16;
         String trimmedInput = rawInput.trim();
+        BlockPos centerPos = steveAiEntity.blockPosition();
+        int centerChunkX = centerPos.getX() >> 4;
+        int centerChunkZ = centerPos.getZ() >> 4;
+        boolean centerChunkLoadedBefore = serverLevel.getChunkSource().getChunkNow(centerChunkX, centerChunkZ) != null;
 
         lastScanChunkRadius = chunkRadius;
-        lastScanCenter = steveAiEntity.blockPosition().immutable();
+        lastScanCenter = centerPos.immutable();
         lastScanGameTime = serverLevel.getGameTime();
         lastFastDetailedChunkCount = 0;
         lastFastQuickChunkCount = 0;
+
+        Map<String, SteveAiCollectors.SeenSummary> previousBlocks = new LinkedHashMap<>(scannedBlocks);
+        Map<String, SteveAiCollectors.SeenSummary> previousEntities = new LinkedHashMap<>(scannedEntities);
+        Map<String, SteveAiCollectors.SeenSummary> previousBlockEntities = new LinkedHashMap<>(scannedBlockEntities);
 
         clearScannedMapsOnly();
 
@@ -387,6 +421,31 @@ public class SteveAiScanManager {
         } else {
             lastScanType = trimmedInput.toLowerCase(java.util.Locale.ROOT);
             runLegacyScan(serverLevel, steveAiEntity, trimmedInput, blockRadius);
+        }
+
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, lastScanCenter);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, lastScanCenter);
+        SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, lastScanCenter);
+
+        if (centerChunkLoadedBefore) {
+            Map<String, SteveAiCollectors.SeenSummary> currentBlocks = new LinkedHashMap<>(scannedBlocks);
+            Map<String, SteveAiCollectors.SeenSummary> currentEntities = new LinkedHashMap<>(scannedEntities);
+            Map<String, SteveAiCollectors.SeenSummary> currentBlockEntities = new LinkedHashMap<>(scannedBlockEntities);
+
+            scannedBlocks = previousBlocks;
+            scannedEntities = previousEntities;
+            scannedBlockEntities = previousBlockEntities;
+
+            mergeOrReplaceScanResults(
+                false,
+                lastScanType,
+                lastScanChunkRadius,
+                lastScanCenter,
+                lastScanGameTime,
+                currentBlocks,
+                currentEntities,
+                currentBlockEntities
+            );
         }
 
         SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, lastScanCenter);
@@ -423,6 +482,10 @@ public class SteveAiScanManager {
     }
 
     public static ChunkScanResult scanSAI2(ServerLevel serverLevel, BlockPos blockPos, boolean useCache) {
+        return scanSAI2(serverLevel, blockPos, useCache, true);
+    }
+
+    private static ChunkScanResult scanSAI2(ServerLevel serverLevel, BlockPos blockPos, boolean useCache, boolean updateGlobalModel) {
         if (serverLevel == null) {
             throw new IllegalArgumentException("serverLevel is null");
         }
@@ -495,17 +558,22 @@ public class SteveAiScanManager {
             blockEntities
         );
 
-        scannedBlocks = new LinkedHashMap<>(blocks);
-        scannedEntities = new LinkedHashMap<>(entities);
-        scannedBlockEntities = new LinkedHashMap<>(blockEntities);
-        lastScanType = "chunk";
-        lastScanChunkRadius = 1;
-        lastScanCenter = blockPos.immutable();
-        lastScanGameTime = scanGameTime;
+        if (updateGlobalModel) {
+            mergeOrReplaceScanResults(
+                !chunkWasLoaded,
+                "chunk",
+                1,
+                blockPos.immutable(),
+                scanGameTime,
+                blocks,
+                entities,
+                blockEntities
+            );
 
-        SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, lastScanCenter);
-        SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, lastScanCenter);
-        SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, lastScanCenter);
+            SteveAiCollectors.annotateDistanceFromCenter(scannedBlocks, lastScanCenter);
+            SteveAiCollectors.annotateDistanceFromCenter(scannedEntities, lastScanCenter);
+            SteveAiCollectors.annotateDistanceFromCenter(scannedBlockEntities, lastScanCenter);
+        }
 
         chunkScanResults.put(chunkKey(chunkX, chunkZ), result);
         return result;
@@ -529,6 +597,9 @@ public class SteveAiScanManager {
         }
 
         int effectiveChunkRadius = chunkRadius - 1;
+        int centerChunkX = center.getX() >> 4;
+        int centerChunkZ = center.getZ() >> 4;
+        boolean centerChunkLoadedBefore = serverLevel.getChunkSource().getChunkNow(centerChunkX, centerChunkZ) != null;
         if (forceLoad && effectiveChunkRadius > FORCE_LOAD_MAX_CHUNK_RADIUS) {
             throw new IllegalArgumentException(
                 "scanSAI2 ForceLoad supports max chunkRadius=" + (FORCE_LOAD_MAX_CHUNK_RADIUS + 1)
@@ -540,9 +611,6 @@ public class SteveAiScanManager {
         }
 
         long totalStartNs = System.nanoTime();
-        int centerChunkX = center.getX() >> 4;
-        int centerChunkZ = center.getZ() >> 4;
-
         Map<String, SteveAiCollectors.SeenSummary> groupedBlocks = new LinkedHashMap<>();
         Map<String, SteveAiCollectors.SeenSummary> groupedEntities = new LinkedHashMap<>();
         Map<String, SteveAiCollectors.SeenSummary> groupedBlockEntities = new LinkedHashMap<>();
@@ -556,7 +624,7 @@ public class SteveAiScanManager {
             for (int chunkZ = centerChunkZ - effectiveChunkRadius; chunkZ <= centerChunkZ + effectiveChunkRadius; chunkZ++) {
                 BlockPos chunkCenter = new BlockPos((chunkX << 4) + 8, center.getY(), (chunkZ << 4) + 8);
                 long t0 = System.nanoTime();
-                ChunkScanResult result = scanSAI2(serverLevel, chunkCenter, useCache);
+                ChunkScanResult result = scanSAI2(serverLevel, chunkCenter, useCache, false);
                 long elapsed = System.nanoTime() - t0;
 
                 // Track per-phase timing approximations based on result content
@@ -571,7 +639,8 @@ public class SteveAiScanManager {
             }
         }
 
-        replaceScanResults(
+        mergeOrReplaceScanResults(
+            !centerChunkLoadedBefore,
             "all_sai2_radius",
             chunkRadius,
             center,
@@ -973,6 +1042,9 @@ public class SteveAiScanManager {
         }
 
         int effectiveChunkRadius = chunkRadius - 1;
+        int centerChunkX = center.getX() >> 4;
+        int centerChunkZ = center.getZ() >> 4;
+        boolean centerChunkLoadedBefore = serverLevel.getChunkSource().getChunkNow(centerChunkX, centerChunkZ) != null;
         if (forceLoad && effectiveChunkRadius > FORCE_LOAD_MAX_CHUNK_RADIUS) {
             throw new IllegalArgumentException(
                 "scanSAI4 ForceLoad supports max chunkRadius=" + (FORCE_LOAD_MAX_CHUNK_RADIUS + 1)
@@ -988,8 +1060,6 @@ public class SteveAiScanManager {
         long entitiesNs = 0L;
         long blockEntitiesNs = 0L;
 
-        int centerChunkX = center.getX() >> 4;
-        int centerChunkZ = center.getZ() >> 4;
         int yMin = Math.max(serverLevel.getMinY(), center.getY() - 16);
         int yMax = Math.min(serverLevel.getMaxY(), center.getY() + 16);
         int yCenter = Math.max(yMin, Math.min(center.getY(), yMax));
@@ -1053,7 +1123,8 @@ public class SteveAiScanManager {
             }
         }
 
-        replaceScanResults(
+        mergeOrReplaceScanResults(
+            !centerChunkLoadedBefore,
             "all_sai4",
             chunkRadius,
             center,
@@ -1118,6 +1189,10 @@ public class SteveAiScanManager {
             );
         }
 
+        int centerChunkX = center.getX() >> 4;
+        int centerChunkZ = center.getZ() >> 4;
+        boolean centerChunkLoadedBefore = serverLevel.getChunkSource().getChunkNow(centerChunkX, centerChunkZ) != null;
+
         if (forceLoad && chunkRadius > 0) {
             forceLoadChunks(serverLevel, center, chunkRadius);
         }
@@ -1126,8 +1201,6 @@ public class SteveAiScanManager {
         long entitiesNs = 0L;
         long blockEntitiesNs = 0L;
 
-        int centerChunkX = center.getX() >> 4;
-        int centerChunkZ = center.getZ() >> 4;
         int yMin = Math.max(serverLevel.getMinY(), center.getY() - 48);
         int yMax = Math.min(serverLevel.getMaxY(), center.getY() + 48);
         int yCenter = Math.max(yMin, Math.min(center.getY(), yMax));
@@ -1195,7 +1268,8 @@ public class SteveAiScanManager {
             }
         }
 
-        replaceScanResults(
+        mergeOrReplaceScanResults(
+            !centerChunkLoadedBefore,
             "e_be_broad",
             chunkRadius,
             center,

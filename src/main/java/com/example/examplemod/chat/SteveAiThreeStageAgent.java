@@ -1,6 +1,10 @@
 package com.example.examplemod.chat;
 
+import com.example.examplemod.CommandEvents;
 import com.example.examplemod.SteveAiContextFiles;
+import com.example.examplemod.scan.SteveAiCollectors;
+import com.example.examplemod.scan.SteveAiScanManager;
+import com.example.examplemod.steveAI.SteveAiLocator;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -24,8 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.npc.villager.Villager;
 
 /**
  * Three-stage chat agent flow:
@@ -35,11 +41,25 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public final class SteveAiThreeStageAgent {
 
+    public enum QueryMode {
+        FAST_ANSWER,
+        DETAILED_COMMAND
+    }
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Pattern APPROVE_PATTERN = Pattern.compile("^\\s*approve\\s+#?(\\d+)\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern IMPLICIT_APPROVE_PATTERN = Pattern.compile(
         "\\b(yes|yeah|yep|sure|ok|okay|go ahead|do it|run|execute|proceed|confirm)\\b",
         Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern WHERE_ARE_YOU_PATTERN = Pattern.compile(
+        "(?i)\\b(where\\s*(are|r)?\\s*(you|u)|where\\s*u\\s*at|wya|where\\s*is\\s*steve(?:ai)?|where\\s*steve(?:ai)?)\\b"
+    );
+    private static final Pattern DETAILED_COMMAND_PATTERN = Pattern.compile(
+        "(?i)(\\b(scan|check|inspect|search|explore|verify|confirm|run|use|try|mine|dig|build|craft|gather|collect|locate|survey|go\\s+to|move\\s+to|bring|map)\\b|more\\s+detail|more\\s+details|what\\s+command|which\\s+command|look\\s+for|find\\s+out|list\\s+all|show\\s+all|how\\s+many)"
+    );
+    private static final Pattern BLOCK_QUERY_PATTERN = Pattern.compile(
+        "(?i)\\b(is\\s+there|any|where|find|locat|near|nearby|around|have\\s+you\\s+seen|do\\s+you\\s+see)\\b"
     );
     private static final Map<UUID, PendingPlan> PENDING_BY_PLAYER = new ConcurrentHashMap<>();
 
@@ -47,7 +67,33 @@ public final class SteveAiThreeStageAgent {
 
     private SteveAiThreeStageAgent() {}
 
+    public static QueryMode classifyInitialQuery(String message) {
+        if (message == null || message.isBlank()) {
+            return QueryMode.FAST_ANSWER;
+        }
+        return DETAILED_COMMAND_PATTERN.matcher(message).find()
+            ? QueryMode.DETAILED_COMMAND
+            : QueryMode.FAST_ANSWER;
+    }
+
+    public static String detectModeLabel(String message) {
+        if (message == null || message.isBlank()) return "fast";
+        if (APPROVE_PATTERN.matcher(message).find()) return "exec";
+        if (IMPLICIT_APPROVE_PATTERN.matcher(message).find() && PENDING_BY_PLAYER.values().stream().findAny().isPresent()) return "exec";
+        if (WHERE_ARE_YOU_PATTERN.matcher(message).find()) return "instant";
+        return classifyInitialQuery(message) == QueryMode.DETAILED_COMMAND ? "planning" : "fast";
+    }
+
     public static String process(ServerLevel serverLevel, UUID playerUuid, String message, String fileContext) {
+        String immediate = tryImmediateChatReply(serverLevel, playerUuid, message);
+        if (immediate != null) {
+            JsonObject out = new JsonObject();
+            out.addProperty("stage", "stage3_final");
+            out.addProperty("question", message == null ? "" : message);
+            out.addProperty("finalAnswer", immediate);
+            return GSON.toJson(out);
+        }
+
         Integer approvedIndex = parseApprovalIndex(message);
         if (approvedIndex != null) {
             return runApprovedCandidate(serverLevel, playerUuid, approvedIndex);
@@ -59,29 +105,71 @@ public final class SteveAiThreeStageAgent {
             return runApprovedCandidate(serverLevel, playerUuid, implicitApprovedIndex);
         }
 
-        return planCandidates(serverLevel, playerUuid, message, fileContext);
+        QueryMode mode = classifyInitialQuery(message);
+        if (mode == QueryMode.DETAILED_COMMAND) {
+            return planDetailedCommands(playerUuid, message, fileContext);
+        }
+        return answerQuickly(message, fileContext);
     }
 
-    private static String planCandidates(ServerLevel serverLevel, UUID playerUuid, String question, String fileContext) {
+    private static String answerQuickly(String question, String fileContext) {
+        String prompt =
+            "You are SteveAI answering a Minecraft question.\n" +
+            "Return ONLY valid JSON. No markdown. No prose outside the JSON.\n" +
+            "There are exactly two actors: the player and SteveAI.\n" +
+            "Use first-person SteveAI wording like 'my POI scan' and 'my scan data'.\n" +
+            "Focus on speed. Answer directly from the provided context. Do not suggest commands.\n" +
+            "Schema:\n" +
+            "{\n" +
+            "  \"question\": string,\n" +
+            "  \"summary\": string,\n" +
+            "  \"detail\": string\n" +
+            "}\n" +
+            "Rules:\n" +
+            "- summary must be brief, conversational, direct, and about 1 to 5 lines max.\n" +
+            "- detail must support the summary with fuller explanation from context.\n" +
+            "- Do not suggest commands or next actions unless the player explicitly asked for that.\n" +
+            "- If context is insufficient, say that clearly in both summary and detail.\n\n" +
+            "Context:\n" + fileContext + "\n\n" +
+            "Player question: " + question;
+
+        JsonObject out = parseJsonObject(OpenAiService.askFast(prompt));
+        if (out == null) {
+            out = fallbackQuickAnswer(question);
+        }
+
+        normalizeAnswerEnvelope(out, question);
+        out.addProperty("stage", "type1_fast_answer");
+        return GSON.toJson(out);
+    }
+
+    private static String planDetailedCommands(UUID playerUuid, String question, String fileContext) {
         String toolCatalogJson = loadToolCommandsJson();
 
         String prompt =
             "You are an AI planner for a Minecraft mod assistant.\n" +
             "Return ONLY valid JSON (no markdown, no prose).\n" +
+            "There are exactly two actors: the player (question asker) and SteveAI (you).\n" +
+            "Never invent a third actor. Resolve pronouns using that rule.\n" +
             "Schema:\n" +
             "{\n" +
             "  \"question\": string,\n" +
+            "  \"summary\": string,\n" +
+            "  \"detail\": string,\n" +
             "  \"candidates\": [\n" +
-            "    {\"type\": \"answer\", \"text\": string, \"confidence\": number},\n" +
-            "    {\"type\": \"command\", \"tool\": string, \"args\": [string], \"purpose\": string, \"confidence\": number, \"requiresApproval\": true, \"mutatesWorld\": boolean}\n" +
+            "    {\"tool\": string, \"args\": [string], \"purpose\": string, \"confidence\": number, \"requiresApproval\": true, \"mutatesWorld\": boolean}\n" +
             "  ]\n" +
             "}\n" +
             "Rules:\n" +
-            "- Include 1 answer candidate and 1-3 command candidates if useful.\n" +
+            "- Include 1-3 command candidates only when more detail likely requires fresh world data or command execution.\n" +
             "- Confidence is 0.0-1.0.\n" +
             "- Command tool names must match tools from catalog.\n" +
             "- Always set requiresApproval=true for command candidates.\n" +
-            "- Keep args minimal and concrete.\n\n" +
+            "- Keep args minimal and concrete.\n" +
+            "- summary should briefly explain what is already known from context.\n" +
+            "- detail should explain what is missing and why a command may help.\n\n" +
+            "- If the question asks where SteveAI is, prefer answering directly from current context/status. Do NOT propose whereRu unless SteveAI location is missing/unknown.\n\n" +
+            "- When discussing scan evidence or POI results, speak in first person as SteveAI. Use wording like 'my POI scan' or 'my scan data', never 'your POI scan'.\n\n" +
             "Tool catalog:\n" + toolCatalogJson + "\n\n" +
             "Game context:\n" + fileContext + "\n\n" +
             "Player question: " + question;
@@ -89,15 +177,17 @@ public final class SteveAiThreeStageAgent {
         String raw = OpenAiService.ask(prompt);
         JsonObject planned = parseJsonObject(raw);
         if (planned == null) {
-            planned = fallbackPlan(question);
+            planned = fallbackCommandPlan(question);
         }
 
-        normalizePlan(planned, question);
+        normalizeCommandPlan(planned, question);
 
         PendingPlan pending = new PendingPlan(question, planned);
-        PENDING_BY_PLAYER.put(playerUuid, pending);
+        if (playerUuid != null) {
+            PENDING_BY_PLAYER.put(playerUuid, pending);
+        }
 
-        planned.addProperty("stage", "stage1_candidates");
+        planned.addProperty("stage", "type2_command_plan");
         planned.addProperty("createdAt", Instant.ofEpochMilli(pending.createdAtMs).toString());
         planned.addProperty("approvalHint", "Reply with: approve <candidateNumber>");
 
@@ -119,8 +209,7 @@ public final class SteveAiThreeStageAgent {
         }
 
         JsonObject candidate = candidates.get(candidateNumber - 1).getAsJsonObject();
-        String type = getString(candidate, "type", "");
-        if (!"command".equalsIgnoreCase(type)) {
+        if (!hasCommandShape(candidate)) {
             return GSON.toJson(errorJson("Selected candidate is not a command."));
         }
 
@@ -181,15 +270,30 @@ public final class SteveAiThreeStageAgent {
         String refreshedContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
 
         String finalPrompt =
-            "You are SteveAI. Give a short grounded answer based on the question, executed command, and context.\n" +
-            "Keep under 3 sentences.\n\n" +
+            "You are SteveAI answering after a command was executed.\n" +
+            "Return ONLY valid JSON. No markdown. No prose outside the JSON.\n" +
+            "There are exactly two actors: player and SteveAI.\n" +
+            "Use first-person SteveAI wording like 'my POI scan' and 'my scan data'.\n" +
+            "Schema:\n" +
+            "{\n" +
+            "  \"question\": string,\n" +
+            "  \"summary\": string,\n" +
+            "  \"detail\": string\n" +
+            "}\n" +
+            "Rules:\n" +
+            "- summary must be brief, conversational, direct, and about 1 to 5 lines max.\n" +
+            "- detail must explain the executed command result in more depth.\n\n" +
             "Question: " + pending.question + "\n" +
             "Executed command: " + commandText + "\n" +
             "Execution status: " + (dispatched ? "dispatched" : "failed") + "\n" +
             (execError == null ? "" : ("Execution error: " + execError + "\n")) +
             "\nContext:\n" + refreshedContext;
 
-        String finalAnswer = OpenAiService.ask(finalPrompt);
+        JsonObject finalEnvelope = parseJsonObject(OpenAiService.ask(finalPrompt));
+        if (finalEnvelope == null) {
+            finalEnvelope = fallbackQuickAnswer(pending.question);
+        }
+        normalizeAnswerEnvelope(finalEnvelope, pending.question);
 
         JsonObject out = new JsonObject();
         out.addProperty("stage", "stage3_final");
@@ -206,7 +310,9 @@ public final class SteveAiThreeStageAgent {
             execution.addProperty("error", execError);
         }
         out.add("execution", execution);
-        out.addProperty("finalAnswer", finalAnswer == null ? "" : finalAnswer.trim());
+        out.addProperty("summary", getString(finalEnvelope, "summary", ""));
+        out.addProperty("detail", getString(finalEnvelope, "detail", ""));
+        out.addProperty("finalAnswer", getString(finalEnvelope, "summary", ""));
 
         // Consume the plan after an approval action.
         PENDING_BY_PLAYER.remove(playerUuid);
@@ -214,9 +320,15 @@ public final class SteveAiThreeStageAgent {
         return GSON.toJson(out);
     }
 
-    private static void normalizePlan(JsonObject planned, String fallbackQuestion) {
+    private static void normalizeCommandPlan(JsonObject planned, String fallbackQuestion) {
         if (!planned.has("question") || !planned.get("question").isJsonPrimitive()) {
             planned.addProperty("question", fallbackQuestion == null ? "" : fallbackQuestion);
+        }
+        if (!planned.has("summary") || !planned.get("summary").isJsonPrimitive()) {
+            planned.addProperty("summary", "I can answer part of this from my current context, but fresh command data may help.");
+        }
+        if (!planned.has("detail") || !planned.get("detail").isJsonPrimitive()) {
+            planned.addProperty("detail", "My current context may not contain enough detail to answer fully without running an additional command.");
         }
 
         JsonArray candidates;
@@ -231,20 +343,14 @@ public final class SteveAiThreeStageAgent {
         for (JsonElement el : candidates) {
             if (!el.isJsonObject()) continue;
             JsonObject c = el.getAsJsonObject();
-            String type = getString(c, "type", "").toLowerCase(Locale.ROOT);
+            c.addProperty("requiresApproval", true);
 
-            if ("command".equals(type)) {
-                c.addProperty("requiresApproval", true);
+            String tool = getString(c, "tool", "");
+            boolean mutates = mutatesMap.getOrDefault(tool, false);
+            c.addProperty("mutatesWorld", mutates);
 
-                String tool = getString(c, "tool", "");
-                boolean mutates = mutatesMap.getOrDefault(tool, false);
-                c.addProperty("mutatesWorld", mutates);
-
-                if (!c.has("args") || !c.get("args").isJsonArray()) {
-                    c.add("args", new JsonArray());
-                }
-            } else if ("answer".equals(type)) {
-                if (!c.has("text")) c.addProperty("text", "No answer candidate provided.");
+            if (!c.has("args") || !c.get("args").isJsonArray()) {
+                c.add("args", new JsonArray());
             }
 
             double confidence = c.has("confidence") && c.get("confidence").isJsonPrimitive()
@@ -252,6 +358,18 @@ public final class SteveAiThreeStageAgent {
             if (confidence < 0.0) confidence = 0.0;
             if (confidence > 1.0) confidence = 1.0;
             c.addProperty("confidence", confidence);
+        }
+    }
+
+    private static void normalizeAnswerEnvelope(JsonObject answer, String fallbackQuestion) {
+        if (!answer.has("question") || !answer.get("question").isJsonPrimitive()) {
+            answer.addProperty("question", fallbackQuestion == null ? "" : fallbackQuestion);
+        }
+        if (!answer.has("summary") || !answer.get("summary").isJsonPrimitive()) {
+            answer.addProperty("summary", "I don't have a solid answer from my current context yet.");
+        }
+        if (!answer.has("detail") || !answer.get("detail").isJsonPrimitive()) {
+            answer.addProperty("detail", getString(answer, "summary", ""));
         }
     }
 
@@ -307,8 +425,7 @@ public final class SteveAiThreeStageAgent {
             }
 
             JsonObject candidate = el.getAsJsonObject();
-            String type = getString(candidate, "type", "");
-            if (!"command".equalsIgnoreCase(type)) {
+            if (!hasCommandShape(candidate)) {
                 continue;
             }
 
@@ -348,6 +465,195 @@ public final class SteveAiThreeStageAgent {
         return bestCandidateNumber > 0 ? bestCandidateNumber : null;
     }
 
+    public static String tryImmediateChatReply(ServerLevel serverLevel, UUID playerUuid, String message) {
+        if (serverLevel == null || message == null || message.isBlank()) {
+            return null;
+        }
+
+        String blockReply = tryImmediateBlockReply(message);
+        if (blockReply != null) {
+            return blockReply;
+        }
+
+        if (!isWhereAreYouQuestion(message)) {
+            return null;
+        }
+
+        boolean lwtkMode = message.toLowerCase(Locale.ROOT).contains("lwtk");
+        Villager steveAi = SteveAiLocator.findSteveAi(serverLevel);
+        ServerPlayer player = playerUuid == null ? null : serverLevel.getServer().getPlayerList().getPlayer(playerUuid);
+
+        if (steveAi != null) {
+            BlockPos stevePos = steveAi.blockPosition();
+            if (lwtkMode) {
+                String dim = steveAi.level().dimension().toString();
+                String rel = player == null ? "" : buildRelativeDirectionText(player.blockPosition(), stevePos);
+                return "I am at x=" + stevePos.getX() + ", y=" + stevePos.getY() + ", z=" + stevePos.getZ()
+                    + " in " + dim + rel + ".";
+            }
+            String rel = player == null ? "I'm currently loaded." : buildFriendlyRelativeText(player.blockPosition(), stevePos);
+            return rel + " I already have a recent scan, so no extra command is needed.";
+        }
+
+        if (CommandEvents.lastSteveAiKnownPos != null) {
+            BlockPos last = CommandEvents.lastSteveAiKnownPos;
+            if (lwtkMode) {
+                String dim = CommandEvents.lastSteveAiKnownDimension == null
+                    ? "unknown"
+                    : CommandEvents.lastSteveAiKnownDimension.toString();
+                return "I'm not currently loaded. Last known position was x=" + last.getX() + ", y=" + last.getY()
+                    + ", z=" + last.getZ() + " in " + dim + ".";
+            }
+            return "I'm not currently loaded, but I still have my last known location from recent data.";
+        }
+
+        return "I can't see my current location yet from memory. Ask me again after the next scan refresh.";
+    }
+
+    private static String tryImmediateBlockReply(String message) {
+        String lower = message.toLowerCase(Locale.ROOT);
+        if (!BLOCK_QUERY_PATTERN.matcher(lower).find()) {
+            return null;
+        }
+
+        boolean lwtkMode = lower.contains("lwtk");
+        Map<String, SteveAiCollectors.SeenSummary> blocks = SteveAiScanManager.getScannedBlocks();
+        if (blocks == null || blocks.isEmpty()) {
+            return null;
+        }
+
+        String bestBlockKey = null;
+        String bestLabel = null;
+        int totalCount = 0;
+        double nearest = -1.0;
+        SteveAiCollectors.SeenSummary best = null;
+
+        for (Map.Entry<String, SteveAiCollectors.SeenSummary> entry : blocks.entrySet()) {
+            String key = entry.getKey();
+            if (key == null) {
+                continue;
+            }
+
+            String label = humanizeBlockKey(key);
+            if (!messageMatchesBlockQuery(lower, key, label)) {
+                continue;
+            }
+
+            SteveAiCollectors.SeenSummary s = entry.getValue();
+            if (s == null) {
+                continue;
+            }
+
+            if (bestBlockKey == null) {
+                bestBlockKey = key;
+                bestLabel = label;
+            }
+            totalCount += Math.max(0, s.count);
+            if (s.minDistanceFromCenter >= 0.0 && (nearest < 0.0 || s.minDistanceFromCenter < nearest)) {
+                nearest = s.minDistanceFromCenter;
+                best = s;
+                bestBlockKey = key;
+                bestLabel = label;
+            } else if (best == null) {
+                best = s;
+                bestBlockKey = key;
+                bestLabel = label;
+            }
+        }
+
+        if (bestBlockKey == null || bestLabel == null) {
+            return null;
+        }
+
+        if (totalCount <= 0) {
+            return "From my latest block scan, I don't see any " + bestLabel + " nearby right now.";
+        }
+
+        if (lwtkMode && best != null) {
+            String nearText = nearest >= 0.0
+                ? (", nearest is about " + String.format(Locale.ROOT, "%.1f", nearest) + " blocks from my scan center")
+                : "";
+            return "My latest block scan found " + totalCount + " " + bestLabel
+                + nearText
+                + ". One observed location is x=" + best.x + ", y=" + best.y + ", z=" + best.z + ".";
+        }
+
+        if (nearest >= 0.0) {
+            return "Yes, my latest block scan shows " + bestLabel + " nearby. I found " + totalCount
+                + " matches, with the nearest about " + String.format(Locale.ROOT, "%.0f", nearest)
+                + " blocks from my scan center.";
+        }
+
+        return "Yes, my latest block scan shows " + bestLabel + " nearby, with " + totalCount
+            + " matches in my current scan data.";
+    }
+
+    private static boolean messageMatchesBlockQuery(String lowerMessage, String blockKey, String humanLabel) {
+        String normalizedKey = blockKey.toLowerCase(Locale.ROOT);
+        String noNamespace = normalizedKey.startsWith("minecraft:")
+            ? normalizedKey.substring("minecraft:".length())
+            : normalizedKey;
+        String spacedKey = noNamespace.replace('_', ' ');
+        String singularLabel = humanLabel.endsWith("s") ? humanLabel.substring(0, humanLabel.length() - 1) : humanLabel;
+
+        return lowerMessage.contains(normalizedKey)
+            || lowerMessage.contains(noNamespace)
+            || lowerMessage.contains(spacedKey)
+            || lowerMessage.contains(humanLabel)
+            || (!singularLabel.isBlank() && lowerMessage.contains(singularLabel));
+    }
+
+    private static String humanizeBlockKey(String blockKey) {
+        String noNamespace = blockKey == null ? "" : blockKey;
+        int idx = noNamespace.indexOf(':');
+        if (idx >= 0 && idx + 1 < noNamespace.length()) {
+            noNamespace = noNamespace.substring(idx + 1);
+        }
+        return noNamespace.replace('_', ' ');
+    }
+
+    private static boolean isWhereAreYouQuestion(String message) {
+        return WHERE_ARE_YOU_PATTERN.matcher(message).find();
+    }
+
+    private static String buildFriendlyRelativeText(BlockPos playerPos, BlockPos stevePos) {
+        int dx = stevePos.getX() - playerPos.getX();
+        int dz = stevePos.getZ() - playerPos.getZ();
+        int distance = (int) Math.round(Math.sqrt((double) dx * dx + (double) dz * dz));
+
+        if (distance <= 12) {
+            return "I'm right near you.";
+        }
+        if (distance <= 48) {
+            return "I'm nearby, not far from you.";
+        }
+        return "I'm a bit farther out from your current spot.";
+    }
+
+    private static String buildRelativeDirectionText(BlockPos playerPos, BlockPos stevePos) {
+        int dx = stevePos.getX() - playerPos.getX();
+        int dz = stevePos.getZ() - playerPos.getZ();
+
+        String ew = dx == 0 ? "" : (dx > 0 ? "east" : "west");
+        String ns = dz == 0 ? "" : (dz > 0 ? "south" : "north");
+        String dir;
+        if (!ns.isEmpty() && !ew.isEmpty()) {
+            dir = ns + "-" + ew;
+        } else if (!ns.isEmpty()) {
+            dir = ns;
+        } else if (!ew.isEmpty()) {
+            dir = ew;
+        } else {
+            dir = "same spot as you";
+        }
+
+        int distance = (int) Math.round(Math.sqrt((double) dx * dx + (double) dz * dz));
+        if ("same spot as you".equals(dir)) {
+            return " (same location as player)";
+        }
+        return " (about " + distance + " blocks " + dir + " of player)";
+    }
+
     private static String argsToText(JsonArray args) {
         StringBuilder sb = new StringBuilder();
         for (JsonElement arg : args) {
@@ -379,20 +685,23 @@ public final class SteveAiThreeStageAgent {
         return null;
     }
 
-    private static JsonObject fallbackPlan(String question) {
+    private static JsonObject fallbackQuickAnswer(String question) {
         JsonObject root = new JsonObject();
         root.addProperty("question", question == null ? "" : question);
+        root.addProperty("summary", "I can't answer that confidently from my current context yet.");
+        root.addProperty("detail", "My current context does not contain enough reliable detail to answer that directly.");
+        return root;
+    }
+
+    private static JsonObject fallbackCommandPlan(String question) {
+        JsonObject root = new JsonObject();
+        root.addProperty("question", question == null ? "" : question);
+        root.addProperty("summary", "I can only answer this partially from my current context.");
+        root.addProperty("detail", "I likely need fresh command output to answer this in detail, so here is a candidate command that can gather better evidence.");
 
         JsonArray candidates = new JsonArray();
 
-        JsonObject answer = new JsonObject();
-        answer.addProperty("type", "answer");
-        answer.addProperty("text", "I am not fully sure yet. I can run a scan command to verify.");
-        answer.addProperty("confidence", 0.35);
-        candidates.add(answer);
-
         JsonObject cmd = new JsonObject();
-        cmd.addProperty("type", "command");
         cmd.addProperty("tool", "scanSAI");
         JsonArray args = new JsonArray();
         args.add("all");
@@ -406,6 +715,17 @@ public final class SteveAiThreeStageAgent {
 
         root.add("candidates", candidates);
         return root;
+    }
+
+    private static boolean hasCommandShape(JsonObject candidate) {
+        if (candidate == null) {
+            return false;
+        }
+        String type = getString(candidate, "type", "");
+        if ("command".equalsIgnoreCase(type)) {
+            return true;
+        }
+        return candidate.has("tool") && candidate.get("tool").isJsonPrimitive();
     }
 
     private static JsonObject errorJson(String msg) {

@@ -154,6 +154,9 @@ public class SteveAiScreen extends MerchantScreen {
     private EditBox chatInput;
     private String lastPrompt = "";
     private String lastResponse = "";
+    private String lastTiming = "";
+    private long pendingPromptStartMs = -1L;
+    private String pendingPrompt = "";
     private int chatScrollLines = 0;
     private boolean chatSessionStarted = false;
 
@@ -334,9 +337,12 @@ public class SteveAiScreen extends MerchantScreen {
         int contentHeight = Math.max(CHAT_LINE_HEIGHT, contentBottom - y);
 
         java.util.List<net.minecraft.util.FormattedCharSequence> lines = new java.util.ArrayList<>();
-    lines.addAll(this.font.split(Component.literal("YOU: " + (lastPrompt == null ? "" : lastPrompt)), maxWidth));
+        lines.addAll(this.font.split(Component.literal("YOU: " + (lastPrompt == null ? "" : lastPrompt)), maxWidth));
+        if (lastTiming != null && !lastTiming.isBlank()) {
+            lines.addAll(this.font.split(Component.literal(lastTiming), maxWidth));
+        }
         lines.add(Component.literal("").getVisualOrderText());
-    lines.addAll(this.font.split(Component.literal("STEVEAI: " + (lastResponse == null ? "" : lastResponse)), maxWidth));
+        lines.addAll(this.font.split(Component.literal("STEVEAI: " + (lastResponse == null ? "" : lastResponse)), maxWidth));
 
         int visibleLines = Math.max(1, contentHeight / CHAT_LINE_HEIGHT);
         int maxScroll = Math.max(0, lines.size() - visibleLines);
@@ -448,6 +454,9 @@ public class SteveAiScreen extends MerchantScreen {
                 if (!message.isEmpty()) {
                     lastPrompt = message;
                     lastResponse = "Thinking...";
+                    lastTiming = "";
+                    pendingPromptStartMs = System.currentTimeMillis();
+                    pendingPrompt = message;
                     scrollChatToBottom();
                     chatInput.setValue("");
                     LOGGER.info(com.sai.NpcooLog.tag("SteveAiScreen calling openai to get reply")); 
@@ -459,6 +468,8 @@ public class SteveAiScreen extends MerchantScreen {
                         );
                     } else {
                         lastResponse = "Not connected.";
+                        pendingPromptStartMs = -1L;
+                        pendingPrompt = "";
                     }
                     //if (minecraft.player != null && minecraft.player.connection != null) {
                     //    minecraft.player.connection.sendCommand("testmod " + message);
@@ -513,9 +524,23 @@ public class SteveAiScreen extends MerchantScreen {
         super.onClose();
     }
 
-    public void receiveServerReply(String prompt, String reply) {
+    public void receiveServerReply(String prompt, String reply, long serverProcessingMs, String modeLabel) {
         this.lastPrompt = prompt;
         this.lastResponse = reply;
+        long roundtripMs = -1L;
+        if (pendingPromptStartMs > 0L && prompt != null && prompt.equals(pendingPrompt)) {
+            roundtripMs = Math.max(0L, System.currentTimeMillis() - pendingPromptStartMs);
+        }
+
+        String label = modeLabel != null && !modeLabel.isBlank() ? " [" + modeLabel + "]" : "";
+        if (roundtripMs >= 0L) {
+            this.lastTiming = "TIME: " + roundtripMs + "ms total (server " + Math.max(0L, serverProcessingMs) + "ms)" + label;
+        } else {
+            this.lastTiming = "TIME: server " + Math.max(0L, serverProcessingMs) + "ms" + label;
+        }
+
+        pendingPromptStartMs = -1L;
+        pendingPrompt = "";
         scrollChatToBottom();
     }
 

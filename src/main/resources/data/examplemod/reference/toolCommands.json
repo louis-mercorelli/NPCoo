@@ -147,7 +147,7 @@
   },
   {
     "tool": "scanSAI2",
-    "description": "Stage-2 deep structural scan at explicit coordinates. Runs signature matching (SAI2 rules) across the chunk-radius. Returns likely structure IDs with evidence. Optionally uses a previously cached scan result and/or force-loads chunks.",
+    "description": "Stage-2 deep structural scan at explicit coordinates BUT also fast. very useful for scans close to player or steveAI. Runs signature matching (SAI2 rules) across the chunk-radius. Returns likely structure IDs with evidence. Optionally uses a previously cached scan result and/or force-loads chunks.",
     "syntax": "/testmod scanSAI2 <x> <y> <z> <chunkRadius> [UseCache [ForceLoad]] [ForceLoad]",
     "parameters": {
       "x": {
@@ -218,7 +218,7 @@
   },
   {
     "tool": "scanSAI4",
-    "description": "Stage-4 scan at explicit coordinates with 1-based chunk radius and vertical clipping around the Y value.",
+    "description": "Stage-4 fastest scan but at the expense of vertical clipping around the Y value.",
     "syntax": "/testmod scanSAI4 <x> <y> <z> <chunkRadius> [ForceLoad]",
     "parameters": {
       "x": {
@@ -241,7 +241,7 @@
   },
   {
     "tool": "scanSAIBroad",
-    "description": "Broad, lightweight SAI scan at explicit coordinates. Collects coarse evidence hints across a large radius (0 means current chunk only). Used as stage-1 pass in POIfind.",
+    "description": "Broad, lightweight SAI scan at explicit coordinates for Entities and BlockEntities ONLY. Collects coarse evidence hints across a large radius (0 means current chunk only). Used as stage-1 pass in POIfind.",
     "syntax": "/testmod scanSAIBroad <x> <y> <z> <chunkRadius> [ForceLoad]",
     "parameters": {
       "x": {
@@ -272,7 +272,7 @@
   },
   {
     "tool": "POIfind",
-    "description": "Full POI discovery pipeline. Runs a broad scan over chunkRadius, then deep-scans up to scanLimit chunks that have broad evidence hits. Writes a POIfind_*.txt report with ranked structure/ore candidates and merged evidence. Auto-triggered on chat-window open.",
+    "description": "Full POI discovery pipeline BUT is very fast. Runs a broad scan over chunkRadius, then deep-scans up to scanLimit chunks that have broad evidence hits. Writes a POIfind_*.txt report with ranked structure/ore candidates and merged evidence. Auto-triggered on chat-window open.",
     "syntax": "/testmod POIfind [chunkRadius [scanLimit [UseCache|ForceLoad]]]",
     "parameters": {
       "chunkRadius": {
@@ -367,7 +367,7 @@
   },
   {
     "tool": "serverLoad",
-    "description": "Reports current server performance — MSPT, tick budget status, and load tier.",
+    "description": "NOT USEFULE to steveAI. For debugging. Reports current server performance — MSPT, tick budget status, and load tier.",
     "syntax": "/testmod serverLoad",
     "parameters": {},
     "subcommands": {
@@ -467,7 +467,7 @@
   },
   {
     "tool": "forceChunkOn",
-    "description": "Enables chunk force-loading around SteveAI so its chunks stay loaded. Default on world entry.",
+    "description": "Enables chunk force-loading around SteveAI so its chunks stay loaded EVEN if the player is far away. Default on world entry.",
     "syntax": "/testmod forceChunkOn",
     "parameters": {},
     "mutatesWorld": false
@@ -502,7 +502,7 @@
   },
   {
     "tool": "invAdd",
-    "description": "Adds a specified item to SteveAI's inventory.",
+    "description": "Adds a specified item to SteveAI's inventory. Before dropping you may need to add the item to steveAI inventory if it isn't in inventory",
     "syntax": "/testmod invAdd <itemName> [count]",
     "parameters": {
       "itemName": {
@@ -518,7 +518,7 @@
   },
   {
     "tool": "invDrop",
-    "description": "Removes a specified item from SteveAI's inventory and drops it in the world.",
+    "description": "Removes a specified item from SteveAI's inventory and drops it in the world. Great for getting blocks or trading with steveAI",
     "syntax": "/testmod invDrop <itemName> [count]",
     "parameters": {
       "itemName": {
@@ -565,7 +565,7 @@
   },
   {
     "tool": "writeNow",
-    "description": "Forces an immediate flush of all SteveAI scan and POI files to disk.",
+    "description": "LEGACY not usefule. Forces an immediate flush of all SteveAI scan and POI files to disk.",
     "syntax": "/testmod writeNow",
     "parameters": {},
     "mutatesWorld": false

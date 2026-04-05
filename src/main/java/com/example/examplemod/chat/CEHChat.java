@@ -171,8 +171,9 @@ public final class CEHChat {
         }
     }
 
-    private static String summarizeJsonForChat(UUID playerUuid, JsonElement json) {
+    private static String summarizeJsonForChat(UUID playerUuid, String message, JsonElement json) {
         String fileName = playerUuid.toString() + "_steveAI_chat_pretty.json";
+        boolean lwtkMode = message != null && message.toLowerCase(java.util.Locale.ROOT).contains("lwtk");
 
         if (json == null || !json.isJsonObject()) {
             return "Structured response saved to " + fileName;
@@ -183,46 +184,33 @@ public final class CEHChat {
             ? obj.get("stage").getAsString()
             : "unknown";
 
-        if ("stage1_candidates".equals(stage)) {
+        if ("type1_fast_answer".equals(stage)) {
+            String text = lwtkMode
+                ? getJsonString(obj, "detail", getJsonString(obj, "summary", "No answer."))
+                : getJsonString(obj, "summary", getJsonString(obj, "detail", "No answer."));
+            return oneLine(text);
+        }
+
+        if ("type2_command_plan".equals(stage)) {
             JsonArray candidates = obj.has("candidates") && obj.get("candidates").isJsonArray()
                 ? obj.getAsJsonArray("candidates")
                 : new JsonArray();
 
-            JsonObject bestAnswer = null;
             List<NumberedCandidate> commandCandidates = new ArrayList<>();
-
             for (int idx = 0; idx < candidates.size(); idx++) {
                 JsonElement el = candidates.get(idx);
-                if (!el.isJsonObject()) {
-                    continue;
-                }
-                JsonObject c = el.getAsJsonObject();
-                String type = c.has("type") && c.get("type").isJsonPrimitive()
-                    ? c.get("type").getAsString()
-                    : "";
-
-                if ("answer".equalsIgnoreCase(type)) {
-                    if (bestAnswer == null || confidenceOf(c) > confidenceOf(bestAnswer)) {
-                        bestAnswer = c;
-                    }
-                } else if ("command".equalsIgnoreCase(type)) {
-                    commandCandidates.add(new NumberedCandidate(idx + 1, c));
+                if (el.isJsonObject()) {
+                    commandCandidates.add(new NumberedCandidate(idx + 1, el.getAsJsonObject()));
                 }
             }
 
             commandCandidates.sort(Comparator.comparingDouble((NumberedCandidate nc) -> confidenceOf(nc.candidate)).reversed());
 
             StringBuilder sb = new StringBuilder();
-            if (bestAnswer != null) {
-                String ansText = bestAnswer.has("text") && bestAnswer.get("text").isJsonPrimitive()
-                    ? bestAnswer.get("text").getAsString()
-                    : "No answer candidate.";
-                sb.append("conf:")
-                    .append(String.format(java.util.Locale.ROOT, "%.2f", confidenceOf(bestAnswer)))
-                    .append(" Ans:\"")
-                    .append(oneLine(ansText))
-                    .append("\"");
-            }
+            String answerText = lwtkMode
+                ? getJsonString(obj, "detail", getJsonString(obj, "summary", "No answer."))
+                : getJsonString(obj, "summary", getJsonString(obj, "detail", "No answer."));
+            sb.append(oneLine(answerText));
 
             for (NumberedCandidate nc : commandCandidates) {
                 JsonObject cmd = nc.candidate;
@@ -234,9 +222,7 @@ public final class CEHChat {
                     ? cmd.get("tool").getAsString()
                     : "unknownTool";
 
-                int confPercent = (int) Math.round(confidenceOf(cmd) * 100.0);
-                sb.append("#").append(nc.candidateNumber).append(" ")
-                    .append("conf:").append(confPercent).append(" ").append(tool);
+                sb.append("#").append(nc.candidateNumber).append(" ").append(tool);
 
                 if (cmd.has("args") && cmd.get("args").isJsonArray() && cmd.getAsJsonArray("args").size() > 0) {
                     JsonArray args = cmd.getAsJsonArray("args");
@@ -247,10 +233,15 @@ public final class CEHChat {
                         }
                     }
                     if (!argParts.isEmpty()) {
-                        sb.append(" args (")
-                            .append(String.join(" ", argParts))
-                            .append(")");
+                        sb.append(" ").append(String.join(" ", argParts));
                     }
+                }
+
+                String purpose = cmd.has("purpose") && cmd.get("purpose").isJsonPrimitive()
+                    ? cmd.get("purpose").getAsString()
+                    : "";
+                if (!purpose.isBlank()) {
+                    sb.append(" — ").append(oneLine(purpose));
                 }
             }
 
@@ -261,10 +252,13 @@ public final class CEHChat {
         }
 
         if ("stage3_final".equals(stage)) {
-            String finalAnswer = obj.has("finalAnswer") && obj.get("finalAnswer").isJsonPrimitive()
-                ? obj.get("finalAnswer").getAsString()
-                : "Done.";
-            return oneLine(finalAnswer) + " (Full JSON saved to " + fileName + ")";
+            String finalAnswer = lwtkMode
+                ? getJsonString(obj, "detail", getJsonString(obj, "finalAnswer", "Done."))
+                : getJsonString(obj, "summary", getJsonString(obj, "finalAnswer", "Done."));
+            if (lwtkMode) {
+                return oneLine(finalAnswer) + " (Full JSON saved to " + fileName + ")";
+            }
+            return oneLine(finalAnswer);
         }
 
         if ("error".equals(stage)) {
@@ -287,6 +281,13 @@ public final class CEHChat {
         return c;
     }
 
+    private static String getJsonString(JsonObject obj, String key, String fallback) {
+        if (obj == null || !obj.has(key) || !obj.get(key).isJsonPrimitive()) {
+            return fallback;
+        }
+        return obj.get(key).getAsString();
+    }
+
     private static final class NumberedCandidate {
         final int candidateNumber;
         final JsonObject candidate;
@@ -300,7 +301,22 @@ public final class CEHChat {
     public static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
         LOGGER.info(com.sai.NpcooLog.tag("askSteveAi START playerUuid={} message={}"), playerUuid, message);
 
-        String fileContext = SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
+        String immediateReply = SteveAiThreeStageAgent.tryImmediateChatReply(serverLevel, playerUuid, message);
+        if (immediateReply != null) {
+            appendSteveAiChatLine(serverLevel, playerUuid,
+                "[" + chatTs() + "] YOU: " + oneLine(message));
+            appendSteveAiChatLine(serverLevel, playerUuid,
+                "[" + chatTs() + "] STEVEAI: " + oneLine(immediateReply));
+            appendSteveAiChatLine(serverLevel, playerUuid, "");
+
+            LOGGER.info(com.sai.NpcooLog.tag("askSteveAi FAST-PATH playerUuid={} reply={}"), playerUuid, immediateReply);
+            return immediateReply;
+        }
+
+        SteveAiThreeStageAgent.QueryMode mode = SteveAiThreeStageAgent.classifyInitialQuery(message);
+        String fileContext = mode == SteveAiThreeStageAgent.QueryMode.FAST_ANSWER
+            ? SteveAiContextFiles.buildQuickChatContext(serverLevel, playerUuid, 60)
+            : SteveAiContextFiles.buildChatContext(serverLevel, playerUuid, 200);
         String rawReply = SteveAiThreeStageAgent.process(serverLevel, playerUuid, message, fileContext);
         JsonElement parsedJson = tryParseJson(rawReply);
 
@@ -309,7 +325,7 @@ public final class CEHChat {
         }
 
         String reply = parsedJson != null
-            ? summarizeJsonForChat(playerUuid, parsedJson)
+            ? summarizeJsonForChat(playerUuid, message, parsedJson)
             : rawReply;
 
         appendSteveAiChatLine(serverLevel, playerUuid,

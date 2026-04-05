@@ -24,9 +24,17 @@ public class OpenAiService {
     private static final OpenAIClient client = OpenAIOkHttpClient.fromEnv();
 
     public static String ask(String prompt) {
+        return askWithModel(prompt, ChatModel.GPT_5_2);
+    }
+
+    public static String askFast(String prompt) {
+        return askWithModel(prompt, ChatModel.GPT_4O_MINI);
+    }
+
+    private static String askWithModel(String prompt, ChatModel model) {
         try {
             ResponseCreateParams params = ResponseCreateParams.builder()
-                    .model(ChatModel.GPT_5_2)
+                    .model(model)
                     .input(prompt)
                     .build();
 

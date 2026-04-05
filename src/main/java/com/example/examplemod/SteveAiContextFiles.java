@@ -82,6 +82,15 @@ public class SteveAiContextFiles {
     }
 
     public static String buildChatContext(ServerLevel serverLevel, UUID playerUuid, int tailLines) {
+        return buildChatContext(serverLevel, playerUuid, tailLines, true, true);
+    }
+
+    public static String buildQuickChatContext(ServerLevel serverLevel, UUID playerUuid, int tailLines) {
+        return buildChatContext(serverLevel, playerUuid, tailLines, false, false);
+    }
+
+    private static String buildChatContext(ServerLevel serverLevel, UUID playerUuid, int tailLines,
+                                           boolean includeChatFile, boolean includeDetailFiles) {
         if (serverLevel == null) {
             return "No server level available. Context files could not be loaded.";
         }
@@ -94,12 +103,18 @@ public class SteveAiContextFiles {
             Path rawFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI.txt");
             Path chatFile = playerDataDir.resolve(playerUuid.toString() + "_steveAI_chat.txt");
             Path poiSummaryFile = findLatestMatchingFile(playerDataDir, "poiSummary*.txt");
+            Path scannedBlocksFile = findLatestMatchingFile(playerDataDir, "scannedBlocks*.txt");
+            Path scannedEntitiesFile = findLatestMatchingFile(playerDataDir, "scannedEntities*.txt");
+            Path scannedBlockEntitiesFile = findLatestMatchingFile(playerDataDir, "scannedBlockEntities*.txt");
             Path detailBlockEntitiesFile = findLatestMatchingFile(playerDataDir, "detailBlockEntities*.txt");
             Path detailEntitiesFile = findLatestMatchingFile(playerDataDir, "detailEntities*.txt");
             Path detailStatusFile = findLatestMatchingFile(playerDataDir, "detailStatus*.txt");
             Path poiFindFile = findLatestMatchingFile(playerDataDir, "POIfind_*.txt");
 
             logFileTail("OPENAI DEBUG", poiSummaryFile, 10);
+            logFileTail("OPENAI DEBUG", scannedBlocksFile, 10);
+            logFileTail("OPENAI DEBUG", scannedEntitiesFile, 10);
+            logFileTail("OPENAI DEBUG", scannedBlockEntitiesFile, 10);
             logFileTail("OPENAI DEBUG", rawFile, 10);
             logFileTail("OPENAI DEBUG", chatFile, 10);
             logFileTail("OPENAI DEBUG", detailBlockEntitiesFile, 10);
@@ -108,6 +123,9 @@ public class SteveAiContextFiles {
             logFileTail("OPENAI DEBUG", poiFindFile, 10);
 
             String poiSummaryText = readWholeFile(poiSummaryFile);
+            String scannedBlocksText = readWholeFile(scannedBlocksFile);
+            String scannedEntitiesText = readWholeFile(scannedEntitiesFile);
+            String scannedBlockEntitiesText = readWholeFile(scannedBlockEntitiesFile);
             String sessionPoiSummaryText = (playerUuid == null) ? "" : chatSessionPoiSummary.getOrDefault(playerUuid, "");
             String livePoiSummaryText = buildLivePoiSummaryText();
             String rawTailText = readLastNLines(rawFile, tailLines);
@@ -130,17 +148,30 @@ public class SteveAiContextFiles {
             sb.append("=== SteveAI Raw File (last ").append(tailLines).append(" lines) ===\n");
             sb.append(rawTailText.isBlank() ? "(raw file empty or missing)\n" : rawTailText).append("\n");
 
-            sb.append("=== SteveAI Chat File ===\n");
-            sb.append(chatFile == null ? "(chat file empty or missing)\n" : readWholeFile(chatFile)).append("\n");
+            sb.append("=== SteveAI Scanned Blocks Summary ===\n");
+            sb.append(scannedBlocksText.isBlank() ? "(latest scannedBlocks*.txt empty or missing)\n" : scannedBlocksText).append("\n");
 
-            sb.append("=== SteveAI Detail Block Entities ===\n");
-            sb.append(detailBlockEntitiesText.isBlank() ? "(latest detailBlockEntities*.txt empty or missing)\n" : detailBlockEntitiesText).append("\n");
+            sb.append("=== SteveAI Scanned Entities Summary ===\n");
+            sb.append(scannedEntitiesText.isBlank() ? "(latest scannedEntities*.txt empty or missing)\n" : scannedEntitiesText).append("\n");
 
-            sb.append("=== SteveAI Detail Entities ===\n");
-            sb.append(detailEntitiesText.isBlank() ? "(latest detailEntities*.txt empty or missing)\n" : detailEntitiesText).append("\n");
+            sb.append("=== SteveAI Scanned Block Entities Summary ===\n");
+            sb.append(scannedBlockEntitiesText.isBlank() ? "(latest scannedBlockEntities*.txt empty or missing)\n" : scannedBlockEntitiesText).append("\n");
 
-            sb.append("=== SteveAI Detail Status ===\n");
-            sb.append(detailStatusText.isBlank() ? "(latest detailStatus*.txt empty or missing)\n" : detailStatusText).append("\n");
+            if (includeChatFile) {
+                sb.append("=== SteveAI Chat File ===\n");
+                sb.append(chatFile == null ? "(chat file empty or missing)\n" : readWholeFile(chatFile)).append("\n");
+            }
+
+            if (includeDetailFiles) {
+                sb.append("=== SteveAI Detail Block Entities ===\n");
+                sb.append(detailBlockEntitiesText.isBlank() ? "(latest detailBlockEntities*.txt empty or missing)\n" : detailBlockEntitiesText).append("\n");
+
+                sb.append("=== SteveAI Detail Entities ===\n");
+                sb.append(detailEntitiesText.isBlank() ? "(latest detailEntities*.txt empty or missing)\n" : detailEntitiesText).append("\n");
+
+                sb.append("=== SteveAI Detail Status ===\n");
+                sb.append(detailStatusText.isBlank() ? "(latest detailStatus*.txt empty or missing)\n" : detailStatusText).append("\n");
+            }
 
             sb.append("=== SteveAI POIfind Report ===\n");
             sb.append(poiFindText.isBlank() ? "(latest POIfind_*.txt empty or missing)\n" : poiFindText).append("\n");
