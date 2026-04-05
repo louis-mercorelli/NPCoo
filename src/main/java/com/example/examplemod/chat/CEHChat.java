@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.example.examplemod.SteveAiContextFiles;
 
@@ -59,6 +60,7 @@ public final class CEHChat {
 
     private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger("NPCoo");
     private static final Gson PRETTY_GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final ConcurrentHashMap<UUID, LastResponse> LAST_RESPONSE_BY_PLAYER = new ConcurrentHashMap<>();
 
     private CEHChat() {}
 
@@ -173,19 +175,21 @@ public final class CEHChat {
 
     private static String summarizeJsonForChat(UUID playerUuid, String message, JsonElement json) {
         String fileName = playerUuid.toString() + "_steveAI_chat_pretty.json";
-        boolean lwtkMode = message != null && message.toLowerCase(java.util.Locale.ROOT).contains("lwtk");
 
         if (json == null || !json.isJsonObject()) {
             return "Structured response saved to " + fileName;
         }
 
         JsonObject obj = json.getAsJsonObject();
+        boolean detailRequested = obj.has("detailRequested") && obj.get("detailRequested").isJsonPrimitive()
+            ? obj.get("detailRequested").getAsBoolean()
+            : SteveAiThreeStageAgent.wantsDetailedAnswer(message);
         String stage = obj.has("stage") && obj.get("stage").isJsonPrimitive()
             ? obj.get("stage").getAsString()
             : "unknown";
 
         if ("type1_fast_answer".equals(stage)) {
-            String text = lwtkMode
+            String text = detailRequested
                 ? getJsonString(obj, "detail", getJsonString(obj, "summary", "No answer."))
                 : getJsonString(obj, "summary", getJsonString(obj, "detail", "No answer."));
             return oneLine(text);
@@ -207,7 +211,7 @@ public final class CEHChat {
             commandCandidates.sort(Comparator.comparingDouble((NumberedCandidate nc) -> confidenceOf(nc.candidate)).reversed());
 
             StringBuilder sb = new StringBuilder();
-            String answerText = lwtkMode
+            String answerText = detailRequested
                 ? getJsonString(obj, "detail", getJsonString(obj, "summary", "No answer."))
                 : getJsonString(obj, "summary", getJsonString(obj, "detail", "No answer."));
             sb.append(oneLine(answerText));
@@ -252,10 +256,10 @@ public final class CEHChat {
         }
 
         if ("stage3_final".equals(stage)) {
-            String finalAnswer = lwtkMode
+            String finalAnswer = detailRequested
                 ? getJsonString(obj, "detail", getJsonString(obj, "finalAnswer", "Done."))
                 : getJsonString(obj, "summary", getJsonString(obj, "finalAnswer", "Done."));
-            if (lwtkMode) {
+            if (detailRequested) {
                 return oneLine(finalAnswer) + " (Full JSON saved to " + fileName + ")";
             }
             return oneLine(finalAnswer);
@@ -288,6 +292,39 @@ public final class CEHChat {
         return obj.get(key).getAsString();
     }
 
+    private static void cacheLastResponse(UUID playerUuid, String summary, String detail) {
+        if (playerUuid == null) {
+            return;
+        }
+
+        String cachedSummary = oneLine(summary);
+        String cachedDetail = oneLine(detail == null || detail.isBlank() ? summary : detail);
+        LAST_RESPONSE_BY_PLAYER.put(playerUuid, new LastResponse(cachedSummary, cachedDetail));
+    }
+
+    private static void cacheLastResponseFromJson(UUID playerUuid, JsonElement json) {
+        if (playerUuid == null || json == null || !json.isJsonObject()) {
+            return;
+        }
+
+        JsonObject obj = json.getAsJsonObject();
+        String summary = getJsonString(obj, "summary", getJsonString(obj, "finalAnswer", ""));
+        String detail = getJsonString(obj, "detail", summary);
+        if (summary.isBlank() && detail.isBlank()) {
+            return;
+        }
+
+        cacheLastResponse(playerUuid, summary, detail);
+    }
+
+    private static String replayLastDetail(UUID playerUuid) {
+        LastResponse last = playerUuid == null ? null : LAST_RESPONSE_BY_PLAYER.get(playerUuid);
+        if (last == null || last.detail.isBlank()) {
+            return "I don't have a previous detailed response to replay yet.";
+        }
+        return last.detail;
+    }
+
     private static final class NumberedCandidate {
         final int candidateNumber;
         final JsonObject candidate;
@@ -298,11 +335,35 @@ public final class CEHChat {
         }
     }
 
+    private static final class LastResponse {
+        final String summary;
+        final String detail;
+
+        LastResponse(String summary, String detail) {
+            this.summary = summary == null ? "" : summary;
+            this.detail = detail == null ? this.summary : detail;
+        }
+    }
+
     public static String askSteveAi(ServerLevel serverLevel, UUID playerUuid, String message) {
         LOGGER.info(com.sai.NpcooLog.tag("askSteveAi START playerUuid={} message={}"), playerUuid, message);
 
+        if (SteveAiThreeStageAgent.wantsDetailedAnswer(message)
+            && SteveAiThreeStageAgent.stripDetailRequestMarkers(message).isBlank()) {
+            String replay = replayLastDetail(playerUuid);
+            appendSteveAiChatLine(serverLevel, playerUuid,
+                "[" + chatTs() + "] YOU: " + oneLine(message));
+            appendSteveAiChatLine(serverLevel, playerUuid,
+                "[" + chatTs() + "] STEVEAI: " + oneLine(replay));
+            appendSteveAiChatLine(serverLevel, playerUuid, "");
+
+            LOGGER.info(com.sai.NpcooLog.tag("askSteveAi REPLAY-DETAIL playerUuid={} reply={}"), playerUuid, replay);
+            return replay;
+        }
+
         String immediateReply = SteveAiThreeStageAgent.tryImmediateChatReply(serverLevel, playerUuid, message);
         if (immediateReply != null) {
+            cacheLastResponse(playerUuid, immediateReply, immediateReply);
             appendSteveAiChatLine(serverLevel, playerUuid,
                 "[" + chatTs() + "] YOU: " + oneLine(message));
             appendSteveAiChatLine(serverLevel, playerUuid,
@@ -322,11 +383,16 @@ public final class CEHChat {
 
         if (parsedJson != null) {
             appendPrettyAgentJson(serverLevel, playerUuid, message, parsedJson);
+            cacheLastResponseFromJson(playerUuid, parsedJson);
         }
 
         String reply = parsedJson != null
             ? summarizeJsonForChat(playerUuid, message, parsedJson)
             : rawReply;
+
+        if (parsedJson == null) {
+            cacheLastResponse(playerUuid, rawReply, rawReply);
+        }
 
         appendSteveAiChatLine(serverLevel, playerUuid,
             "[" + chatTs() + "] YOU: " + oneLine(message));

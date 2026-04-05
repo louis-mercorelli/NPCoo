@@ -55,6 +55,9 @@ public final class SteveAiThreeStageAgent {
     private static final Pattern WHERE_ARE_YOU_PATTERN = Pattern.compile(
         "(?i)\\b(where\\s*(are|r)?\\s*(you|u)|where\\s*u\\s*at|wya|where\\s*is\\s*steve(?:ai)?|where\\s*steve(?:ai)?)\\b"
     );
+    private static final Pattern DETAIL_REQUEST_PATTERN = Pattern.compile(
+        "(?i)(?:\\blwtk\\b|\\blou\\s+wants\\s+to\\s+know\\b)\\s*[:,;-]*\\s*"
+    );
     private static final Pattern DETAILED_COMMAND_PATTERN = Pattern.compile(
         "(?i)(\\b(scan|check|inspect|search|explore|verify|confirm|run|use|try|mine|dig|build|craft|gather|collect|locate|survey|go\\s+to|move\\s+to|bring|map)\\b|more\\s+detail|more\\s+details|what\\s+command|which\\s+command|look\\s+for|find\\s+out|list\\s+all|show\\s+all|how\\s+many)"
     );
@@ -67,52 +70,75 @@ public final class SteveAiThreeStageAgent {
 
     private SteveAiThreeStageAgent() {}
 
-    public static QueryMode classifyInitialQuery(String message) {
+    public static boolean wantsDetailedAnswer(String message) {
+        return message != null && DETAIL_REQUEST_PATTERN.matcher(message).find();
+    }
+
+    public static String stripDetailRequestMarkers(String message) {
         if (message == null || message.isBlank()) {
+            return "";
+        }
+
+        String cleaned = DETAIL_REQUEST_PATTERN.matcher(message).replaceAll(" ");
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
+        cleaned = cleaned.replaceAll("^[,:;\\-]+\\s*", "").trim();
+        return cleaned;
+    }
+
+    public static QueryMode classifyInitialQuery(String message) {
+        String cleanedMessage = stripDetailRequestMarkers(message);
+        if (cleanedMessage.isBlank()) {
             return QueryMode.FAST_ANSWER;
         }
-        return DETAILED_COMMAND_PATTERN.matcher(message).find()
+        return DETAILED_COMMAND_PATTERN.matcher(cleanedMessage).find()
             ? QueryMode.DETAILED_COMMAND
             : QueryMode.FAST_ANSWER;
     }
 
     public static String detectModeLabel(String message) {
-        if (message == null || message.isBlank()) return "fast";
-        if (APPROVE_PATTERN.matcher(message).find()) return "exec";
-        if (IMPLICIT_APPROVE_PATTERN.matcher(message).find() && PENDING_BY_PLAYER.values().stream().findAny().isPresent()) return "exec";
-        if (WHERE_ARE_YOU_PATTERN.matcher(message).find()) return "instant";
-        return classifyInitialQuery(message) == QueryMode.DETAILED_COMMAND ? "planning" : "fast";
+        String cleanedMessage = stripDetailRequestMarkers(message);
+        if (cleanedMessage.isBlank()) return "fast";
+        if (APPROVE_PATTERN.matcher(cleanedMessage).find()) return "exec";
+        if (IMPLICIT_APPROVE_PATTERN.matcher(cleanedMessage).find() && PENDING_BY_PLAYER.values().stream().findAny().isPresent()) return "exec";
+        if (WHERE_ARE_YOU_PATTERN.matcher(cleanedMessage).find()) return "instant";
+        return classifyInitialQuery(cleanedMessage) == QueryMode.DETAILED_COMMAND ? "planning" : "fast";
     }
 
     public static String process(ServerLevel serverLevel, UUID playerUuid, String message, String fileContext) {
+        boolean detailRequested = wantsDetailedAnswer(message);
+        String cleanedMessage = stripDetailRequestMarkers(message);
+
         String immediate = tryImmediateChatReply(serverLevel, playerUuid, message);
         if (immediate != null) {
             JsonObject out = new JsonObject();
             out.addProperty("stage", "stage3_final");
-            out.addProperty("question", message == null ? "" : message);
+            out.addProperty("question", cleanedMessage);
+            out.addProperty("summary", immediate);
+            out.addProperty("detail", immediate);
+            out.addProperty("detailRequested", detailRequested);
             out.addProperty("finalAnswer", immediate);
             return GSON.toJson(out);
         }
 
-        Integer approvedIndex = parseApprovalIndex(message);
+        Integer approvedIndex = parseApprovalIndex(cleanedMessage);
         if (approvedIndex != null) {
             return runApprovedCandidate(serverLevel, playerUuid, approvedIndex);
         }
 
         PendingPlan pending = PENDING_BY_PLAYER.get(playerUuid);
-        Integer implicitApprovedIndex = inferImplicitApprovalIndex(message, pending);
+        Integer implicitApprovedIndex = inferImplicitApprovalIndex(cleanedMessage, pending);
         if (implicitApprovedIndex != null) {
             return runApprovedCandidate(serverLevel, playerUuid, implicitApprovedIndex);
         }
 
-        QueryMode mode = classifyInitialQuery(message);
+        QueryMode mode = classifyInitialQuery(cleanedMessage);
         if (mode == QueryMode.DETAILED_COMMAND) {
-            return planDetailedCommands(playerUuid, message, fileContext);
+            return planDetailedCommands(playerUuid, cleanedMessage, fileContext, detailRequested);
         }
-        return answerQuickly(message, fileContext);
+        return answerQuickly(cleanedMessage, fileContext, detailRequested);
     }
 
-    private static String answerQuickly(String question, String fileContext) {
+    private static String answerQuickly(String question, String fileContext, boolean detailRequested) {
         String prompt =
             "You are SteveAI answering a Minecraft question.\n" +
             "Return ONLY valid JSON. No markdown. No prose outside the JSON.\n" +
@@ -140,10 +166,14 @@ public final class SteveAiThreeStageAgent {
 
         normalizeAnswerEnvelope(out, question);
         out.addProperty("stage", "type1_fast_answer");
+        out.addProperty("detailRequested", detailRequested);
+        out.addProperty("finalAnswer", detailRequested
+            ? getString(out, "detail", getString(out, "summary", ""))
+            : getString(out, "summary", getString(out, "detail", "")));
         return GSON.toJson(out);
     }
 
-    private static String planDetailedCommands(UUID playerUuid, String question, String fileContext) {
+    private static String planDetailedCommands(UUID playerUuid, String question, String fileContext, boolean detailRequested) {
         String toolCatalogJson = loadToolCommandsJson();
 
         String prompt =
@@ -182,7 +212,7 @@ public final class SteveAiThreeStageAgent {
 
         normalizeCommandPlan(planned, question);
 
-        PendingPlan pending = new PendingPlan(question, planned);
+        PendingPlan pending = new PendingPlan(question, planned, detailRequested);
         if (playerUuid != null) {
             PENDING_BY_PLAYER.put(playerUuid, pending);
         }
@@ -190,6 +220,10 @@ public final class SteveAiThreeStageAgent {
         planned.addProperty("stage", "type2_command_plan");
         planned.addProperty("createdAt", Instant.ofEpochMilli(pending.createdAtMs).toString());
         planned.addProperty("approvalHint", "Reply with: approve <candidateNumber>");
+        planned.addProperty("detailRequested", detailRequested);
+        planned.addProperty("finalAnswer", detailRequested
+            ? getString(planned, "detail", getString(planned, "summary", ""))
+            : getString(planned, "summary", getString(planned, "detail", "")));
 
         return GSON.toJson(planned);
     }
@@ -310,9 +344,12 @@ public final class SteveAiThreeStageAgent {
             execution.addProperty("error", execError);
         }
         out.add("execution", execution);
+        out.addProperty("detailRequested", pending.detailRequested);
         out.addProperty("summary", getString(finalEnvelope, "summary", ""));
         out.addProperty("detail", getString(finalEnvelope, "detail", ""));
-        out.addProperty("finalAnswer", getString(finalEnvelope, "summary", ""));
+        out.addProperty("finalAnswer", pending.detailRequested
+            ? getString(finalEnvelope, "detail", getString(finalEnvelope, "summary", ""))
+            : getString(finalEnvelope, "summary", getString(finalEnvelope, "detail", "")));
 
         // Consume the plan after an approval action.
         PENDING_BY_PLAYER.remove(playerUuid);
@@ -470,16 +507,18 @@ public final class SteveAiThreeStageAgent {
             return null;
         }
 
+        String cleanedMessage = stripDetailRequestMarkers(message);
+
         String blockReply = tryImmediateBlockReply(message);
         if (blockReply != null) {
             return blockReply;
         }
 
-        if (!isWhereAreYouQuestion(message)) {
+        if (!isWhereAreYouQuestion(cleanedMessage)) {
             return null;
         }
 
-        boolean lwtkMode = message.toLowerCase(Locale.ROOT).contains("lwtk");
+        boolean lwtkMode = wantsDetailedAnswer(message);
         Villager steveAi = SteveAiLocator.findSteveAi(serverLevel);
         ServerPlayer player = playerUuid == null ? null : serverLevel.getServer().getPlayerList().getPlayer(playerUuid);
 
@@ -511,12 +550,12 @@ public final class SteveAiThreeStageAgent {
     }
 
     private static String tryImmediateBlockReply(String message) {
-        String lower = message.toLowerCase(Locale.ROOT);
+        String lower = stripDetailRequestMarkers(message).toLowerCase(Locale.ROOT);
         if (!BLOCK_QUERY_PATTERN.matcher(lower).find()) {
             return null;
         }
 
-        boolean lwtkMode = lower.contains("lwtk");
+        boolean lwtkMode = wantsDetailedAnswer(message);
         Map<String, SteveAiCollectors.SeenSummary> blocks = SteveAiScanManager.getScannedBlocks();
         if (blocks == null || blocks.isEmpty()) {
             return null;
@@ -817,11 +856,13 @@ public final class SteveAiThreeStageAgent {
     private static final class PendingPlan {
         final String question;
         final JsonObject plan;
+        final boolean detailRequested;
         final long createdAtMs;
 
-        PendingPlan(String question, JsonObject plan) {
+        PendingPlan(String question, JsonObject plan, boolean detailRequested) {
             this.question = question == null ? "" : question;
             this.plan = plan == null ? new JsonObject() : plan.deepCopy();
+            this.detailRequested = detailRequested;
             this.createdAtMs = System.currentTimeMillis();
         }
     }

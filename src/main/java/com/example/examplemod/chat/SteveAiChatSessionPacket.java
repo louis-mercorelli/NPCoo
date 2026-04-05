@@ -60,7 +60,7 @@ public class SteveAiChatSessionPacket {
                 try {
                     // Preload scan context before opening chat:
                     // 1) broad scan around player, 2) SAI2 local chunk radius,
-                    // 3) POIfind refresh, 4) flush to text files.
+                    // 3) POIfind refresh, 4) biome map survey, 5) flush to text files.
                     int x = player.blockPosition().getX();
                     int y = player.blockPosition().getY();
                     int z = player.blockPosition().getZ();
@@ -74,6 +74,9 @@ public class SteveAiChatSessionPacket {
                     serverLevel.getServer()
                         .getCommands()
                         .performPrefixedCommand(player.createCommandSourceStack(), "testmod POIfind");
+                    serverLevel.getServer()
+                        .getCommands()
+                        .performPrefixedCommand(player.createCommandSourceStack(), "testmod biomeMap 20 8");
                     serverLevel.getServer()
                         .getCommands()
                         .performPrefixedCommand(player.createCommandSourceStack(), "testmod writeT");
