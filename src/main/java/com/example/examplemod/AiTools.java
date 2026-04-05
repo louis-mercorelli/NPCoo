@@ -15,6 +15,7 @@
 package com.example.examplemod;
 
 import com.example.examplemod.poi.PoiManager;
+import com.example.examplemod.scan.SteveAiBiomeSurvey;
 import com.example.examplemod.scan.SteveAiCollectors;
 import com.example.examplemod.scan.SteveAiScanManager;
 import com.example.examplemod.steveAI.CEHNavigationChunk;
@@ -77,6 +78,96 @@ public final class AiTools {
             data.put("lastScanCenterZ", center.getZ());
         }
         return AiToolResult.ok("scanStatus", statusText, data);
+    }
+
+    // ─── biomeHere / biomeMap / biomeLocate ─────────────────────────────────
+
+    /** Reports the player's and SteveAI's current biome, plus nearby biomes touching each current biome. */
+    public static AiToolResult biomeHere(ServerLevel serverLevel, ServerPlayer player) {
+        Villager steveAi = SteveAiLocator.findSteveAi(serverLevel);
+        BlockPos playerPos = player.blockPosition();
+        BlockPos stevePos = steveAi == null ? null : steveAi.blockPosition();
+        SteveAiBiomeSurvey.BiomeSurveyResult result = SteveAiBiomeSurvey.surveyAround(
+            serverLevel,
+            playerPos,
+            playerPos,
+            stevePos,
+            3,
+            8,
+            false
+        );
+
+        Map<String, Object> data = biomeSurveyData(result);
+        return AiToolResult.ok(
+            "biomeHere",
+            "playerBiome=" + result.playerBiomeId + " steveBiome=" + result.steveBiomeId,
+            data
+        );
+    }
+
+    /** Fast sampled biome map around the player with approximate biome boxes and center locations. */
+    public static AiToolResult biomeMap(ServerLevel serverLevel, ServerPlayer player, int chunkRadius, int sampleStep, boolean forceLoad) {
+        Villager steveAi = SteveAiLocator.findSteveAi(serverLevel);
+        BlockPos playerPos = player.blockPosition();
+        BlockPos stevePos = steveAi == null ? null : steveAi.blockPosition();
+        SteveAiBiomeSurvey.BiomeSurveyResult result = SteveAiBiomeSurvey.surveyAround(
+            serverLevel,
+            playerPos,
+            playerPos,
+            stevePos,
+            chunkRadius,
+            sampleStep,
+            forceLoad
+        );
+
+        Map<String, Object> data = biomeSurveyData(result);
+        return AiToolResult.ok(
+            "biomeMap",
+            "biomeMap areas=" + result.areas.size() + " loadedChunks=" + result.loadedChunkCount,
+            data
+        );
+    }
+
+    /** Locates the nearest specific biome using the vanilla biome-source search path. */
+    public static AiToolResult biomeLocate(
+        ServerLevel serverLevel,
+        ServerPlayer player,
+        String biome,
+        int radius,
+        int horizontalInterval,
+        int verticalInterval
+    ) {
+        SteveAiBiomeSurvey.LocateBiomeResult result = SteveAiBiomeSurvey.locateNearestBiome(
+            serverLevel,
+            player.blockPosition(),
+            biome,
+            radius,
+            horizontalInterval,
+            verticalInterval
+        );
+
+        if (!result.found) {
+            return AiToolResult.fail("biomeLocate", result.message);
+        }
+
+        return AiToolResult.ok(
+            "biomeLocate",
+            result.message,
+            map(
+                "queryBiomeId", result.queryBiomeId,
+                "foundBiomeId", result.foundBiomeId,
+                "originX", result.origin.getX(),
+                "originY", result.origin.getY(),
+                "originZ", result.origin.getZ(),
+                "foundX", result.foundPos.getX(),
+                "foundY", result.foundPos.getY(),
+                "foundZ", result.foundPos.getZ(),
+                "radius", result.radius,
+                "horizontalInterval", result.horizontalInterval,
+                "verticalInterval", result.verticalInterval,
+                "manhattanDistance", result.manhattanDistance
+            )
+        );
     }
 
     // ─── lookSee ─────────────────────────────────────────────────────────────
@@ -753,6 +844,55 @@ public final class AiTools {
     /** Formats a BlockPos as "(x,y,z)". */
     private static String posStr(BlockPos pos) {
         return "(" + pos.getX() + "," + pos.getY() + "," + pos.getZ() + ")";
+    }
+
+    private static Map<String, Object> biomeSurveyData(SteveAiBiomeSurvey.BiomeSurveyResult result) {
+        List<Map<String, Object>> areas = new ArrayList<>();
+        for (SteveAiBiomeSurvey.BiomeArea area : result.areas) {
+            areas.add(map(
+                "biomeId", area.biomeId,
+                "minX", area.minX,
+                "maxX", area.maxX,
+                "minY", area.minY,
+                "maxY", area.maxY,
+                "minZ", area.minZ,
+                "maxZ", area.maxZ,
+                "centerX", area.centerX,
+                "centerY", area.centerY,
+                "centerZ", area.centerZ,
+                "sampleCount", area.sampleCount,
+                "evidenceScore", area.evidenceScore,
+                "evidenceSources", area.evidenceSources
+            ));
+        }
+
+        List<Map<String, Object>> evidenceOnly = new ArrayList<>();
+        for (SteveAiBiomeSurvey.EvidenceOnlyBiome biome : result.evidenceOnlyBiomes) {
+            evidenceOnly.add(map(
+                "biomeId", biome.biomeId,
+                "evidenceScore", biome.evidenceScore,
+                "evidenceSources", biome.evidenceSources
+            ));
+        }
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("centerX", result.center.getX());
+        data.put("centerY", result.center.getY());
+        data.put("centerZ", result.center.getZ());
+        data.put("chunkRadius", result.chunkRadius);
+        data.put("sampleStep", result.sampleStep);
+        data.put("forceLoad", result.forceLoad);
+        data.put("sampleY", result.sampleY);
+        data.put("centerBiomeId", result.centerBiomeId);
+        data.put("playerBiomeId", result.playerBiomeId);
+        data.put("steveBiomeId", result.steveBiomeId);
+        data.put("playerTouchingBiomes", result.playerTouchingBiomes);
+        data.put("steveTouchingBiomes", result.steveTouchingBiomes);
+        data.put("loadedChunkCount", result.loadedChunkCount);
+        data.put("sampledCellCount", result.sampledCellCount);
+        data.put("areas", areas);
+        data.put("evidenceOnlyBiomes", evidenceOnly);
+        return data;
     }
 
     /** Maps an explore POI keyword onto its internal POI type name. Mirrors CEHExplore logic. */

@@ -271,6 +271,83 @@
     "mutatesWorld": false
   },
   {
+    "tool": "biomeHere",
+    "description": "Very fast biome snapshot around the player. Reports the player's current biome, SteveAI's current biome, and the set of nearby biomes touching each current biome.",
+    "syntax": "/testmod biomeHere",
+    "parameters": {},
+    "mutatesWorld": false
+  },
+  {
+    "tool": "biomeMap",
+    "description": "Very fast sampled biome map around the player. Uses vanilla biome lookups for ground truth, then annotates results with scan-derived POI/structure biome evidence from blocks, entities, block_entities, and vanilla_structures_pois.json. Returns approximate biome bounding boxes and center locations.",
+    "syntax": "/testmod biomeMap [chunkRadius [sampleStep [ForceLoad]]]",
+    "parameters": {
+      "chunkRadius": {
+        "type": "int (0–64, optional)",
+        "default": 6,
+        "description": "Chunk radius around the player to sample."
+      },
+      "sampleStep": {
+        "type": "int (4–32, optional)",
+        "default": 8,
+        "description": "Block spacing between biome samples. Lower is denser and slower; 8 is a good fast default."
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)",
+        "description": "Force-load chunks before sampling biomes."
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "biomeMapAt",
+    "description": "Very fast sampled biome map centered on explicit coordinates. Same output style as biomeMap, but useful for testing an arbitrary location.",
+    "syntax": "/testmod biomeMapAt <x> <y> <z> <chunkRadius> [sampleStep [ForceLoad]]",
+    "parameters": {
+      "x": { "type": "int" },
+      "y": { "type": "int" },
+      "z": { "type": "int" },
+      "chunkRadius": {
+        "type": "int (0–64)",
+        "description": "Chunk radius around the explicit center."
+      },
+      "sampleStep": {
+        "type": "int (4–32, optional)",
+        "default": 8
+      },
+      "ForceLoad": {
+        "type": "flag (literal, optional)"
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
+    "tool": "biomeLocate",
+    "description": "Uses the vanilla biome-source locate path to find the nearest specific biome to the player. Best for targeted biome lookups like plains, desert, or minecraft:cherry_grove.",
+    "syntax": "/testmod biomeLocate <biome> [radius [horizontalInterval [verticalInterval]]]",
+    "parameters": {
+      "biome": {
+        "type": "string (word)",
+        "description": "Specific biome id or short name, e.g. plains or minecraft:plains."
+      },
+      "radius": {
+        "type": "int (32–200000, optional)",
+        "default": 4096
+      },
+      "horizontalInterval": {
+        "type": "int (4–256, optional)",
+        "default": 32,
+        "description": "Horizontal search interval passed to the vanilla biome locator."
+      },
+      "verticalInterval": {
+        "type": "int (4–256, optional)",
+        "default": 64,
+        "description": "Vertical search interval passed to the vanilla biome locator."
+      }
+    },
+    "mutatesWorld": false
+  },
+  {
     "tool": "POIfind",
     "description": "Full POI discovery pipeline BUT is very fast. Runs a broad scan over chunkRadius, then deep-scans up to scanLimit chunks that have broad evidence hits. Writes a POIfind_*.txt report with ranked structure/ore candidates and merged evidence. Auto-triggered on chat-window open.",
     "syntax": "/testmod POIfind [chunkRadius [scanLimit [UseCache|ForceLoad]]]",

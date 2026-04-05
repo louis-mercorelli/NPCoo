@@ -57,6 +57,7 @@ import com.example.examplemod.gui.CEHGuiInventory;
 import com.sai.InventoryService;
 import com.example.examplemod.chat.CEHChat;
 import com.example.examplemod.poi.CEHPoi;
+import com.example.examplemod.scan.CEHBiome;
 import com.example.examplemod.scan.CEHLookSee;
 import com.example.examplemod.scan.CEHScan;
 import com.example.examplemod.scan.SteveAiCollectors;
@@ -283,6 +284,10 @@ public class CommandEvents {
                     .then(Commands.literal("POImap")
                         .executes(CEHScan::handlePoiMap))
                     .then(Commands.literal("scanStatus").executes(CEHScan::handleScanStatus))
+                    .then(CEHBiome.buildBiomeHereCommand())
+                    .then(CEHBiome.buildBiomeMapCommand())
+                    .then(CEHBiome.buildBiomeMapAtCommand())
+                    .then(CEHBiome.buildBiomeLocateCommand())
                     .then(Commands.literal("serverLoad")
                         .executes(CEHServerLoad::handleServerLoadStatus)
                         .then(Commands.literal("stream")
@@ -333,8 +338,9 @@ public class CommandEvents {
                             .executes(ctx -> InventoryService.handleInvDrop(ctx, 1))
                             .then(Commands.argument("count", IntegerArgumentType.integer(1))
                                 .executes(ctx -> InventoryService.handleInvDrop(ctx, IntegerArgumentType.getInteger(ctx, "count"))))))
-                        .then(Commands.literal("writeNow").executes(CEHWrite::handleWriteNow))
-                        .then(Commands.argument("message", StringArgumentType.greedyString()).executes(CEHChat::handleSteveAiChat))                    .then(Commands.literal("POIfind")
+                    .then(Commands.literal("writeNow").executes(CEHWrite::handleWriteNow))
+                    .then(Commands.argument("message", StringArgumentType.greedyString()).executes(CEHChat::handleSteveAiChat))
+                    .then(Commands.literal("POIfind")
                         .executes(ctx -> CEHScan.handlePoiFind(ctx, 8, 100, false, false))
                         .then(Commands.literal("status").executes(CEHScan::handlePoiFindStatus))
                         .then(Commands.literal("reset").executes(CEHScan::handlePoiFindReset))
@@ -353,7 +359,8 @@ public class CommandEvents {
                             .then(Commands.argument("chunkRadius", IntegerArgumentType.integer(1))
                                 .executes(ctx -> CEHScan.handlePoiFindU(ctx, StringArgumentType.getString(ctx, "poi"), IntegerArgumentType.getInteger(ctx, "chunkRadius"), false))
                                 .then(Commands.literal("ForceLoad")
-                                    .executes(ctx -> CEHScan.handlePoiFindU(ctx, StringArgumentType.getString(ctx, "poi"), IntegerArgumentType.getInteger(ctx, "chunkRadius"), true))))))            );
+                                    .executes(ctx -> CEHScan.handlePoiFindU(ctx, StringArgumentType.getString(ctx, "poi"), IntegerArgumentType.getInteger(ctx, "chunkRadius"), true))))))
+            );
         } finally {
             LOGGER.info(com.sai.NpcooLog.tag("CommandEvents.onCommandsRegister FINISH"));
         }
