@@ -104,6 +104,7 @@ public final class SteveAiBiomeSurvey {
         public final BlockPos center;
         public final BlockPos playerPos;
         public final BlockPos stevePos;
+        public final long elapsedMs;
         public final int chunkRadius;
         public final int sampleStep;
         public final boolean forceLoad;
@@ -122,6 +123,7 @@ public final class SteveAiBiomeSurvey {
             BlockPos center,
             BlockPos playerPos,
             BlockPos stevePos,
+            long elapsedMs,
             int chunkRadius,
             int sampleStep,
             boolean forceLoad,
@@ -139,6 +141,7 @@ public final class SteveAiBiomeSurvey {
             this.center = center;
             this.playerPos = playerPos;
             this.stevePos = stevePos;
+            this.elapsedMs = elapsedMs;
             this.chunkRadius = chunkRadius;
             this.sampleStep = sampleStep;
             this.forceLoad = forceLoad;
@@ -161,6 +164,7 @@ public final class SteveAiBiomeSurvey {
         public final String foundBiomeId;
         public final BlockPos origin;
         public final BlockPos foundPos;
+        public final long elapsedMs;
         public final int radius;
         public final int horizontalInterval;
         public final int verticalInterval;
@@ -173,6 +177,7 @@ public final class SteveAiBiomeSurvey {
             String foundBiomeId,
             BlockPos origin,
             BlockPos foundPos,
+            long elapsedMs,
             int radius,
             int horizontalInterval,
             int verticalInterval,
@@ -184,6 +189,7 @@ public final class SteveAiBiomeSurvey {
             this.foundBiomeId = foundBiomeId;
             this.origin = origin;
             this.foundPos = foundPos;
+            this.elapsedMs = elapsedMs;
             this.radius = radius;
             this.horizontalInterval = horizontalInterval;
             this.verticalInterval = verticalInterval;
@@ -294,6 +300,7 @@ public final class SteveAiBiomeSurvey {
         if (chunkRadius < 0) {
             throw new IllegalArgumentException("chunkRadius must be >= 0");
         }
+        long startedNs = System.nanoTime();
 
         int effectiveSampleStep = Math.max(4, sampleStep);
         int centerChunkX = center.getX() >> 4;
@@ -358,11 +365,13 @@ public final class SteveAiBiomeSurvey {
             .toList();
 
         List<EvidenceOnlyBiome> evidenceOnlyBiomes = buildEvidenceOnlyBiomes(areaAccumulators);
+        long elapsedMs = (System.nanoTime() - startedNs) / 1_000_000L;
 
         return new BiomeSurveyResult(
             center.immutable(),
             playerPos == null ? null : playerPos.immutable(),
             stevePos == null ? null : stevePos.immutable(),
+            elapsedMs,
             chunkRadius,
             effectiveSampleStep,
             forceLoad,
@@ -393,6 +402,7 @@ public final class SteveAiBiomeSurvey {
         if (origin == null) {
             throw new IllegalArgumentException("origin is null");
         }
+        long startedNs = System.nanoTime();
 
         String targetBiomeId = normalizeBiomeToken(biomeQuery);
         if (!isSpecificBiomeId(targetBiomeId)) {
@@ -402,6 +412,7 @@ public final class SteveAiBiomeSurvey {
                 "",
                 origin.immutable(),
                 null,
+                (System.nanoTime() - startedNs) / 1_000_000L,
                 radius,
                 horizontalInterval,
                 verticalInterval,
@@ -431,6 +442,7 @@ public final class SteveAiBiomeSurvey {
                 "",
                 origin.immutable(),
                 null,
+                (System.nanoTime() - startedNs) / 1_000_000L,
                 radius,
                 horizontalInterval,
                 verticalInterval,
@@ -450,6 +462,7 @@ public final class SteveAiBiomeSurvey {
             foundBiomeId,
             origin.immutable(),
             foundPos.immutable(),
+            (System.nanoTime() - startedNs) / 1_000_000L,
             radius,
             horizontalInterval,
             verticalInterval,
@@ -468,7 +481,8 @@ public final class SteveAiBiomeSurvey {
             .append(" chunkRadius=").append(result.chunkRadius)
             .append(" sampleStep=").append(result.sampleStep)
             .append(" forceLoad=").append(result.forceLoad)
-            .append(" sampleY=").append(result.sampleY).append("\n");
+            .append(" sampleY=").append(result.sampleY)
+            .append(" elapsedMs=").append(result.elapsedMs).append("\n");
         text.append("centerBiome=").append(result.centerBiomeId).append("\n");
         if (result.playerPos != null) {
             text.append("player=").append(result.playerPos.toShortString())

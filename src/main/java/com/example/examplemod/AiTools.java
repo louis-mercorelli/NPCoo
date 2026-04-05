@@ -100,7 +100,7 @@ public final class AiTools {
         Map<String, Object> data = biomeSurveyData(result);
         return AiToolResult.ok(
             "biomeHere",
-            "playerBiome=" + result.playerBiomeId + " steveBiome=" + result.steveBiomeId,
+            "playerBiome=" + result.playerBiomeId + " steveBiome=" + result.steveBiomeId + " time=" + result.elapsedMs + "ms",
             data
         );
     }
@@ -123,7 +123,7 @@ public final class AiTools {
         Map<String, Object> data = biomeSurveyData(result);
         return AiToolResult.ok(
             "biomeMap",
-            "biomeMap areas=" + result.areas.size() + " loadedChunks=" + result.loadedChunkCount,
+            "biomeMap areas=" + result.areas.size() + " loadedChunks=" + result.loadedChunkCount + " time=" + result.elapsedMs + "ms",
             data
         );
     }
@@ -162,6 +162,7 @@ public final class AiTools {
                 "foundX", result.foundPos.getX(),
                 "foundY", result.foundPos.getY(),
                 "foundZ", result.foundPos.getZ(),
+                "elapsedMs", result.elapsedMs,
                 "radius", result.radius,
                 "horizontalInterval", result.horizontalInterval,
                 "verticalInterval", result.verticalInterval,
@@ -879,6 +880,7 @@ public final class AiTools {
         data.put("centerX", result.center.getX());
         data.put("centerY", result.center.getY());
         data.put("centerZ", result.center.getZ());
+        data.put("elapsedMs", result.elapsedMs);
         data.put("chunkRadius", result.chunkRadius);
         data.put("sampleStep", result.sampleStep);
         data.put("forceLoad", result.forceLoad);

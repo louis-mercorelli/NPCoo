@@ -249,6 +249,7 @@ public final class CEHBiome {
                 + " found=" + result.foundBiomeId
                 + " pos=" + result.foundPos.toShortString()
                 + " manhattanDistance=" + result.manhattanDistance
+                + " time=" + result.elapsedMs + "ms"
         ), false);
         return 1;
     }
@@ -273,6 +274,7 @@ public final class CEHBiome {
                 + " loadedChunks=" + result.loadedChunkCount
                 + " sampledCells=" + result.sampledCellCount
                 + " areas=" + result.areas.size()
+                + " time=" + result.elapsedMs + "ms"
         ), false);
         source.sendSuccess(() -> Component.literal(
             "playerTouching=" + String.join(", ", result.playerTouchingBiomes.isEmpty() ? java.util.List.of("(none)") : result.playerTouchingBiomes)
