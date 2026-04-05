@@ -15,6 +15,7 @@ package com.example.examplemod;
 import com.example.examplemod.chat.SteveAiChatReplyPacket;
 import com.example.examplemod.chat.SteveAiChatRequestPacket;
 import com.example.examplemod.chat.SteveAiChatSessionPacket;
+import com.example.examplemod.marker.SteveAiMarkerPacket;
 
 import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.SimpleChannel;
@@ -44,6 +45,12 @@ public class ModNetworking {
             .encoder(SteveAiChatSessionPacket::encode)
             .decoder(SteveAiChatSessionPacket::decode)
             .consumerNetworkThread(SteveAiChatSessionPacket::handle)
+            .add();
+
+        CHANNEL.messageBuilder(SteveAiMarkerPacket.class, packetId++)
+            .encoder(SteveAiMarkerPacket::encode)
+            .decoder(SteveAiMarkerPacket::decode)
+            .consumerNetworkThread(SteveAiMarkerPacket::handle)
             .add();
     }
 }

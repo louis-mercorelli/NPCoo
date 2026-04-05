@@ -1850,6 +1850,9 @@ public class SteveAiScanManager {
             throw new IllegalArgumentException("serverLevel is null");
         }
 
+        // Keep POI summary aligned with the scan snapshot being written.
+        updatePoiMapFromCurrentScan();
+
         String safeSuffix = sanitizeSuffix(suffix);
 
         Path baseFolder = SteveAiContextFiles.getSteveAiDataDir(serverLevel);

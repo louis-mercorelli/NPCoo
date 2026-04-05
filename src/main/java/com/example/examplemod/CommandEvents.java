@@ -56,6 +56,7 @@ import net.minecraft.server.level.ServerPlayer;
 import com.example.examplemod.gui.CEHGuiInventory;
 import com.sai.InventoryService;
 import com.example.examplemod.chat.CEHChat;
+import com.example.examplemod.marker.CEHMarker;
 import com.example.examplemod.poi.CEHPoi;
 import com.example.examplemod.scan.CEHBiome;
 import com.example.examplemod.scan.CEHLookSee;
@@ -339,6 +340,7 @@ public class CommandEvents {
                             .then(Commands.argument("count", IntegerArgumentType.integer(1))
                                 .executes(ctx -> InventoryService.handleInvDrop(ctx, IntegerArgumentType.getInteger(ctx, "count"))))))
                     .then(Commands.literal("writeNow").executes(CEHWrite::handleWriteNow))
+                    .then(CEHMarker.buildSetMarkerCommand())
                     .then(Commands.argument("message", StringArgumentType.greedyString()).executes(CEHChat::handleSteveAiChat))
                     .then(Commands.literal("POIfind")
                         .executes(ctx -> CEHScan.handlePoiFind(ctx, 8, 100, false, false))
