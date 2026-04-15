@@ -45,17 +45,14 @@ public final class ClientMarkerOverlayEvents {
         int dz = nearest.getZ() - playerPos.getZ();
         double dist = Math.sqrt((double) dx * dx + (double) dy * dy + (double) dz * dz);
 
-        String direction = directionText(dx, dz);
-        String vertical = dy > 2 ? "up" : (dy < -2 ? "down" : "level");
+        String heading = headingIndicator(mc.player.getYRot(), dx, dz);
 
         String msg = String.format(
-            "Marker %s dist=%.1f dir=%s vert=%s active=%d",
+            "Marker %s dist=%.1f %s",
             nearest.toShortString(),
             dist,
-            direction,
-            vertical,
-            markers.size()
-        );
+            heading
+        ).stripTrailing();
 
         mc.player.displayClientMessage(Component.literal(msg), true);
 
@@ -76,23 +73,18 @@ public final class ClientMarkerOverlayEvents {
         return best;
     }
 
-    private static String directionText(int dx, int dz) {
-        if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
-            return "arrived";
-        }
+    private static String headingIndicator(float playerYaw, int dx, int dz) {
+        // bearing in Minecraft yaw convention: 0=south, 90=west, -90=east, 180=north
+        double bearing = Math.toDegrees(Math.atan2(-dx, dz));
+        double diff = bearing - playerYaw;
+        // normalize to -180..180
+        diff = ((diff % 360.0) + 360.0) % 360.0;
+        if (diff > 180.0) diff -= 360.0;
 
-        double angle = Math.toDegrees(Math.atan2(dz, dx));
-        // Convert to compass heading where 0=N, 90=E.
-        double heading = (90.0 - angle + 360.0) % 360.0;
-
-        if (heading >= 337.5 || heading < 22.5) return "N";
-        if (heading < 67.5) return "NE";
-        if (heading < 112.5) return "E";
-        if (heading < 157.5) return "SE";
-        if (heading < 202.5) return "S";
-        if (heading < 247.5) return "SW";
-        if (heading < 292.5) return "W";
-        return "NW";
+        if (Math.abs(diff) <= 45.0) return "^";
+        if (diff > 45.0 && diff < 135.0) return "<";
+        if (diff < -45.0 && diff > -135.0) return ">";
+        return ""; // behind
     }
 
     private static void spawnMarkerParticleHint(Minecraft mc, BlockPos marker) {
